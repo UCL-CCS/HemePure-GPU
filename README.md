@@ -1,5 +1,5 @@
 # HemePure_GPU
-GPU version of HemePure 
+GPU version of HemePure \n\n
 Build dependencies before attempting to build HemePure.
 
 DEPENDENCIES
