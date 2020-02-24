@@ -3,6 +3,7 @@
 // 7-1-2019
 
 #include <stdio.h>
+#include "units.h"
 
 #ifdef HEMELB_USE_GPU
 #include "cuda_kernels_def_decl/cuda_params.h"
@@ -33,12 +34,12 @@ namespace hemelb
 	// This information is in ioletIntersection, see geometry/SiteDataBare.h
 	// 
 	//**************************************************************
-	__global__ void GPU_CollideStream_3_NashZerothOrderPressure(double* GMem_dbl_fOld_b, 
-																double* GMem_dbl_fNew_b, 
-																double* GMem_dbl_MacroVars, 
+	__global__ void GPU_CollideStream_3_NashZerothOrderPressure(distribn_t* GMem_dbl_fOld_b, 
+																distribn_t* GMem_dbl_fNew_b, 
+																distribn_t* GMem_dbl_MacroVars, 
 																int64_t* GMem_int64_Neigh,
 																uint32_t* GMem_uint32_Iolet_Link, 										
-																double* GMem_ghostDensity,
+																distribn_t* GMem_ghostDensity,
 																float* GMem_inletNormal,
 																int nInlets,										
 																uint64_t nArr_dbl, 
@@ -49,7 +50,7 @@ namespace hemelb
 		
 		if(Ind >= upper_limit)
 			return;
-	/*
+	
 		// Load the distribution functions		
 		//f[19] and fEq[19]
 		double dev_ff[19], dev_fEq[19]; 
@@ -124,7 +125,7 @@ namespace hemelb
 
 		__syncthreads(); // Check if needed!
 		
-
+		
 		// --------------------------------------------------------------------------------
 		// Streaming Step:
 		// a. Load the streaming indices
@@ -137,8 +138,8 @@ namespace hemelb
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 		
 		// printf("Number of inlets: %d \n\n", nInlets);
-		double *ghost_dens = new double[nInlets];	// c. The ghost density		
-		float *inletNormal = new float[3*nInlets];	// d. The inletNormal
+		distribn_t ghost_dens; // = 0.0; //new distribn_t[nInlets];	// c. The ghost density		
+		float inletNormal_x, inletNormal_y, inletNormal_z; 
 	
 	
 		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
@@ -156,19 +157,29 @@ namespace hemelb
 		// b. Iolet-Fluid links info: 
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];				
 
-
+		/*
 		ghost_dens[0] = GMem_ghostDensity[0];
 
 		inletNormal[0] = GMem_inletNormal[0];
 		inletNormal[1] = GMem_inletNormal[1];
 		inletNormal[2] = GMem_inletNormal[2];
+		*/
 
-		// printf("ghost_dens[0]: %.5f, inletNormal_x = %.5f, inletNormal_y = %.5f, inletNormal_z = %.5f  \n\n", ghost_dens[0], inletNormal[0], inletNormal[1], inletNormal[2]);
-		
+			
 		// Read the ghost density and the inlet Normal
 		// How do I distinguish which inlet ID do I have ??? Need to think about this... To do!!!
 		// Need to pass this info based on the site Index (from the initialisation process. With given site ranges -> int boundaryId = site.GetIoletId();)
-	
+		
+		// Find a way to pass the IdInlet - To do!!!
+		// Place that here: 
+		int IdInlet=0; // This will be replaced by whatever way we manage to read the inlet ID based on maybe fluid ID
+
+		ghost_dens = GMem_ghostDensity[IdInlet];
+		inletNormal_x = GMem_inletNormal[3*IdInlet];
+		inletNormal_y = GMem_inletNormal[3*IdInlet+1];
+		inletNormal_z = GMem_inletNormal[3*IdInlet+2];
+		
+	/*
 		for (int IdInlet=0; IdInlet<nInlets; IdInlet++) {
 			ghost_dens[IdInlet] = GMem_ghostDensity[IdInlet];
 			//printf("IdInlet: %d, ghost_dens[%d]: %.5f \n\n", IdInlet, IdInlet, ghost_dens[IdInlet]);
@@ -177,10 +188,12 @@ namespace hemelb
 			inletNormal[3*IdInlet+1] = GMem_inletNormal[3*IdInlet+1];
 			inletNormal[3*IdInlet+2] = GMem_inletNormal[3*IdInlet+2];			
 		}	
-	
-		
-		__syncthreads();
+	*/
+		// printf("ghost_dens[0]: %.5f, inletNormal_x = %.5f, inletNormal_y = %.5f, inletNormal_z = %.5f  \n\n", ghost_dens[0], inletNormal[0], inletNormal[1], inletNormal[2]);
 
+		__syncthreads();
+		
+		
 		// Put the new populations after collision in the GMem_dbl array, 
 		// implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 		
@@ -192,16 +205,20 @@ namespace hemelb
 			
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				
-				double component = velx*inletNormal[0] + vely*inletNormal[1] + velz*inletNormal[2];	// distribn_t component = (hydroVars.momentum / hydroVars.density).Dot(ioletNormal);
+				//=============================================================================================================	
+				// Not valid in general! Need to change!!!				
+				// (IdInlet=0) Here we assume that we have only one inlet and the value of int boundaryId = site.GetIoletId() = 1. Need to change in the future!!! 
+				double component = velx*inletNormal_x + vely*inletNormal_y + velz*inletNormal_z;	// distribn_t component = (hydroVars.momentum / hydroVars.density).Dot(ioletNormal);
 				
 				// ghostHydrovars.momentum = ioletNormal * component * ghostDensity;
-				double momentum_x = inletNormal[0] * component * ghost_dens[0];    
-				double momentum_y = inletNormal[1] * component * ghost_dens[0];
-				double momentum_z = inletNormal[2] * component * ghost_dens[0];
+				double momentum_x = inletNormal_x * component * ghost_dens;    
+				double momentum_y = inletNormal_y * component * ghost_dens;
+				double momentum_z = inletNormal_z * component * ghost_dens;
 				
+
 				//------------------------------------------------------------------------------------------------------
 				// Calculate Feq[unstreamed_dir] - Only the direction that is necessary
-				density_1 = 1.0 / ghost_dens[0];
+				density_1 = 1.0 / ghost_dens;
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
@@ -210,15 +227,18 @@ namespace hemelb
 									+ (double)_CY_19[unstreamed_dir] * momentum_y
 									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
-							* (ghost_dens[0] - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
+				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir] 
+							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
-				//------------------------------------------------------------------------------------------------------	
+				//------------------------------------------------------------------------------------------------------					
+				// Need to distinguish the int boundaryId = site.GetIoletId() correctly and pass the info (identify the proper ghost density and inlet-normals.
+				//=============================================================================================================
+	
+				// printf("Site ID = %lld - Inlet in Dir: %d, Unstreamed direction: %d, fEq = %.5e \n\n", Ind, LB_Dir, unstreamed_dir, dev_fEq_unstr);
 
-				printf("Site ID = %lld - Inlet in Dir: %d \n\n", Ind, LB_Dir);
 				// Case of NashZerothOrderPressure:
 				// *latticeData->GetFNew(site.GetIndex() * LatticeType::NUMVECTORS + unstreamed) = ghostHydrovars.GetFEq()[unstreamed];
-				// GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_fEq_unstr;				
+				GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_fEq_unstr;				
 				
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -257,7 +277,7 @@ namespace hemelb
 		GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 		GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
 		GMem_dbl_MacroVars[3ULL*nArr_dbl + Ind] = velz;
-		*/
+		
 	} // Ends the kernel GPU_Collide Type 2: mWallCollision: Case Fluid-Wall collision
 	//==========================================================================================
 
