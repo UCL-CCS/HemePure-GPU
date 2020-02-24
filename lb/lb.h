@@ -102,7 +102,7 @@ namespace hemelb
 				//IZ
 //========================================================================
 #ifdef HEMELB_USE_GPU
-				//GPU Data Addresses - Not used - Remove later if the plan is to just use the cuda thrust approach - See memory allocations for the distrib. functions 
+				//GPU Data Addresses - Remove later the ones not used - See memory allocations for the distrib. functions (method a and b)
 				void *GPUDataAddr_dbl_fOld, *GPUDataAddr_dbl_fNew;
 				void *GPUDataAddr_dbl_MacroVars;
 				void *GPUDataAddr_int64_Neigh;
@@ -110,6 +110,7 @@ namespace hemelb
 				void *GPUDataAddr_uint32_Iolet;
 
 				void *d_ghostDensity, *d_inletNormal;	// ghostDensity and inlet Normals 
+				void *d_ghostDensity_out, *d_outletNormal;	// ghostDensity and inlet Normals 
 
 				void *GPUDataAddr_dbl_fOld_b, *GPUDataAddr_dbl_fNew_b;
 				void *GPUDataAddr_int64_Neigh_b;

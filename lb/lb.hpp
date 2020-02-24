@@ -432,7 +432,7 @@ namespace hemelb
 
 					//					
 										
-					for (unsigned int ii = 0; ii < LatticeType::NUMVECTORS; ii++)
+					for (int ii = 0; ii < LatticeType::NUMVECTORS; ii++)
 					{
 						//******************************************************************************	
 						// FNew index in hemeLB array (after streaming): site.GetStreamedIndex<LatticeType> (ii) = the element in the array neighbourIndices[iSiteIndex * LatticeType::NUMVECTORS + iDirectionIndex];
@@ -444,9 +444,20 @@ namespace hemelb
 						// Applies if streaming ends within the domain in the same rank. 
 						// If not then the postcollision fNew will stream in the neighbouring rank. 
 						// It will be placed then in location for the totalSharedFs
-						//******************************************************************************
 
-						if (site.HasWall(ii)){
+						// Need to include the case of inlet BCs - Unstreamed Unknown populations - To do!!!
+						//******************************************************************************
+						
+						
+						if (site.HasIolet(ii)) //ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
+						{											
+							int unstreamed_dir = LatticeType::INVERSEDIRECTIONS[ii];
+
+							// unsigned long long heme_Index_Array = siteIndex * LatticeType::NUMVECTORS + unstreamed_dir;
+							*(mLatDat->GetFNew(siteIndex * LatticeType::NUMVECTORS + unstreamed_dir)) = fNew_GPU_b[unstreamed_dir* nFluid_nodes + siteIndex] ; // ghostHydrovars.GetFEq()[unstreamed];
+
+						}
+						else if (site.HasWall(ii)){
 							// Propagate the post-collisional f into the opposite direction - Simple Bounce Back: same FluidIndex
 							unsigned long long BB_Index_Array = siteIndex * LatticeType::NUMVECTORS + LatticeType::INVERSEDIRECTIONS[ii];
 							*(mLatDat->GetFNew(BB_Index_Array)) = fNew_GPU_b[(LatticeType::INVERSEDIRECTIONS[ii])* nFluid_nodes + siteIndex];		
@@ -974,13 +985,31 @@ template<class LatticeType>
 				// Ghost Density if Inlet/Outlet BCs is set to NashZerothOrderPressure
 				// Just allocate the memory as the ghostDensity can change as a function of time. MemCopies(host-to-device) before the gpu inlet/outlet collision kernels
 				int n_Inlets = mInletValues->GetLocalIoletCount();
-				//printf("Number of inlets: %d \n\n", n_Inlets);
+				int n_Outlets = mOutletValues->GetLocalIoletCount();
+				//printf("Number of inlets: %d, Outlets: %d \n\n", n_Inlets, n_Outlets);
 
+				/*
+				for (int i=0; i<n_Inlets; i++){
+					lb::iolets::InOutLet *local_iolet_ID =mInletValues->GetLocalIolet(i);	
+					//mInletValues->GetIoletType();
+				}
+				*/
+				/*
+				// Check what is mInletValues->GetIoletType?
+				int first_iolet_ID = mInletValues->localIoletIDs[0];
+				printf("Number of inlets: %d, First iolet ID: %d \n\n", n_Inlets, first_iolet_ID);
+				*/
+
+				// Ghost Density Inlet - Outlet
 				cudaStatus = cudaMalloc((void**)&d_ghostDensity, n_Inlets * sizeof(distribn_t));
+				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation ghostDensity failed\n"); return false; }																
+
+				cudaStatus = cudaMalloc((void**)&d_ghostDensity_out, n_Outlets * sizeof(distribn_t));
 				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation ghostDensity failed\n"); return false; }																
 				//
 				
 				// Normals to Iolets					
+				// Inlets:
 				float* h_inletNormal = new float[3*n_Inlets]; 	// x,y,z components		
 				for (int i=0; i<n_Inlets; i++){
 					util::Vector3D<float> ioletNormal = mInletValues->GetLocalIolet(i)->GetNormal();					
@@ -995,9 +1024,24 @@ template<class LatticeType>
 				// Memory copy from host (h_inletNormal) to Device (d_inletNormal) 				
 				cudaStatus = cudaMemcpy(d_inletNormal, h_inletNormal, 3*n_Inlets * sizeof(float), cudaMemcpyHostToDevice);
 				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n"); return false; }
+
+				// Outlets:
+				float* h_outletNormal = new float[3*n_Outlets]; 	// x,y,z components		
+				for (int i=0; i<n_Outlets; i++){
+					util::Vector3D<float> ioletNormal = mOutletValues->GetLocalIolet(i)->GetNormal();					
+					h_outletNormal[3*i] = ioletNormal.x;
+					h_outletNormal[3*i+1] = ioletNormal.y;
+					h_outletNormal[3*i+2] = ioletNormal.z;					
+					//std::cout << "Cout: ioletNormal.x : " <<  h_outletNormal[3*i] << " - ioletNormal.y : " <<  h_outletNormal[3*i+1] << " - ioletNormal.z : " <<  h_outletNormal[3*i+2] << std::endl;
+				}
+				
+				cudaStatus = cudaMalloc((void**)&d_outletNormal, 3*n_Outlets * sizeof(float));
+				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation outletNormal failed\n"); return false; }												
+				// Memory copy from host (h_outletNormal) to Device (d_outletNormal) 				
+				cudaStatus = cudaMemcpy(d_outletNormal, h_outletNormal, 3*n_Outlets * sizeof(float), cudaMemcpyHostToDevice);
+				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n"); return false; }
 				//***********************************************************************************************************************************
-
-
+				
 
 
 
@@ -1379,75 +1423,189 @@ template<class LatticeType>
 				//
 				//---------------------------------------------------------------------------------------------------------------------------------------------------
 				// ====================================================================================================================================================
-
-
-
+				
+				// ====================================================================================================================================================
 				// Collision Type 3:
 				offset += mLatDat->GetMidDomainCollisionCount(1);
-				StreamAndCollide(mInletCollision, offset, mLatDat->GetMidDomainCollisionCount(2));
-
+				//StreamAndCollide(mInletCollision, offset, mLatDat->GetMidDomainCollisionCount(2));
 				
-				// Inlet BCs: NashZerothOrderPressure - Specify the ghost density for each inlet
-				// Pass the ghost density[nInlets] to the GPU kernel (cudaMemcpy):
-				cudaError_t cudaStatus;
-				int n_Inlets = mInletValues->GetLocalIoletCount();
-				// printf("Before the Kernel: Number of inlets: %d \n\n", n_Inlets);				
-
-				distribn_t* h_ghostDensity = new distribn_t[n_Inlets];
-
-				for (int i=0; i<n_Inlets; i++){
-					h_ghostDensity[i] = mInletValues->GetBoundaryDensity(i);										
-					// std::cout << "Cout: GhostDensity : " << h_ghostDensity[i] << std::endl;
-				}				
-				if (myPiD!=0){ // MemCopy cudaMemcpyHostToDevice only if rank!=0													
-					// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity) 				
-					cudaStatus = cudaMemcpy(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (ghostDensity) Host To Device failed\n"); //return false; 
-					}					
-				}
-				if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
-
-				// GPU COLLISION KERNEL: 
 				// Fluid ID range: [first_Index, first_Index + site_Count)
 				first_Index = offset;	// Start Fluid Index
 				site_Count = mLatDat->GetMidDomainCollisionCount(2);
+				
+				// Inlet BCs: NashZerothOrderPressure - Specify the ghost density for each inlet
+				//	Pass the ghost density[nInlets] to the GPU kernel (cudaMemcpy):
+				// To do: 
+				//	In the future pass the info for the inlet/outlet ID (id/out of nInlets)
+				//	The info is in:  int boundaryId = site.GetIoletId();
+				//	Total iolets: n_Inlets = mInletValues->GetLocalIoletCount();
+				int n_Inlets = mInletValues->GetLocalIoletCount();
+				// printf("Before the Kernel: Number of inlets: %d \n\n", n_Inlets);			
 
-				// Read the fOld distr. from host-to-device - Remove later: Necessary at Development only phase!!!
-				if(myPiD!=0) Read_DistrFunctions_CPU_to_GPU(first_Index, site_Count); // Mem. Copy Host to Device - Synchronous!!!
+				distribn_t* h_ghostDensity = new distribn_t[n_Inlets];
 
-				if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
-				//-------------------------------------
-				// Kernel set-up
-				nBlocks_Collide = site_Count/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
+				cudaError_t cudaStatus;
+				// Proceed with the collision type if the number of fluid nodes involved is not ZERO
+				if (site_Count!=0){
+					
+					for (int i=0; i<n_Inlets; i++){
+						h_ghostDensity[i] = mInletValues->GetBoundaryDensity(i);										
+						// std::cout << "Cout: GhostDensity : " << h_ghostDensity[i] << std::endl;
+					}				
+					if (myPiD!=0){ // MemCopy cudaMemcpyHostToDevice only if rank!=0													
+						// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity) 				
+						cudaStatus = cudaMemcpy(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), cudaMemcpyHostToDevice);
+						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (ghostDensity) Host To Device failed\n"); //return false; 
+						}					
+					}
+					if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+
+					// Read the fOld distr. from host-to-device - Remove later: Necessary at Development only phase!!!
+					if(myPiD!=0) Read_DistrFunctions_CPU_to_GPU(first_Index, site_Count); // Mem. Copy Host to Device - Synchronous!!!
+
+					if(myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+					
+					//-------------------------------------
+					// GPU COLLISION KERNEL: 
+					// Kernel set-up
+					nBlocks_Collide = site_Count/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
 								
-				// To access the data in GPU global memory: 
-				// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)			
-				//Inlet BCs: Remember that at the moment this is ONLY valid for NashZerothOrderPressure
+					// To access the data in GPU global memory: 
+					// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)			
+					//Inlet BCs: Remember that at the moment this is ONLY valid for NashZerothOrderPressure
 				
-				hemelb::GPU_CollideStream_3_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide>>> (	(double*)GPUDataAddr_dbl_fOld_b, 
-																												(double*)GPUDataAddr_dbl_fNew_b, 
-																												(double*)GPUDataAddr_dbl_MacroVars, 
-																												(int64_t*)GPUDataAddr_int64_Neigh_b,
-																												(uint32_t*)GPUDataAddr_uint32_Iolet,
-																												(distribn_t*)d_ghostDensity,
-																												(float*)d_inletNormal,
-																												n_Inlets,
-																												(mLatDat->GetLocalFluidSiteCount()), 
-																												first_Index, (first_Index + site_Count), mLatDat->totalSharedFs); // 
+					/*
+					if(myPiD!=0) {
+						printf("Kernels' details: Simulation is being executed ... \n");
+						std::cout << "Using " << nBlocks_Collide << " blocks of " << nThreadsPerBlock_Collide << " threads for the Collision (type 3) step of the Lattice Boltzmann Method - Mid-domain" << '\n'; 							
+					}*/
+
+					if(n_Inlets==0) printf("Error!!! nInlets = 0 \n\n");
+
+					// Need to check first that there are indeed fluid nodes over which to perform the collision streaming step for this type of Collision - Otherwise the kernel launch is not properly launched (invalid configuration) 
+					// Add the following check (if nBlocks_Collide!=0 or site_Count!=0) for all cuda kernels launches. To do!!! 					
+					if (n_Inlets!=0 || nBlocks_Collide!=0 ) 
+						hemelb::GPU_CollideStream_3_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide>>> (	(double*)GPUDataAddr_dbl_fOld_b, 
+																													(double*)GPUDataAddr_dbl_fNew_b, 
+																													(double*)GPUDataAddr_dbl_MacroVars, 
+																													(int64_t*)GPUDataAddr_int64_Neigh_b,
+																													(uint32_t*)GPUDataAddr_uint32_Iolet,
+																													(distribn_t*)d_ghostDensity,
+																													(float*)d_inletNormal,
+																													n_Inlets,
+																													(mLatDat->GetLocalFluidSiteCount()), 
+																													first_Index, (first_Index + site_Count), mLatDat->totalSharedFs); // 
 				
-				// Synchronisation point - Must include this at the end of all the GPU kernels launched in PreReceive, as the cuda kernels are launched and then control is returned to the CPU - Must wait to complete
-				cudaDeviceSynchronize();				
-				if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
-				//---------------------------------------------------------------------------------------------------------------------------------------------------
+					// Synchronisation point - Must include this at the end of all the GPU kernels launched in PreReceive, as the cuda kernels are launched and then control is returned to the CPU - Must wait to complete
+					cudaDeviceSynchronize();				
+					if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+					//---------------------------------------------------------------------------------------------------------------------------------------------------
 				
-				//---------------------------------------------------------------------------------------------------------------------------------------------------
-				// For the development phase - Add at the end of all the GPU collision kernels in PreReceive() with a synchronization barrier before it! To do!!!
-				// Memory transfer from the GPU to the CPU - so that all info for the fNew is on the CPU rather than the GPU				
-				// Already defined above: lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
-				if(myPiD!=0) Read_DistrFunctions_GPU_to_CPU(first_Index, site_Count, propertyCache); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.  
+					//---------------------------------------------------------------------------------------------------------------------------------------------------
+					// For the development phase - Add at the end of all the GPU collision kernels in PreReceive() with a synchronization barrier before it! To do!!!
+					// Memory transfer from the GPU to the CPU - so that all info for the fNew is on the CPU rather than the GPU				
+					// Already defined above: lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
+					if(myPiD!=0) Read_DistrFunctions_GPU_to_CPU(first_Index, site_Count, propertyCache); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.  
+					
+					//----------------------------------------------------------
+					// Delete the variables use for cudaMemcpy 				
+					delete[] h_ghostDensity;				
+					//----------------------------------------------------------
+				}
+				// ends the if site_Count!=0
+				// ====================================================================================================================================================
+
+				// ====================================================================================================================================================
+				// Collision Type 4:
+				offset += mLatDat->GetMidDomainCollisionCount(2);
+				StreamAndCollide(mOutletCollision, offset, mLatDat->GetMidDomainCollisionCount(3));
+
+				// Fluid ID range: [first_Index, first_Index + site_Count)
+				first_Index = offset;	// Start Fluid Index
+				site_Count = mLatDat->GetMidDomainCollisionCount(3);
+				
+				// Outlet BCs: NashZerothOrderPressure - Specify the ghost density for each outlet
+				//	Pass the ghost density_out[nInlets] to the GPU kernel (cudaMemcpy):
+				// To do: 
+				//	In the future pass the info for the inlet/outlet ID 
+				//	The info is in:  int boundaryId = site.GetIoletId();
+				//	Total iolets: n_Outlets = mOutletValues->GetLocalIoletCount();
+				int n_Outlets = mOutletValues->GetLocalIoletCount();
+				//printf("Before the Kernel: Number of Outlets: %d \n\n", n_Outlets);			
+
+				distribn_t* h_ghostDensity_out = new distribn_t[n_Outlets];
+								
+				// Proceed with the collision type if the number of fluid nodes involved is not ZERO
+				if (site_Count!=0){
+					
+					for (int i=0; i<n_Outlets; i++){
+						h_ghostDensity_out[i] = mOutletValues->GetBoundaryDensity(i);										
+						//std::cout << "Cout: GhostDensity Out: " << h_ghostDensity_out[i] << std::endl;
+					}				
+					if (myPiD!=0){ // MemCopy cudaMemcpyHostToDevice only if rank!=0													
+						// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity) 				
+						cudaStatus = cudaMemcpy(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), cudaMemcpyHostToDevice);
+						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (ghostDensity_out) Host To Device failed\n"); //return false; 
+						}					
+					}
+					if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+
+					// Read the fOld distr. from host-to-device - Remove later: Necessary at Development only phase!!!
+					if(myPiD!=0) Read_DistrFunctions_CPU_to_GPU(first_Index, site_Count); // Mem. Copy Host to Device - Synchronous!!!
+
+					if(myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+					
+					//-------------------------------------
+					// GPU COLLISION KERNEL: 
+					// Kernel set-up
+					nBlocks_Collide = site_Count/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
+								
+					// To access the data in GPU global memory: 
+					// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)			
+					//Outlet BCs: Remember that at the moment this is ONLY valid for NashZerothOrderPressure
+				
+					/*
+					if(myPiD!=0) {
+						printf("Kernels' details: Simulation is being executed ... \n");
+						std::cout << "Using " << nBlocks_Collide << " blocks of " << nThreadsPerBlock_Collide << " threads for the Collision (type 3) step of the Lattice Boltzmann Method - Mid-domain" << '\n'; 							
+					}*/
+
+					if(n_Outlets==0) printf("Error!!! nOutlets = 0 \n\n");
+
+					// Need to check first that there are indeed fluid nodes over which to perform the collision streaming step for this type of Collision - Otherwise the kernel launch is not properly launched (invalid configuration) 
+					// Add the following check (if nBlocks_Collide!=0 or site_Count!=0) for all cuda kernels launches. To do!!! 					
+					if (n_Outlets!=0 || nBlocks_Collide!=0 ) 
+						hemelb::GPU_CollideStream_3_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide>>> (	(double*)GPUDataAddr_dbl_fOld_b, 
+																													(double*)GPUDataAddr_dbl_fNew_b, 
+																													(double*)GPUDataAddr_dbl_MacroVars, 
+																													(int64_t*)GPUDataAddr_int64_Neigh_b,
+																													(uint32_t*)GPUDataAddr_uint32_Iolet,
+																													(distribn_t*)d_ghostDensity_out,
+																													(float*)d_outletNormal,
+																													n_Outlets,
+																													(mLatDat->GetLocalFluidSiteCount()), 
+																													first_Index, (first_Index + site_Count), mLatDat->totalSharedFs); // 
+				
+					// Synchronisation point - Must include this at the end of all the GPU kernels launched in PreReceive, as the cuda kernels are launched and then control is returned to the CPU - Must wait to complete
+					cudaDeviceSynchronize();				
+					if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function. 
+					//---------------------------------------------------------------------------------------------------------------------------------------------------
+				
+					//---------------------------------------------------------------------------------------------------------------------------------------------------
+					// For the development phase - Add at the end of all the GPU collision kernels in PreReceive() with a synchronization barrier before it! To do!!!
+					// Memory transfer from the GPU to the CPU - so that all info for the fNew is on the CPU rather than the GPU				
+					// Already defined above: lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
+					if(myPiD!=0) Read_DistrFunctions_GPU_to_CPU(first_Index, site_Count, propertyCache); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.  
+					
+					//----------------------------------------------------------
+					// Delete the variables use for cudaMemcpy 				
+					delete[] h_ghostDensity_out;				
+					//----------------------------------------------------------
+				}
+				// ends the if site_Count!=0
 
 
-
+				// ====================================================================================================================================================
 
 #else	// If computations on CPUs
 				//=====================================================================================
@@ -1462,6 +1620,11 @@ template<class LatticeType>
 				// Collision Type 3:
 				offset += mLatDat->GetMidDomainCollisionCount(1);
 				StreamAndCollide(mInletCollision, offset, mLatDat->GetMidDomainCollisionCount(2));
+
+				// Collision Type 4:
+				offset += mLatDat->GetMidDomainCollisionCount(2);
+				StreamAndCollide(mOutletCollision, offset, mLatDat->GetMidDomainCollisionCount(3));
+
 
 				//=====================================================================================
 #endif
@@ -1521,9 +1684,7 @@ template<class LatticeType>
 
 				
 				
-				// Collision Type 4:
-				offset += mLatDat->GetMidDomainCollisionCount(2);
-				StreamAndCollide(mOutletCollision, offset, mLatDat->GetMidDomainCollisionCount(3));
+				
 
 				// Collision Type 5:
 				offset += mLatDat->GetMidDomainCollisionCount(3);
@@ -1532,13 +1693,7 @@ template<class LatticeType>
 				// Collision Type 6:
 				offset += mLatDat->GetMidDomainCollisionCount(4);
 				StreamAndCollide(mOutletWallCollision, offset, mLatDat->GetMidDomainCollisionCount(5));
-
-
-				//----------------------------------------------------------
-				// Delete the variables use for cudaMemcpy 				
-				delete[] h_ghostDensity;
-				
-				//----------------------------------------------------------
+											
 
 				timings[hemelb::reporting::Timers::lb_calc].Stop();
 				timings[hemelb::reporting::Timers::lb].Stop();
