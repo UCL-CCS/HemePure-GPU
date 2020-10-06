@@ -16,6 +16,10 @@
 #include "net/mpi.h"
 #include "net/MpiCommunicator.h"
 
+#ifdef HEMELB_USE_GPU
+#include "cuda_runtime.h"
+#endif
+
 namespace hemelb
 {
   namespace net
@@ -57,6 +61,17 @@ namespace hemelb
         {
           return communicator.Size();
         }
+
+#ifdef HEMELB_USE_GPU
+        bool Synchronise_memCpy_GPU_CPU_domainEdge();
+        bool Create_stream_memCpy_GPU_CPU_domainEdge_new2();
+        bool Destroy_stream_memCpy_GPU_CPU_domainEdge_new2();
+        cudaStream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
+
+        // Added 17 March 2020
+        cudaStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
+#endif
+
       protected:
         virtual void SendPointToPoint()=0;
         virtual void SendGathers()=0;
@@ -103,6 +118,11 @@ namespace hemelb
          */
         std::vector<std::vector<int> > displacementsBuffer;
         std::vector<std::vector<int> > countsBuffer;
+
+        /*
+        // Added 17 March
+        cudaStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
+        */
     };
   }
 }

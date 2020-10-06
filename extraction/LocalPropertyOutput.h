@@ -56,7 +56,7 @@ namespace hemelb
          * Write this core's section of the data file. Only writes if appropriate for the current
          * iteration number
          */
-        void Write(unsigned long timestepNumber);
+        void Write(unsigned long timestepNumber, unsigned long max_timestepNumber );
 
       private:
         /**
@@ -77,6 +77,11 @@ namespace hemelb
          * The MPI file to write into.
          */
         net::MpiFile outputFile;
+
+        // Added July 2020
+        std::vector<MPI_Request> requests_Write;
+        MPI_Status status;
+        //
 
         /**
          * The data source to use for file output.

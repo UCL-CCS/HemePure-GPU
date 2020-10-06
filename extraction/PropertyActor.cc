@@ -6,6 +6,12 @@
 
 #include "extraction/PropertyActor.h"
 
+/*
+// Added 18 July 2020 - Multithreading
+#include "extraction/asynch_write.h"
+//Threads Worker;
+*/
+
 namespace hemelb
 {
   namespace extraction
@@ -18,11 +24,18 @@ namespace hemelb
         simulationState(simulationState), timers(timers)
     {
       propertyWriter = new PropertyWriter(dataSource, propertyOutputs, ioComms);
+
+      // Added 5 August 2020
+      int max_sim_time = GetMaxSimTime();
     }
 
     PropertyActor::~PropertyActor()
     {
       delete propertyWriter;
+    }
+
+    int PropertyActor::GetMaxSimTime(){
+      return(simulationState.GetTotalTimeSteps());
     }
 
     void PropertyActor::SetRequiredProperties(lb::MacroscopicPropertyCache& propertyCache)
@@ -82,10 +95,43 @@ namespace hemelb
       }
     }
 
+/*
+    int ThreadWork_Save_Files(Threads::Thread* thread){
+      // propertyWriter->Write(simulationState.GetTimeStep());
+      printf("Thread Id = %i \n", thread->Id);
+      printf("Finished (%i)\n", thread->Id);
+      return 0;
+    }
+
+    int PropertyActor::thread_Write()
+    {
+      propertyWriter->Write(simulationState.GetTimeStep());
+      //std::thread thread_ForWrite(&thread_function);   // t starts running
+      return 0;
+    }
+*/
+
     void PropertyActor::EndIteration()
     {
       timers[reporting::Timers::extractionWriting].Start();
-      propertyWriter->Write(simulationState.GetTimeStep());
+
+      propertyWriter->Write(simulationState.GetTimeStep(), simulationState.GetTotalTimeSteps() );
+
+      // Worker.WaitFinish();		//Wait for all threads to finish work
+      // thread_Write();
+
+      /**
+        Initialise the thread (threadWrite) with the public member function (thread_Write) of the class PropertyActor
+        and pass an object of the class (this), which defines this member function
+
+      std::thread threadWrite(&PropertyActor::thread_Write, this);
+      */
+
+      //Worker.RunThreadsAsync(1, (PropertyActor::thread_Write()));
+
+      //Worker.RunThreadsAsync(1, ThreadWork_Save_Files);
+      //Worker.RunThreadsAsync(1, propertyWriter->Write(simulationState.GetTimeStep()) );
+
       timers[reporting::Timers::extractionWriting].Stop();
     }
 

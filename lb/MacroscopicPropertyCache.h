@@ -83,6 +83,14 @@ namespace hemelb
          */
         util::RefreshableCache<util::Vector3D<LatticeStress> > tangentialProjectionTractionCache;
 
+#ifdef HEMELB_USE_GPU
+        /**
+         * The cache of wall Mom for each fluid site on Iolets on this core.
+         */
+        util::RefreshableCache<util::Vector3D<distribn_t> > wallMom_Cache;
+        std::vector<util::Vector3D<distribn_t> > wallMom_Cache_Vect3D;
+#endif
+
       private:
         /**
          * The state of the simulation, including the number of timesteps passed.

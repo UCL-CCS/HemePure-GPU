@@ -26,7 +26,7 @@ namespace hemelb
        * class is a dependent name (i.e. only know on instantiation) and
        * unqualified names are assumed to be non-dependent we cannot use
        * CollisionType and LatticeType in subclasses without using the (rather
-       * lond) name of the appropriate instantiation of this template.
+       * long) name of the appropriate instantiation of this template.
        *
        * Subclasses should therefore redeclare CollisionType and LatticeType
        * for their convenience.
@@ -69,6 +69,26 @@ namespace hemelb
                                  const Direction& direction)
           {
           }
+
+
+	         /**
+           * Perform the streaming operation from site along direction
+           *
+           * hydroVars must be post-collision
+           *
+           * @param latticeData
+           * @param site
+           * @param hydroVars
+           * @param direction
+           */
+          inline void Eval_wallMom(const LbmParameters* lbmParams,
+                                 geometry::LatticeData* const latticeData,
+                                 const geometry::Site<geometry::LatticeData>& site,
+                                 kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+                                 const Direction& direction)
+          {
+          }
+
 
           /**
            * Perform any post-step operations for the link from site along direction

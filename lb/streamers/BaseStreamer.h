@@ -83,6 +83,26 @@ namespace hemelb
 										propertyCache);
 							}
 
+#ifdef HEMELB_USE_GPU
+							template<bool tDoRayTracing>
+								//inline std::vector<util::Vector3D<double> > GetWallMom(const site_t firstIndex,
+								inline void GetWallMom(const site_t firstIndex,
+										const site_t siteCount,
+										const LbmParameters* lbmParams,
+										geometry::LatticeData* latDat,
+										lb::MacroscopicPropertyCache& propertyCache)
+								{
+									// The template parameter is required because we're using the CRTP to call a
+									// metaprogrammed method of the implementation class.
+									static_cast<StreamerImpl*> (this)->template DoGetWallMom<tDoRayTracing> (firstIndex,
+											siteCount,
+											lbmParams,
+											latDat,
+											propertyCache);
+								}
+#endif
+
+
 					protected:
 						template<bool tDoRayTracing, class LatticeType>
 							inline static void UpdateMinsAndMaxes(const geometry::Site<geometry::LatticeData>& site,

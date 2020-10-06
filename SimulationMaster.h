@@ -25,6 +25,7 @@
 #include "net/phased/NetConcern.h"
 #include "geometry/neighbouring/NeighbouringDataManager.h"
 
+
 class SimulationMaster
 {
   public:
@@ -43,7 +44,7 @@ class SimulationMaster
     }
     void Finalise();
 
-#ifdef HEMELB_USE_GPU	
+#ifdef HEMELB_USE_GPU
 	void check_GPU_capabilities();
 	// void FinaliseGPU();
 	// Should Abort if no GPUs are found - or change to CPU only sims
@@ -66,7 +67,7 @@ class SimulationMaster
 
   private:
     void Initialise();
-	
+
     void SetupReporting(); // set up the reporting file
     unsigned int OutputPeriod(unsigned int frequency);
     void HandleActors();

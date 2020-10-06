@@ -120,6 +120,7 @@ namespace hemelb
 			{
 				public:
 					typedef CollisionImpl CollisionType;
+					std::vector<util::Vector3D<double> > wallMom_Vect3D;
 
 				private:
 					CollisionType collider;
@@ -195,6 +196,75 @@ namespace hemelb
 								}
 							}
 						}
+
+//------------------------------------------------------------------------------
+#ifdef HEMELB_USE_GPU
+					template<bool tDoRayTracing>
+						//inline std::vector<util::Vector3D<double> > DoGetWallMom(const site_t firstIndex,
+						inline void DoGetWallMom(const site_t firstIndex,
+												const site_t siteCount,
+												const LbmParameters* lbmParams,
+												geometry::LatticeData* latDat,
+												lb::MacroscopicPropertyCache& propertyCache)
+						{
+
+							//std::vector<util::Vector3D<double> > wallMom_Vect3D;
+
+							LatticeVelocity wallMom_received; // typedef util::Vector3D<LatticeSpeed> LatticeVelocity;
+							std::vector<double> wallMom_Vect_x;
+							std::vector<double> wallMom_Vect_y;
+							std::vector<double> wallMom_Vect_z;
+
+							for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
+							{
+								geometry::Site<geometry::LatticeData> site = latDat->GetSite(siteIndex);
+								kernels::HydroVars<typename CollisionType::CKernel> hydroVars(site);
+
+								for (Direction direction = 0; direction < LatticeType::NUMVECTORS; direction++)
+								{
+									if (site.HasIolet(direction))
+									{
+										ioletLinkDelegate.Eval_wallMom(lbmParams, latDat, site, hydroVars, direction, &wallMom_received);
+										// printf("Entering Branch StreamerTypeFactory 1 \n"); // Yes... Enters this path
+									}
+									else
+									{
+										wallMom_received.x = 0.0; wallMom_received.y = 0.0; wallMom_received.z = 0.0;
+									}
+
+									/*
+									if (CollisionType::CKernel::LatticeType::IsLatticeCompressible())
+			            {
+			              wallMom_received *= 1.0; //propertyCache.densityCache.Get(siteIndex); //hydroVars.density; // CAREFULL: density is a parameter on the host. It has to be updated at every step for this to work!!!
+										printf("Loc.1 : Entering the loop for IsLatticeCompressible! Density = %.5f \n", propertyCache.densityCache.Get(siteIndex) );
+										//if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
+										//	printf("Loc:1, Dir: %d, Density: %.5f, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction, propertyCache.densityCache.Get(siteIndex), wallMom_received.x, wallMom_received.y, wallMom_received.z);
+									}
+									*/
+									/* // Testing - Print the density from the propertyCache
+									printf("Loc.1 - Density from densityCache: %.5f \n\n", propertyCache.densityCache.Get(siteIndex));
+
+									// Testing - print the values received
+									if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
+										printf("Loc:1, Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
+									*/
+
+									/*
+									wallMom_Vect_x.push_back(wallMom.x);
+									wallMom_Vect_y.push_back(wallMom.y);
+									wallMom_Vect_z.push_back(wallMom.z);
+									*/
+									//wallMom_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache.Put(site.GetIndex()*LatticeType::NUMVECTORS+direction, wallMom);
+									propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
+									}
+								}
+
+								//return wallMom_Vect3D;
+							}
+#endif
+//------------------------------------------------------------------------------
 			};
 
 			/**
@@ -214,6 +284,7 @@ namespace hemelb
 				public:
 					typedef CollisionImpl CollisionType;
 					typedef typename CollisionType::CKernel::LatticeType LatticeType;
+					std::vector<util::Vector3D<double> > wallMom_Vect3D;
 
 				private:
 					CollisionType collider;
@@ -297,6 +368,73 @@ namespace hemelb
 								}
 							}
 						}
+
+#ifdef HEMELB_USE_GPU
+					template<bool tDoRayTracing>
+						//inline std::vector<util::Vector3D<double> > DoGetWallMom(const site_t firstIndex,
+						inline void DoGetWallMom(const site_t firstIndex,
+												const site_t siteCount,
+												const LbmParameters* lbmParams,
+												geometry::LatticeData* latDat,
+												lb::MacroscopicPropertyCache& propertyCache)
+						{
+							//std::vector<util::Vector3D<double> > wallMom_Vect3D;
+
+							LatticeVelocity wallMom_received; // typedef util::Vector3D<LatticeSpeed> LatticeVelocity;
+							std::vector<double> wallMom_Vect_x;
+							std::vector<double> wallMom_Vect_y;
+							std::vector<double> wallMom_Vect_z;
+
+							for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
+							{
+								geometry::Site<geometry::LatticeData> site = latDat->GetSite(siteIndex);
+								kernels::HydroVars<typename CollisionType::CKernel> hydroVars(site);
+
+								for (Direction direction = 0; direction < LatticeType::NUMVECTORS; direction++)
+								{
+									if (site.HasIolet(direction))
+									{
+										ioletLinkDelegate.Eval_wallMom(lbmParams, latDat, site, hydroVars, direction, &wallMom_received);
+										// printf("Entering Branch StreamerTypeFactory 1 \n"); // Yes... Enters this path
+									}
+									else
+									{
+										wallMom_received.x = 0.0; wallMom_received.y = 0.0; wallMom_received.z = 0.0;
+									}
+
+									/*
+									if (CollisionType::CKernel::LatticeType::IsLatticeCompressible())
+			            {
+			              wallMom_received *= 1.0; //propertyCache.densityCache.Get(siteIndex); //hydroVars.density; // CAREFULL: density is a parameter on the host. It has to be updated at every step for this to work!!!
+										printf("Loc.2 - Entering the loop for IsLatticeCompressible! Density = %.5f \n", propertyCache.densityCache.Get(siteIndex) );
+										//if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
+										//	printf("Loc:2, Dir: %d, Density: %.5f, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction, propertyCache.densityCache.Get(siteIndex), wallMom_received.x, wallMom_received.y, wallMom_received.z);
+
+									}
+									*/
+									/*// Testing - Print the density from the propertyCache
+									printf("Loc.2 - Density from densityCache: %.5f \n\n", propertyCache.densityCache.Get(siteIndex));
+
+									// Testing - print the values received
+									if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
+										printf("Loc.2 - Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
+									*/
+
+									/*
+									wallMom_Vect_x.push_back(wallMom.x);
+									wallMom_Vect_y.push_back(wallMom.y);
+									wallMom_Vect_z.push_back(wallMom.z);
+									*/
+									//wallMom_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache.Put(site.GetIndex()*LatticeType::NUMVECTORS+direction, wallMom);
+									propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
+									}
+								}
+
+								//return wallMom_Vect3D;
+						}
+#endif
 			};
 		}
 	}

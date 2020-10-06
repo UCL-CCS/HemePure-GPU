@@ -115,49 +115,53 @@ namespace hemelb
           const unsigned long traversalLength =
               PhasedBroadcast<initialAction, splay, overlap, goDown, goUp>::GetTraverseTime();
 
-          // Deal with the case of a cycle with an initial pass down the tree.
-          if (goDown)
-          {
-            const unsigned long firstDescent =
-                PhasedBroadcast<initialAction, splay, overlap, goDown, goUp>::GetFirstDescending();
-
-            if (iCycleNumber >= firstDescent && iCycleNumber < firstAscent)
+          // Propagate this info every 1000 timesteps - Check again in the future!!! To do!!!
+          if(this->mSimState->GetTimeStep() % 200 == 0){
+            // printf("Inside the loop - Time: %lu \n\n", this->mSimState->GetTimeStep());
+            // Deal with the case of a cycle with an initial pass down the tree.
+            if (goDown)
             {
-              unsigned long receiveOverlap;
+              const unsigned long firstDescent =
+                  PhasedBroadcast<initialAction, splay, overlap, goDown, goUp>::GetFirstDescending();
 
-              if (base::GetReceiveParentOverlap(iCycleNumber - firstDescent, &receiveOverlap))
+              if (iCycleNumber >= firstDescent && iCycleNumber < firstAscent)
               {
-                PostReceiveFromParent(receiveOverlap);
-              }
+                unsigned long receiveOverlap;
 
-              // If we're halfway through the programme, all top-down changes have occurred and
-              // can be applied on all nodes at once safely.
-              if ( (iCycleNumber - firstDescent) == (traversalLength - 1))
-              {
-                Effect();
+                if (base::GetReceiveParentOverlap(iCycleNumber - firstDescent, &receiveOverlap))
+                {
+                  PostReceiveFromParent(receiveOverlap);
+                }
+
+                // If we're halfway through the programme, all top-down changes have occurred and
+                // can be applied on all nodes at once safely.
+                if ( (iCycleNumber - firstDescent) == (traversalLength - 1))
+                {
+                  Effect();
+                }
               }
             }
-          }
 
-          // Deal with the case of a cycle with a pass back up the tree.
-          if (goUp)
-          {
-            if (iCycleNumber >= firstAscent)
+            // Deal with the case of a cycle with a pass back up the tree.
+            if (goUp)
             {
-              unsigned long receiveOverlap, sendOverlap;
-
-              if (base::GetReceiveChildrenOverlap(iCycleNumber - firstAscent, &receiveOverlap))
+              if (iCycleNumber >= firstAscent)
               {
-                PostReceiveFromChildren(receiveOverlap);
-              }
+                unsigned long receiveOverlap, sendOverlap;
 
-              if (base::GetSendParentOverlap(iCycleNumber - firstAscent, &sendOverlap))
-              {
-                PostSendToParent(sendOverlap);
-              }
+                if (base::GetReceiveChildrenOverlap(iCycleNumber - firstAscent, &receiveOverlap))
+                {
+                  PostReceiveFromChildren(receiveOverlap);
+                }
 
+                if (base::GetSendParentOverlap(iCycleNumber - firstAscent, &sendOverlap))
+                {
+                  PostSendToParent(sendOverlap);
+                }
+
+              }
             }
-          }
+          } // Closes the if (iSimState->GetTimeStep()%1000 == 0) statement
 
           // If this node is the root of the tree and we've just finished the upwards half, it
           // must act.
@@ -166,6 +170,7 @@ namespace hemelb
           {
             TopNodeAction();
           }
+
         }
 
         /**

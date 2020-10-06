@@ -18,6 +18,8 @@
 #include "util/utilityFunctions.h"
 #include "util/Vector3D.h"
 #include "net/IOCommunicator.h"
+
+
 namespace hemelb
 {
   namespace net
@@ -46,13 +48,55 @@ namespace hemelb
 
     void BaseNet::Send()
     {
-
       SendGathers();
       SendGatherVs();
       SendAllToAll();
       // Ensure collectives are called before point-to-point, as some implementing mixins implement collectives via point-to-point
       SendPointToPoint();
     }
+
+//=========================================================================================================
+#ifdef HEMELB_USE_GPU
+    bool BaseNet::Synchronise_memCpy_GPU_CPU_domainEdge()
+    {
+      int myPiD = communicator.Rank();
+      if (myPiD!=0) {
+        cudaStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
+        //printf("Synchronisation point for cuda stream from BaseNet and rank # %d \n\n", myPiD);
+      }
+      return true;
+    }
+
+    // Create the cuda stream
+    bool BaseNet::Create_stream_memCpy_GPU_CPU_domainEdge_new2()
+    {
+      int myPiD = communicator.Rank();
+      if (myPiD!=0) {
+        cudaStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
+        //printf("Created cuda stream from BaseNet and rank # %d \n\n", myPiD);
+      }
+      return true;
+    }
+
+    // Destroy the cuda stream
+    bool BaseNet::Destroy_stream_memCpy_GPU_CPU_domainEdge_new2()
+    {
+      int myPiD = communicator.Rank();
+      if (myPiD!=0) {
+        cudaStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
+        //printf("Destroyed cuda stream from BaseNet and rank # %d \n\n", myPiD);
+      }
+      return true;
+    }
+
+    // Get the cuda stream - private member
+    cudaStream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
+    {
+      return stream_memCpy_GPU_CPU_domainEdge_new2;
+    }
+#endif
+//=========================================================================================================
+
 
     void BaseNet::Wait()
     {

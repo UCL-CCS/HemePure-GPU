@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
 
 project(HemeLB_GPU)
 
@@ -22,8 +22,10 @@ option(HEMELB_USE_MPI_WIN "" OFF)
 option(HEMELB_USE_BIGMPI "use BigMPI to read data from file" OFF)
 option(HEMELB_USE_PARMETIS "use ParMETIS" OFF)
 option(HEMELB_USE_GPU "use GPU accel" ON)
-#option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
+option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" ON)
+option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 #option(HEMELB_VALIDATE_GEOMETRY "validate geometry" OFF)
+
 
 set(HEMELB_EXECUTABLE "hemepure_gpu"
 	CACHE STRING "name of executable to produce")
@@ -43,7 +45,7 @@ set(HEMELB_LATTICE "D3Q19"
 	CACHE STRING "lattice type: 'D3Q15','D3Q19','D3Q27','D3Q15i'")
 set(HEMELB_KERNEL "LBGK"
 	CACHE STRING "kernel: 'LBGK','EntropicAnsumali','EntropicChik','MRT','TRT','NNCY','NNCYMOUSE','NNC','NNTPL'")
-set(HEMELB_WALL_BOUNDARY "BFL"
+set(HEMELB_WALL_BOUNDARY "SIMPLEBOUNCEBACK"
 	CACHE STRING "boundary conditions to be used at the walls: 'BFL','GZS','SIMPLEBOUNCEBACK','JUNKYANG'")
 set(HEMELB_INLET_BOUNDARY "NASHZEROTHORDERPRESSUREIOLET"
 	CACHE STRING "boundary conditions to be used at the inlet: 'NASHZEROTHORDERPRESSUREIOLET','LADDIOLET'")
@@ -51,9 +53,9 @@ set(HEMELB_OUTLET_BOUNDARY "NASHZEROTHORDERPRESSUREIOLET"
 	CACHE STRING "boundary conditions to be used at the outlets: 'NASHZEROTHORDERPRESSUREIOLET','LADDIOLET'")
 set(HEMELB_COMPUTE_ARCHITECTURE "NEUTRAL"
 	CACHE STRING "architecture of the machine being used 'INTELSANDYBRIDGE','AMDBULLDOZER','NEUTRAL','ISBFILEVELOCITYINLET'")
-set(HEMELB_WALL_INLET_BOUNDARY "NASHZEROTHORDERPRESSUREBFL"
+set(HEMELB_WALL_INLET_BOUNDARY "NASHZEROTHORDERPRESSURESBB"
 	CACHE STRING "boundary conditions to be used at corners between walls and inlets: 'NASHZEROTHORDERPRESSURESBB','NASHZEROTHORDERPRESSUREBFL','LADDIOLETSBB','LADDIOLETBFL'")
-set(HEMELB_WALL_OUTLET_BOUNDARY "NASHZEROTHORDERPRESSUREBFL"
+set(HEMELB_WALL_OUTLET_BOUNDARY "NASHZEROTHORDERPRESSURESBB"
 	CACHE STRING "boundary conditions to be used at corners between walls and outlets: 'NASHZEROTHORDERPRESSURESBB','NASHZEROTHORDERPRESSUREBFL','LADDIOLETSBB','LADDIOLETBFL'")
 set(HEMELB_POINTPOINT_IMPLEMENTATION Coalesce
 	CACHE STRING "point to point comms implementation: 'Coalesce','Separated','Immediate'" )
@@ -126,7 +128,14 @@ message('CXX Flags = ' ${CMAKE_CXX_FLAGS})
 if(HEMELB_USE_GPU)
 
 	add_definitions(-DHEMELB_USE_GPU)
-	add_definitions(-DDEBUG)  
+	add_definitions(-DDEBUG)
+
+	##------------------------------------
+	## If CUDA-aware mpi is enabled
+	if(HEMELB_CUDA_AWARE_MPI)
+		add_definitions(-DHEMELB_CUDA_AWARE_MPI)
+	endif()
+	##------------------------------------
 
 	enable_language(CUDA)
 
@@ -137,6 +146,9 @@ if(HEMELB_USE_GPU)
 	    message("CUDA found.")
 	endif()
 
+	## ADDED 25-3-2020
+	include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
+	include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
 
 	set(CUDA_PROPAGATE_HOST_FLAGS ON)
 
@@ -144,15 +156,22 @@ if(HEMELB_USE_GPU)
 	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
 	if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
 	  message("gnu COMPILER")
-    		set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 --ptxas-options=-v --disable-warnings")
-    		set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 --ptxas-options=-v --disable-warnings")
+	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-std=c++11 -msse3 -pthread' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+	    #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+	    #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
 	elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
 	    # using Intel C++
 	    message("intel COMPILER")
-#	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60")
-#	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35  -gencode arch=compute_60,code=sm_60 --ptxas-options=-v --disable-warnings")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 - --ptxas-options=-v --disable-warnings")
+#	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+#	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+
+	  #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+	  #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+
+
 	endif()
 	message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
 
@@ -271,7 +290,10 @@ include_directories("${HEMELB_DEPENDENCIES_INSTALL_PATH}/include")
 ## ==============================================================================================================================
 # HemeLB
 # ------
-set(root_sources SimulationMaster.cu cuda_kernels_def_decl/cuda_params.cu cuda_kernels_def_decl/GPU_Collide_3_Nash.cu)
+set(root_sources SimulationMaster.cu
+	cuda_kernels_def_decl/cuda_params.cu
+	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
+	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
 
 #cuda_add_executable(${HEMELB_EXECUTABLE} main.cu ${root_sources} OPTIONS -x cu)
 
@@ -301,7 +323,7 @@ endforeach()
 
 add_subdirectory(resources)
 
-set_property(TARGET ${HEMELB_EXECUTABLE} 
+set_property(TARGET ${HEMELB_EXECUTABLE}
 	     PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 set_property(TARGET ${HEMELB_EXECUTABLE}
@@ -358,5 +380,3 @@ foreach(resource ${RESOURCES})
 	get_filename_component(resource_leaf ${resource} NAME)
 	install(FILES ${BUILD_RESOURCE_PATH}/${resource_leaf} DESTINATION share/hemelb/resources)
 endforeach()
-
-

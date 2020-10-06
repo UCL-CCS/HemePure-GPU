@@ -49,6 +49,15 @@ namespace hemelb
 
     }
 
+    template<typename T>
+    void MpiFile::WriteAt_nonBlocking(MPI_Offset offset, const std::vector<T>& buffer, MPI_Request *request_Write)
+    {
+      HEMELB_MPI_CALL(
+          MPI_File_iwrite_at,
+          (*filePtr, offset, MpiConstCast(&buffer[0]), buffer.size(), MpiDataType<T>(), request_Write)
+      );
+    }
+
   }
 }
 

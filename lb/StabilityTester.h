@@ -90,7 +90,24 @@ namespace hemelb
         void PostSendToParent(unsigned long splayNumber)
         {
           timings[hemelb::reporting::Timers::monitoring].Start();
+/*
+#ifdef HEMELB_USE_GPU
+          // No need to bother testing out local lattice points if we're going to be
+          // sending up a 'Unstable' value anyway.
+          if (mUpwardsStability != Unstable)
+          {
+            bool unconvergedSitePresent = false;
 
+            // Insert a GPU kernel launch here that checks for NaN values
+            // Just check the density, as any NaN values will eventually affect all variables
+
+
+          }
+
+#else
+
+#endif
+*/
           // No need to bother testing out local lattice points if we're going to be
           // sending up a 'Unstable' value anyway.
           if (mUpwardsStability != Unstable)

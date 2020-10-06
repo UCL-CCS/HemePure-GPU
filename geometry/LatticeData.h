@@ -636,6 +636,37 @@ namespace hemelb
 				std::vector<site_t> streamingIndicesForReceivedDistributions; //! The indices to stream to for distributions received from other processors.
 				neighbouring::NeighbouringLatticeData *neighbouringData;
 				const net::IOCommunicator& comms;
+
+/**
+// wall Momentum associated with Velocity BCs (LADDIOLET)
+void *GPUDataAddr_wallMom_Inlet_Edge;
+void *GPUDataAddr_wallMom_InletWall_Edge;
+void *GPUDataAddr_wallMom_Inlet_Inner;
+void *GPUDataAddr_wallMom_InletWall_Inner;
+void *GPUDataAddr_wallMom_Outlet_Edge;
+void *GPUDataAddr_wallMom_OutletWall_Edge;
+void *GPUDataAddr_wallMom_Outlet_Inner;
+void *GPUDataAddr_wallMom_OutletWall_Inner;
+*/
+#ifdef HEMELB_USE_GPU
+
+		// Think how to send the data for the wallMom from the host to the device.
+		// and how the function GetWallMom will return the array with the wallMom[3*NUMVECTORS] data at each fluid site involved.
+
+		//std::vector<distribn_t> wallMom_Inlet_Edge;
+		std::vector<util::Vector3D<distribn_t> > wallMom_Inlet_Edge;
+		std::vector<util::Vector3D<distribn_t> > wallMom_InletWall_Edge;
+		std::vector<util::Vector3D<distribn_t> > wallMom_Inlet_Inner;
+		std::vector<util::Vector3D<distribn_t> > wallMom_InletWall_Inner;
+		std::vector<util::Vector3D<distribn_t> > wallMom_Outlet_Edge;
+		std::vector<util::Vector3D<distribn_t> > wallMom_OutletWall_Edge;
+		std::vector<util::Vector3D<distribn_t> > wallMom_Outlet_Inner;
+		std::vector<util::Vector3D<distribn_t> > wallMom_OutletWall_Inner;
+
+		//GPU Data Addresses - pointers to GPU global memory
+		void *GPUDataAddr_dbl_fOld_b_mLatDat, *GPUDataAddr_dbl_fNew_b_mLatDat;
+#endif
+
 		};
 	}
 }

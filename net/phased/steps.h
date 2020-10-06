@@ -17,6 +17,21 @@ namespace hemelb
       {
         enum Step
         {
+
+
+#ifdef HEMELB_USE_GPU
+          // Order significant here
+          // BeginPhase must begin and EndPhase must end, those steps which should be called for a given phase.
+          BeginAll = -1, // Called only before first phase
+          BeginPhase = 0,
+          Receive = 1,
+          PreSend = 2,
+          PreWait = 3,
+          Send = 4,
+          Wait = 5,
+          EndPhase = 6,
+          EndAll = 7, // Called only after final phase
+#else
           // Order significant here
           // BeginPhase must begin and EndPhase must end, those steps which should be called for a given phase.
           BeginAll = -1, // Called only before first phase
@@ -28,6 +43,7 @@ namespace hemelb
           Wait = 5,
           EndPhase = 6,
           EndAll = 7, // Called only after final phase
+#endif
         };
       }
     }

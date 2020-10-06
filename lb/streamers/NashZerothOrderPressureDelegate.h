@@ -44,9 +44,9 @@ namespace hemelb
 						// Calculate the velocity at the ghost site, as the component normal to the iolet.
 						util::Vector3D<float> ioletNormal = iolet.GetLocalIolet(boundaryId)->GetNormal();
 
-						// printf("iNLET: %d oR Outlet:%D Boundary ID: %d, Components of ioletNormal.x= %.3f, ioletNormal.y= %.3f, ioletNormal.z= %.3f \n", site.hadInlet, site.hadOutlet, boundaryId, ioletNormal.x, ioletNormal.y, ioletNormal.z);   
-						// printf("zCoord: %d - Density = %.5e - Boundary ID: %d, Components of ioletNormal.x= %.3f, ioletNormal.y= %.3f, ioletNormal.z= %.3f \n", site.GetGlobalSiteCoords().z, ghostDensity, boundaryId, ioletNormal.x, ioletNormal.y, ioletNormal.z);   
-						
+						// printf("iNLET: %d oR Outlet:%D Boundary ID: %d, Components of ioletNormal.x= %.3f, ioletNormal.y= %.3f, ioletNormal.z= %.3f \n", site.hadInlet, site.hadOutlet, boundaryId, ioletNormal.x, ioletNormal.y, ioletNormal.z);
+						// printf("zCoord: %d - Density = %.5e - Boundary ID: %d, Components of ioletNormal.x= %.3f, ioletNormal.y= %.3f, ioletNormal.z= %.3f \n", site.GetGlobalSiteCoords().z, ghostDensity, boundaryId, ioletNormal.x, ioletNormal.y, ioletNormal.z);
+
 
 						// Note that the division by density compensates for the fact that v_x etc have momentum
 						// not velocity.
@@ -68,6 +68,19 @@ namespace hemelb
 						*latticeData->GetFNew(site.GetIndex() * LatticeType::NUMVECTORS + unstreamed)
 							= ghostHydrovars.GetFEq()[unstreamed];
 					}
+
+					//--------------------------------------------------------------------
+					inline void Eval_wallMom(const LbmParameters* lbmParams,
+							geometry::LatticeData* const latticeData,
+							const geometry::Site<geometry::LatticeData>& site,
+							kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+								 const Direction& direction, LatticeVelocity* wallMom_tobepassed)
+					{
+					  printf("Entering branch in NashZerothOrderPressure from LADDIOLET \n\n");
+					}
+					//--------------------------------------------------------------------
+
+
 				protected:
 					CollisionType& collider;
 					iolets::BoundaryValues& iolet;

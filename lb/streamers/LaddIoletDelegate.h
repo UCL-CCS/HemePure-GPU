@@ -29,6 +29,52 @@ namespace hemelb
           {
           }
 
+#ifdef HEMELB_USE_GPU
+          /** Function that returns the wall mom. for the case of Velocity BCs (LaddIolet)
+              Remember that it does not take the following into account (multiply with the local density):
+                  if (CollisionType::CKernel::LatticeType::IsLatticeCompressible())
+                    wallMom *= hydroVars.density;
+          */
+          inline void Eval_wallMom(const LbmParameters* lbmParams,
+                       geometry::LatticeData* const latticeData,
+                       const geometry::Site<geometry::LatticeData>& site,
+                       kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+                       const Direction& ii,
+                       LatticeVelocity* wallMom_tobepassed)
+          {
+            int boundaryId = site.GetIoletId();
+            iolets::InOutLetVelocity* iolet =
+                dynamic_cast<iolets::InOutLetVelocity*>(bValues->GetLocalIolet(boundaryId));
+            LatticePosition sitePos(site.GetGlobalSiteCoords());
+
+            LatticePosition halfWay(sitePos);
+            halfWay.x += 0.5 * LatticeType::CX[ii];
+            halfWay.y += 0.5 * LatticeType::CY[ii];
+            halfWay.z += 0.5 * LatticeType::CZ[ii];
+
+            LatticeVelocity wallMom(iolet->GetVelocity(halfWay, bValues->GetTimeStep()));
+            //TODO: Add site.GetGlobalSiteCoords() as a first argument?
+
+            //printf("Density: %.5f \n\n", hydroVars.density);
+            // TODO: Make sure that density value is available
+            // GPU version does not have access to the hydroVars.density.
+            // Use the propertyCache.densityCache.Get(site_Index)) instead.
+            /*if (CollisionType::CKernel::LatticeType::IsLatticeCompressible())
+            {
+              wallMom *= hydroVars.density; // CAREFULL: density is a parameter on the host. It has to be updated at every step for this to work!!!
+            }*/
+            //printf("Entered LADDIOLET delegate!!! \n\n" ); // It does enter here.
+
+            // Testing
+            /*//if(wallMom.x >=1e-4 && wallMom.y >=1e-4 && wallMom.z >=1e-4 )
+            if(wallMom.x !=0 || wallMom.y !=0 || wallMom.z !=0 )
+              printf("Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", ii, wallMom.x, wallMom.y, wallMom.z);
+            */
+
+            *wallMom_tobepassed = wallMom;
+          }
+#endif
+
           inline void StreamLink(const LbmParameters* lbmParams,
                                  geometry::LatticeData* const latticeData,
                                  const geometry::Site<geometry::LatticeData>& site,
@@ -71,6 +117,7 @@ namespace hemelb
                                                                                         ii))) =
                 hydroVars.GetFPostCollision()[ii] - correction;
           }
+
         private:
           iolets::BoundaryValues* bValues;
       };

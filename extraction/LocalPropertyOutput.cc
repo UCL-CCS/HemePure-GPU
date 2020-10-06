@@ -154,6 +154,8 @@ namespace hemelb
       // Create the buffer that we'll write each iteration's data into.
       buffer.resize(writeLength);
     }
+    // End of the LocalPropertyOutput Constructor here //
+    //--------------------------------------------------------------------------
 
     LocalPropertyOutput::~LocalPropertyOutput()
     {
@@ -170,7 +172,7 @@ namespace hemelb
       return outputSpec;
     }
 
-    void LocalPropertyOutput::Write(unsigned long timestepNumber)
+    void LocalPropertyOutput::Write(unsigned long timestepNumber, unsigned long max_timestepNumber)
     {
       // Don't write if we shouldn't this iteration.
       if (!ShouldWrite(timestepNumber))
@@ -263,12 +265,65 @@ namespace hemelb
         }
       }
 
+      //========================================================================
+
+      /*
+      // Blocking MPI write
       // Actually do the MPI writing.
       outputFile.WriteAt(localDataOffsetIntoFile, buffer);
+      */
+
+      /** Switch to non-blocking MPI I/O
+      Steps:
+      a. Call MPI_Wait to ensure that the MPI write from the previous timestep is complete:
+            int MPI_Wait(
+              MPI_Request *request,
+              MPI_Status *status
+              );
+          TODO:
+            a.1. Create enough requests:
+                  std::vector<MPI_Request> requests_Write; // Place this in MpiFile.h
+                  and do something similar to the following:
+                    void CoalescePointPoint::EnsureEnoughRequests(size_t count)
+                    {
+                      if (requests.size() < count)
+                      {
+                        requests.resize(count, MPI_Request());
+                        statuses.resize(count, MPI_Status());
+                      }
+                    }
+
+      b. Call non-blocking MPI write:
+          outputFile.WriteAt_nonBlocking(localDataOffsetIntoFile, buffer);
+      c. If current write is the last one then call MPI_Wait to ensure that the
+          MPI write is completed before exiting the simulation.
+          Or Maybe better to just call the blocking MPI write at this last time, #
+          i.e. call outputFile.WriteAt(localDataOffsetIntoFile, buffer);
+      */
+
+      // Determine first the # of the current write
+      // Max number of writing times (divide max simulation time with the frequency time):
+      int max_write_n = max_timestepNumber / outputSpec->frequency; //printf("Max_number of writing times = %d \n\n", max_write_n );
+
+      requests_Write.resize(max_write_n, MPI_Request());
+      int n_asynch_write = timestepNumber / outputSpec->frequency; // Determine the number of the file (time-sequence) being written
+      //printf("Rank: %d, Writing time = %lu and Number = %d \n",  comms.Rank(), timestepNumber, n_asynch_write);
+
+      // a. Call MPI_Wait
+      if (n_asynch_write>1) MPI_Wait(&requests_Write[n_asynch_write-2], &status);
+
+      // b. Call non-blocking MPI write
+      outputFile.WriteAt_nonBlocking(localDataOffsetIntoFile, buffer, &requests_Write[n_asynch_write-1]);
+
+      // If this is the last write then wait writing to complete.
+      if (n_asynch_write==max_write_n) MPI_Wait(&requests_Write[n_asynch_write-1], &status);
+      //========================================================================
 
       // Set the offset to the right place for writing on the next iteration.
       localDataOffsetIntoFile += allCoresWriteLength;
     }
+    // Ends the function void LocalPropertyOutput::Write
+    //--------------------------------------------------------------------------
 
     unsigned LocalPropertyOutput::GetFieldLength(OutputField::FieldType field)
     {

@@ -33,10 +33,10 @@ int main(int argc, char *argv[])
 
       // Prepare main simulation object...
       SimulationMaster master = SimulationMaster(options, hemelbCommunicator);
-			
+
 	  // ..and run it.
       master.RunSimulation();
-	
+
     }
 
     // Interpose this catch to print usage before propagating the error.
@@ -53,5 +53,3 @@ int main(int argc, char *argv[])
   }
   // MPI gets finalised by MpiEnv's d'tor.
 }
-
-

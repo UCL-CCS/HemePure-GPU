@@ -14,6 +14,7 @@ namespace hemelb
                                    const std::vector<PropertyOutputFile*>& propertyOutputs,
                                    const net::IOCommunicator& ioComms)
     {
+      //printf("Size of propertyOutputs: %d \n\n", propertyOutputs.size());
       for (unsigned outputNumber = 0; outputNumber < propertyOutputs.size(); ++outputNumber)
       {
         localPropertyOutputs.push_back(new LocalPropertyOutput(dataSource, propertyOutputs[outputNumber], ioComms));
@@ -33,11 +34,11 @@ namespace hemelb
       return localPropertyOutputs;
     }
 
-    void PropertyWriter::Write(unsigned long iterationNumber) const
+    void PropertyWriter::Write(unsigned long iterationNumber, unsigned long max_iterationNumber) const
     {
       for (unsigned outputNumber = 0; outputNumber < localPropertyOutputs.size(); ++outputNumber)
       {
-        localPropertyOutputs[outputNumber]->Write((uint64_t) iterationNumber);
+        localPropertyOutputs[outputNumber]->Write((uint64_t) iterationNumber, (uint64_t) max_iterationNumber);
       }
     }
   }

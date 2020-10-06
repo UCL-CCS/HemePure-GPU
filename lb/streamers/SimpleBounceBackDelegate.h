@@ -43,6 +43,25 @@ namespace hemelb
             * (latticeData->GetFNew(GetBBIndex(site.GetIndex(), direction))) = hydroVars.GetFPostCollision()[direction];
           }
 
+          /**
+          * Perform the streaming operation from site along direction
+          *
+          * hydroVars must be post-collision
+          *
+          * @param latticeData
+          * @param site
+          * @param hydroVars
+          * @param direction
+          */
+          /*
+         inline void Eval_wallMom(const LbmParameters* lbmParams,
+                                geometry::LatticeData* const latticeData,
+                                const geometry::Site<geometry::LatticeData>& site,
+                                kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+                                const Direction& direction)
+         {
+         }
+         */
       };
 
     }

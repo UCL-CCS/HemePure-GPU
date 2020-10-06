@@ -25,7 +25,7 @@
 
 
 #ifdef HEMELB_USE_GPU
-#include "cuda_kernels_def_decl/initialise_GPU.h"
+//#include "cuda_kernels_def_decl/initialise_GPU.h"
 #endif
 
 #include <map>
@@ -233,16 +233,24 @@ void SimulationMaster::Initialise() {
 			ioComms,
 			*unitConverter);
 
-
-//=======================================================================================
-// Check for GPU capabilities
-#ifdef HEMELB_USE_GPU
-	check_GPU_capabilities();	 
-#endif
-//=======================================================================================
-
 	latticeBoltzmannModel->Initialise(inletValues, outletValues, unitConverter);
-	
+
+	//=======================================================================================
+	// Check for GPU capabilities
+	#ifdef HEMELB_USE_GPU
+		check_GPU_capabilities();
+
+		if(communicationNet.Rank()!=0) {
+			bool res_InitGPU = latticeBoltzmannModel->Initialise_GPU(inletValues, outletValues, unitConverter);
+			if (!res_InitGPU){
+				printf("Rank: %d, Initialising the GPU failed... Abort... \n\n",communicationNet.Rank());
+				Abort();	// Abort if initialiing the GPUs fail...
+			}
+		}
+	#endif
+	//=======================================================================================
+
+
 
 	neighbouringDataManager->ShareNeeds();
 	neighbouringDataManager->TransferNonFieldDependentInformation();
@@ -307,34 +315,49 @@ void SimulationMaster::Initialise() {
 #ifdef HEMELB_USE_GPU
 void SimulationMaster::check_GPU_capabilities()
 {
-	//hemelb::net::MpiCommunicator rank_Com;	
+	//hemelb::net::MpiCommunicator rank_Com;
 	//proc_t myPiD = rank_Com.Rank(); // from units.h:  typedef int proc_t;
 
-	int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t 
+	int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t
 
 	int dev_count=0;
 	cudaGetDeviceCount( &dev_count);
 	// This function call returns 0 if there are no CUDA capable devices.
 	if (dev_count == 0)
 	{
-		std::printf("There are no available device(s) that support CUDA\n");
-		// Maybe add an abort function here if no CUDA capable devices are detected
+		std::printf("--------------------------------------------------------------------------------\n");
+		std::printf("Rank %d: There are no available device(s) that support CUDA... Need to Abort!!!\n", localRank);
+		Abort();	//add an abort function here if no CUDA capable devices are detected
 	}
-	else { std::printf("Detected %d CUDA Capable device(s)\n", dev_count);}
+	else {
+		if(localRank==0) std::printf("Rank %d: Detected %d CUDA Capable device(s)\n", localRank, dev_count);
+	}
 
-	//cudaError_t cudaStatus;
 
+	// Set the current GPU device
+	cudaError_t cudaStatus;
 	int device;
-	cudaGetDevice(&device); 
+	if(dev_count>1 && localRank!=0){
+		cudaStatus = cudaSetDevice((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "GPU device setting failed\n");
+			Abort();
+			//return false;
+		}
+	}
+
+	cudaGetDevice(&device);
 	cudaDeviceProp deviceProp;
 	cudaGetDeviceProperties(&deviceProp, device);
-	std::printf("Using device %d: %s - Assigned to Proc# %i \n\n", device, deviceProp.name, localRank);
-	
-	cudaError_t cudaerr = cudaDeviceSynchronize();
-		if (cudaerr != cudaSuccess)
-			printf("kernel launch failed with error \"%s\".\n",
-               cudaGetErrorString(cudaerr));	
+	// std::printf("Using device %d: %s - Assigned to Proc# %i \n\n", device, deviceProp.name, localRank);
+	// if(localRank==0) printf("Using GPU device: %s \n\n", deviceProp.name);
 
+	/*
+	cudaError_t cudaerr = cudaDeviceSynchronize();
+	if (cudaerr != cudaSuccess)
+	  printf("kernel launch failed with error \"%s\".\n",
+		 cudaGetErrorString(cudaerr));
+	*/
 }
 #endif
 // =============================================================================================
@@ -389,7 +412,7 @@ void SimulationMaster::Finalise() {
 	// Calls cudaFree to delete the dynamically allocated memory on the GPU and cudaStreamDestroy to delete the cuda streams
 	// IOProc (RANK=0) does not allocate memory
 	if (!IsCurrentProcTheIOProc()) {
-		latticeBoltzmannModel->FinaliseGPU(); 
+		latticeBoltzmannModel->FinaliseGPU();
 	}
 #endif
 
@@ -424,6 +447,8 @@ void SimulationMaster::DoTimeStep() {
 
 	HandleActors();
 
+
+	// Check the stability of the code
 	if (simulationState->GetStability() == hemelb::lb::Unstable) {
 		OnUnstableSimulation();
 	}

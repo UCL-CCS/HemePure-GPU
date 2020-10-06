@@ -33,5 +33,6 @@ namespace hemelb
       MPI_Type_create_struct(this->size(), &lengths.front(), &displacements.front(), &types.front(), &Type);
       MPI_Type_commit(&Type);
     }
+    
   }
 }

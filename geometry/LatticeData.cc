@@ -667,14 +667,45 @@ namespace hemelb
 			for (std::vector<NeighbouringProcessor>::const_iterator it = neighbouringProcs.begin();
 					it != neighbouringProcs.end(); ++it)
 			{
+
+#ifdef HEMELB_CUDA_AWARE_MPI
+				/**
+						If cuda-aware mpi is enabled:
+						then pass pointers to GPU global memory directly to the MPI calls
+				*/
+
+				int myPiD = GetLocalRank(); // Local rank
+				//std::cout << "CUDA-aware mpi branch: Current rank: " << myPiD << "   - Requesting Receive from : " << (*it).Rank  << " in location : " << (int) ( ( (*it).FirstSharedDistribution)) << std::endl;
+
+				// Request the receive into the appropriate bit of FOld (Pointer to GPU global memory)
+				// Replace 	GetFOld( (*it).FirstSharedDistribution)
+				// 	with 		&(((distribn_t*)GPUDataAddr_dbl_fOld_b_mLatDat)[(int) ( ( (*it).FirstSharedDistribution))])
+				net->RequestReceive<distribn_t>( &(((distribn_t*)GPUDataAddr_dbl_fOld_b_mLatDat)[(int) ( ( (int) ( ( (*it).FirstSharedDistribution))))]),
+						(int) ( ( (*it).SharedDistributionCount)),
+						(*it).Rank);
+
+				// Request the send from the right bit of FNew (Pointer to GPU global memory)
+				// Replace 	GetFNew( (*it).FirstSharedDistribution)
+				//	with		&(((distribn_t*)GPUDataAddr_dbl_fNew_b_mLatDat)[(int) ( ( (*it).FirstSharedDistribution))])
+				net->RequestSend<distribn_t>( &(((distribn_t*)GPUDataAddr_dbl_fNew_b_mLatDat)[(int) ( ( (*it).FirstSharedDistribution))]),
+						(int) ( ( (*it).SharedDistributionCount)),
+						(*it).Rank);
+
+#else
 				// Request the receive into the appropriate bit of FOld.
 				net->RequestReceive<distribn_t>(GetFOld( (*it).FirstSharedDistribution),
 						(int) ( ( (*it).SharedDistributionCount)),
 						(*it).Rank);
+
+				int myPiD = GetLocalRank(); // Local rank
+				//std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << "   - Requesting Receive from : " << (*it).Rank  << " in location : " << (int) ( ( (*it).FirstSharedDistribution)) << std::endl;
+
 				// Request the send from the right bit of FNew.
 				net->RequestSend<distribn_t>(GetFNew( (*it).FirstSharedDistribution),
 						(int) ( ( (*it).SharedDistributionCount)),
 						(*it).Rank);
+#endif
+
 			}
 		}
 
