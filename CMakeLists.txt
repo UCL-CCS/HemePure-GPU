@@ -22,7 +22,7 @@ option(HEMELB_USE_MPI_WIN "" OFF)
 option(HEMELB_USE_BIGMPI "use BigMPI to read data from file" OFF)
 option(HEMELB_USE_PARMETIS "use ParMETIS" OFF)
 option(HEMELB_USE_GPU "use GPU accel" ON)
-option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" ON)
+option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" OFF)
 option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 #option(HEMELB_VALIDATE_GEOMETRY "validate geometry" OFF)
 

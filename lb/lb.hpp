@@ -3671,12 +3671,11 @@ template<class LatticeType>
 				// 		from LatticeData::CopyReceived()
 
 #ifndef HEMELB_CUDA_AWARE_MPI
-				// NO CUDA-aware mpi branch -
-				std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << " Need to do H2D memcopy totalSharedFs distr. functions in fOld to the GPU " << std::endl;
-
 				// Local rank
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
+				// NO CUDA-aware mpi branch -
+				std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << " Need to do H2D memcopy totalSharedFs distr. functions in fOld to the GPU " << std::endl;
 
 				// Think how it could be possible to call this earlier. To do!!!
 				// It requires the completion of the MPI exchange step... Step: Send

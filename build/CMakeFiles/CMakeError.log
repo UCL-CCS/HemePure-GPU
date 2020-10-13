@@ -1,22 +1,22 @@
 Determining if the pthread_create exist failed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_f136a/fast"
-/usr/bin/make -f CMakeFiles/cmTC_f136a.dir/build.make CMakeFiles/cmTC_f136a.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_80f20/fast"
+/usr/bin/make -f CMakeFiles/cmTC_80f20.dir/build.make CMakeFiles/cmTC_80f20.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_f136a.dir/CheckSymbolExists.c.o
-/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_f136a.dir/CheckSymbolExists.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
-Linking C executable cmTC_f136a
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f136a.dir/link.txt --verbose=1
-/usr/bin/cc -fPIC     CMakeFiles/cmTC_f136a.dir/CheckSymbolExists.c.o  -o cmTC_f136a 
-CMakeFiles/cmTC_f136a.dir/CheckSymbolExists.c.o: In function `main':
+Building C object CMakeFiles/cmTC_80f20.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_80f20.dir/CheckSymbolExists.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_80f20
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_80f20.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC     CMakeFiles/cmTC_80f20.dir/CheckSymbolExists.c.o  -o cmTC_80f20 
+CMakeFiles/cmTC_80f20.dir/CheckSymbolExists.c.o: In function `main':
 CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_f136a.dir/build.make:97: recipe for target 'cmTC_f136a' failed
-make[1]: *** [cmTC_f136a] Error 1
+CMakeFiles/cmTC_80f20.dir/build.make:97: recipe for target 'cmTC_80f20' failed
+make[1]: *** [cmTC_80f20] Error 1
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_f136a/fast' failed
-make: *** [cmTC_f136a/fast] Error 2
+Makefile:126: recipe for target 'cmTC_80f20/fast' failed
+make: *** [cmTC_80f20/fast] Error 2
 
 File /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
 /* */
@@ -36,20 +36,20 @@ int main(int argc, char** argv)
 Determining if the function pthread_create exists in the pthreads failed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_bc1fa/fast"
-/usr/bin/make -f CMakeFiles/cmTC_bc1fa.dir/build.make CMakeFiles/cmTC_bc1fa.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_82495/fast"
+/usr/bin/make -f CMakeFiles/cmTC_82495.dir/build.make CMakeFiles/cmTC_82495.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_bc1fa.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_bc1fa.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_bc1fa
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bc1fa.dir/link.txt --verbose=1
-/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_bc1fa.dir/CheckFunctionExists.c.o  -o cmTC_bc1fa -lpthreads 
+Building C object CMakeFiles/cmTC_82495.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_82495.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_82495
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_82495.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_82495.dir/CheckFunctionExists.c.o  -o cmTC_82495 -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-CMakeFiles/cmTC_bc1fa.dir/build.make:97: recipe for target 'cmTC_bc1fa' failed
-make[1]: *** [cmTC_bc1fa] Error 1
+CMakeFiles/cmTC_82495.dir/build.make:97: recipe for target 'cmTC_82495' failed
+make[1]: *** [cmTC_82495] Error 1
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Makefile:126: recipe for target 'cmTC_bc1fa/fast' failed
-make: *** [cmTC_bc1fa/fast] Error 2
+Makefile:126: recipe for target 'cmTC_82495/fast' failed
+make: *** [cmTC_82495/fast] Error 2
 
 

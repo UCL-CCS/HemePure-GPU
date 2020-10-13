@@ -372,7 +372,7 @@ HEMELB_BUILD_TESTS_UNIT:BOOL=OFF
 HEMELB_COMPUTE_ARCHITECTURE:STRING=NEUTRAL
 
 //use CUDA-AWARE MPI
-HEMELB_CUDA_AWARE_MPI:BOOL=ON
+HEMELB_CUDA_AWARE_MPI:BOOL=OFF
 
 //path to find dependency includes and libraries
 HEMELB_DEPENDENCIES_INSTALL_PATH:FILEPATH=/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/../dep/install

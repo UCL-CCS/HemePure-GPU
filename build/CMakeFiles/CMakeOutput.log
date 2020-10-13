@@ -28,28 +28,28 @@ The CXX compiler identification is GNU, found in "/home/ioannis/Documents/UCL_pr
 Determining if the C compiler works passed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_96919/fast"
-/usr/bin/make -f CMakeFiles/cmTC_96919.dir/build.make CMakeFiles/cmTC_96919.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_447e0/fast"
+/usr/bin/make -f CMakeFiles/cmTC_447e0.dir/build.make CMakeFiles/cmTC_447e0.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_96919.dir/testCCompiler.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_96919.dir/testCCompiler.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/testCCompiler.c
-Linking C executable cmTC_96919
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_96919.dir/link.txt --verbose=1
-/usr/bin/cc      CMakeFiles/cmTC_96919.dir/testCCompiler.c.o  -o cmTC_96919 
+Building C object CMakeFiles/cmTC_447e0.dir/testCCompiler.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_447e0.dir/testCCompiler.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_447e0
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_447e0.dir/link.txt --verbose=1
+/usr/bin/cc      CMakeFiles/cmTC_447e0.dir/testCCompiler.c.o  -o cmTC_447e0 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
 Detecting C compiler ABI info compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_71d4d/fast"
-/usr/bin/make -f CMakeFiles/cmTC_71d4d.dir/build.make CMakeFiles/cmTC_71d4d.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_7dd05/fast"
+/usr/bin/make -f CMakeFiles/cmTC_7dd05.dir/build.make CMakeFiles/cmTC_7dd05.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o
-/usr/bin/cc    -o CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c
-Linking C executable cmTC_71d4d
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_71d4d.dir/link.txt --verbose=1
-/usr/bin/cc     -v CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o  -o cmTC_71d4d 
+Building C object CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_7dd05
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7dd05.dir/link.txt --verbose=1
+/usr/bin/cc     -v CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o  -o cmTC_7dd05 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/cc
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper
@@ -61,9 +61,9 @@ Thread model: posix
 gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_71d4d' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDwtMxf.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_71d4d /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_71d4d' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_7dd05' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccBHCz0W.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_7dd05 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_7dd05' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -71,14 +71,14 @@ Parsed C implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_71d4d/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_71d4d.dir/build.make CMakeFiles/cmTC_71d4d.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_7dd05/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_7dd05.dir/build.make CMakeFiles/cmTC_7dd05.dir/build]
   ignore line: [make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building C object CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o]
-  ignore line: [/usr/bin/cc    -o CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c]
-  ignore line: [Linking C executable cmTC_71d4d]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_71d4d.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/cc     -v CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o  -o cmTC_71d4d ]
+  ignore line: [Building C object CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/usr/bin/cc    -o CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_7dd05]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7dd05.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/cc     -v CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o  -o cmTC_7dd05 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/cc]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper]
@@ -90,13 +90,13 @@ Parsed C implicit link information from above output:
   ignore line: [gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_71d4d' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccDwtMxf.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_71d4d /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_7dd05' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccBHCz0W.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_7dd05 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccDwtMxf.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccBHCz0W.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -114,7 +114,7 @@ Parsed C implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_71d4d] ==> ignore
+    arg [cmTC_7dd05] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o] ==> ignore
@@ -126,7 +126,7 @@ Parsed C implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/8/../../..]
-    arg [CMakeFiles/cmTC_71d4d.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [CMakeFiles/cmTC_7dd05.dir/CMakeCCompilerABI.c.o] ==> ignore
     arg [-lgcc] ==> lib [gcc]
     arg [--push-state] ==> ignore
     arg [--as-needed] ==> ignore
@@ -158,14 +158,14 @@ Parsed C implicit link information from above output:
 Detecting C [-std=c11] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_9d869/fast"
-/usr/bin/make -f CMakeFiles/cmTC_9d869.dir/build.make CMakeFiles/cmTC_9d869.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_30aae/fast"
+/usr/bin/make -f CMakeFiles/cmTC_30aae.dir/build.make CMakeFiles/cmTC_30aae.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_9d869.dir/feature_tests.c.o
-/usr/bin/cc   -std=c11 -o CMakeFiles/cmTC_9d869.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_9d869
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9d869.dir/link.txt --verbose=1
-/usr/bin/cc      CMakeFiles/cmTC_9d869.dir/feature_tests.c.o  -o cmTC_9d869 
+Building C object CMakeFiles/cmTC_30aae.dir/feature_tests.c.o
+/usr/bin/cc   -std=c11 -o CMakeFiles/cmTC_30aae.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_30aae
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_30aae.dir/link.txt --verbose=1
+/usr/bin/cc      CMakeFiles/cmTC_30aae.dir/feature_tests.c.o  -o cmTC_30aae 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -178,14 +178,14 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Detecting C [-std=c99] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_e6eb3/fast"
-/usr/bin/make -f CMakeFiles/cmTC_e6eb3.dir/build.make CMakeFiles/cmTC_e6eb3.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_33445/fast"
+/usr/bin/make -f CMakeFiles/cmTC_33445.dir/build.make CMakeFiles/cmTC_33445.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_e6eb3.dir/feature_tests.c.o
-/usr/bin/cc   -std=c99 -o CMakeFiles/cmTC_e6eb3.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_e6eb3
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e6eb3.dir/link.txt --verbose=1
-/usr/bin/cc      CMakeFiles/cmTC_e6eb3.dir/feature_tests.c.o  -o cmTC_e6eb3 
+Building C object CMakeFiles/cmTC_33445.dir/feature_tests.c.o
+/usr/bin/cc   -std=c99 -o CMakeFiles/cmTC_33445.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_33445
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_33445.dir/link.txt --verbose=1
+/usr/bin/cc      CMakeFiles/cmTC_33445.dir/feature_tests.c.o  -o cmTC_33445 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -198,14 +198,14 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Detecting C [-std=c90] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_369e5/fast"
-/usr/bin/make -f CMakeFiles/cmTC_369e5.dir/build.make CMakeFiles/cmTC_369e5.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_e761b/fast"
+/usr/bin/make -f CMakeFiles/cmTC_e761b.dir/build.make CMakeFiles/cmTC_e761b.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_369e5.dir/feature_tests.c.o
-/usr/bin/cc   -std=c90 -o CMakeFiles/cmTC_369e5.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_369e5
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_369e5.dir/link.txt --verbose=1
-/usr/bin/cc      CMakeFiles/cmTC_369e5.dir/feature_tests.c.o  -o cmTC_369e5 
+Building C object CMakeFiles/cmTC_e761b.dir/feature_tests.c.o
+/usr/bin/cc   -std=c90 -o CMakeFiles/cmTC_e761b.dir/feature_tests.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_e761b
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e761b.dir/link.txt --verbose=1
+/usr/bin/cc      CMakeFiles/cmTC_e761b.dir/feature_tests.c.o  -o cmTC_e761b 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -216,28 +216,28 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Determining if the CXX compiler works passed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_067d3/fast"
-/usr/bin/make -f CMakeFiles/cmTC_067d3.dir/build.make CMakeFiles/cmTC_067d3.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_3bf0e/fast"
+/usr/bin/make -f CMakeFiles/cmTC_3bf0e.dir/build.make CMakeFiles/cmTC_3bf0e.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_067d3.dir/testCXXCompiler.cxx.o
-/usr/bin/c++     -o CMakeFiles/cmTC_067d3.dir/testCXXCompiler.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
-Linking CXX executable cmTC_067d3
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_067d3.dir/link.txt --verbose=1
-/usr/bin/c++       CMakeFiles/cmTC_067d3.dir/testCXXCompiler.cxx.o  -o cmTC_067d3 
+Building CXX object CMakeFiles/cmTC_3bf0e.dir/testCXXCompiler.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTC_3bf0e.dir/testCXXCompiler.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_3bf0e
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3bf0e.dir/link.txt --verbose=1
+/usr/bin/c++       CMakeFiles/cmTC_3bf0e.dir/testCXXCompiler.cxx.o  -o cmTC_3bf0e 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
 Detecting CXX compiler ABI info compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_d4b98/fast"
-/usr/bin/make -f CMakeFiles/cmTC_d4b98.dir/build.make CMakeFiles/cmTC_d4b98.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_78a92/fast"
+/usr/bin/make -f CMakeFiles/cmTC_78a92.dir/build.make CMakeFiles/cmTC_78a92.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o
-/usr/bin/c++     -o CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp
-Linking CXX executable cmTC_d4b98
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d4b98.dir/link.txt --verbose=1
-/usr/bin/c++      -v CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_d4b98 
+Building CXX object CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o
+/usr/bin/c++     -o CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_78a92
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_78a92.dir/link.txt --verbose=1
+/usr/bin/c++      -v CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_78a92 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/c++
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper
@@ -249,9 +249,9 @@ Thread model: posix
 gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d4b98' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccMKJyGG.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d4b98 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d4b98' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_78a92' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cc4aEqel.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_78a92 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_78a92' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -259,14 +259,14 @@ Parsed CXX implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_d4b98/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_d4b98.dir/build.make CMakeFiles/cmTC_d4b98.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_78a92/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_78a92.dir/build.make CMakeFiles/cmTC_78a92.dir/build]
   ignore line: [make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building CXX object CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o]
-  ignore line: [/usr/bin/c++     -o CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp]
-  ignore line: [Linking CXX executable cmTC_d4b98]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d4b98.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/c++      -v CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_d4b98 ]
+  ignore line: [Building CXX object CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/usr/bin/c++     -o CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_78a92]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_78a92.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/c++      -v CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_78a92 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/c++]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper]
@@ -278,13 +278,13 @@ Parsed CXX implicit link information from above output:
   ignore line: [gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d4b98' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccMKJyGG.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d4b98 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_78a92' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cc4aEqel.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_78a92 /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccMKJyGG.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/cc4aEqel.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -302,7 +302,7 @@ Parsed CXX implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_d4b98] ==> ignore
+    arg [cmTC_78a92] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o] ==> ignore
@@ -314,7 +314,7 @@ Parsed CXX implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/8/../../..]
-    arg [CMakeFiles/cmTC_d4b98.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [CMakeFiles/cmTC_78a92.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
     arg [-lstdc++] ==> lib [stdc++]
     arg [-lm] ==> lib [m]
     arg [-lgcc_s] ==> lib [gcc_s]
@@ -342,14 +342,14 @@ Parsed CXX implicit link information from above output:
 Detecting CXX [-std=c++1z] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_2f089/fast"
-/usr/bin/make -f CMakeFiles/cmTC_2f089.dir/build.make CMakeFiles/cmTC_2f089.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b2909/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b2909.dir/build.make CMakeFiles/cmTC_b2909.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_2f089.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++1z -o CMakeFiles/cmTC_2f089.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_2f089
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2f089.dir/link.txt --verbose=1
-/usr/bin/c++       CMakeFiles/cmTC_2f089.dir/feature_tests.cxx.o  -o cmTC_2f089 
+Building CXX object CMakeFiles/cmTC_b2909.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++1z -o CMakeFiles/cmTC_b2909.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_b2909
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b2909.dir/link.txt --verbose=1
+/usr/bin/c++       CMakeFiles/cmTC_b2909.dir/feature_tests.cxx.o  -o cmTC_b2909 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -415,14 +415,14 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Detecting CXX [-std=c++14] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_0ca35/fast"
-/usr/bin/make -f CMakeFiles/cmTC_0ca35.dir/build.make CMakeFiles/cmTC_0ca35.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_65a11/fast"
+/usr/bin/make -f CMakeFiles/cmTC_65a11.dir/build.make CMakeFiles/cmTC_65a11.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_0ca35.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++14 -o CMakeFiles/cmTC_0ca35.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_0ca35
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0ca35.dir/link.txt --verbose=1
-/usr/bin/c++       CMakeFiles/cmTC_0ca35.dir/feature_tests.cxx.o  -o cmTC_0ca35 
+Building CXX object CMakeFiles/cmTC_65a11.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++14 -o CMakeFiles/cmTC_65a11.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_65a11
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_65a11.dir/link.txt --verbose=1
+/usr/bin/c++       CMakeFiles/cmTC_65a11.dir/feature_tests.cxx.o  -o cmTC_65a11 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -488,14 +488,14 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Detecting CXX [-std=c++11] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_e894d/fast"
-/usr/bin/make -f CMakeFiles/cmTC_e894d.dir/build.make CMakeFiles/cmTC_e894d.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_fdb66/fast"
+/usr/bin/make -f CMakeFiles/cmTC_fdb66.dir/build.make CMakeFiles/cmTC_fdb66.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_e894d.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_e894d.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_e894d
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e894d.dir/link.txt --verbose=1
-/usr/bin/c++       CMakeFiles/cmTC_e894d.dir/feature_tests.cxx.o  -o cmTC_e894d 
+Building CXX object CMakeFiles/cmTC_fdb66.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_fdb66.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_fdb66
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fdb66.dir/link.txt --verbose=1
+/usr/bin/c++       CMakeFiles/cmTC_fdb66.dir/feature_tests.cxx.o  -o cmTC_fdb66 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -561,14 +561,14 @@ make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development
 Detecting CXX [-std=c++98] compiler features compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_08a78/fast"
-/usr/bin/make -f CMakeFiles/cmTC_08a78.dir/build.make CMakeFiles/cmTC_08a78.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_96d41/fast"
+/usr/bin/make -f CMakeFiles/cmTC_96d41.dir/build.make CMakeFiles/cmTC_96d41.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_08a78.dir/feature_tests.cxx.o
-/usr/bin/c++    -std=c++98 -o CMakeFiles/cmTC_08a78.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_08a78
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_08a78.dir/link.txt --verbose=1
-/usr/bin/c++       CMakeFiles/cmTC_08a78.dir/feature_tests.cxx.o  -o cmTC_08a78 
+Building CXX object CMakeFiles/cmTC_96d41.dir/feature_tests.cxx.o
+/usr/bin/c++    -std=c++98 -o CMakeFiles/cmTC_96d41.dir/feature_tests.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_96d41
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_96d41.dir/link.txt --verbose=1
+/usr/bin/c++       CMakeFiles/cmTC_96d41.dir/feature_tests.cxx.o  -o cmTC_96d41 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -766,34 +766,34 @@ Parsed CUDA nvcc include information from above output:
 Determining if the CUDA compiler works passed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_f3c23/fast"
-/usr/bin/make -f CMakeFiles/cmTC_f3c23.dir/build.make CMakeFiles/cmTC_f3c23.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_77705/fast"
+/usr/bin/make -f CMakeFiles/cmTC_77705.dir/build.make CMakeFiles/cmTC_77705.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CUDA object CMakeFiles/cmTC_f3c23.dir/main.cu.o
-/usr/local/cuda/bin/nvcc     -x cu -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/main.cu -o CMakeFiles/cmTC_f3c23.dir/main.cu.o
-Linking CUDA device code CMakeFiles/cmTC_f3c23.dir/cmake_device_link.o
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f3c23.dir/dlink.txt --verbose=1
-/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_f3c23.dir/main.cu.o -o CMakeFiles/cmTC_f3c23.dir/cmake_device_link.o 
-Linking CUDA executable cmTC_f3c23
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f3c23.dir/link.txt --verbose=1
-/usr/bin/g++    CMakeFiles/cmTC_f3c23.dir/main.cu.o CMakeFiles/cmTC_f3c23.dir/cmake_device_link.o -o cmTC_f3c23  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl
+Building CUDA object CMakeFiles/cmTC_77705.dir/main.cu.o
+/usr/local/cuda/bin/nvcc     -x cu -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/main.cu -o CMakeFiles/cmTC_77705.dir/main.cu.o
+Linking CUDA device code CMakeFiles/cmTC_77705.dir/cmake_device_link.o
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_77705.dir/dlink.txt --verbose=1
+/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_77705.dir/main.cu.o -o CMakeFiles/cmTC_77705.dir/cmake_device_link.o 
+Linking CUDA executable cmTC_77705
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_77705.dir/link.txt --verbose=1
+/usr/bin/g++    CMakeFiles/cmTC_77705.dir/main.cu.o CMakeFiles/cmTC_77705.dir/cmake_device_link.o -o cmTC_77705  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
 Detecting CUDA compiler ABI info compiled with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_d3bbe/fast"
-/usr/bin/make -f CMakeFiles/cmTC_d3bbe.dir/build.make CMakeFiles/cmTC_d3bbe.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_95f2f/fast"
+/usr/bin/make -f CMakeFiles/cmTC_95f2f.dir/build.make CMakeFiles/cmTC_95f2f.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CUDA object CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o
-/usr/local/cuda/bin/nvcc     -x cu -c /usr/share/cmake-3.10/Modules/CMakeCUDACompilerABI.cu -o CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o
-Linking CUDA device code CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d3bbe.dir/dlink.txt --verbose=1
-/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o -o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o 
-Linking CUDA executable cmTC_d3bbe
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d3bbe.dir/link.txt --verbose=1
-/usr/bin/g++   -v CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o -o cmTC_d3bbe  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl
+Building CUDA object CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o
+/usr/local/cuda/bin/nvcc     -x cu -c /usr/share/cmake-3.10/Modules/CMakeCUDACompilerABI.cu -o CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o
+Linking CUDA device code CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_95f2f.dir/dlink.txt --verbose=1
+/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o -o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o 
+Linking CUDA executable cmTC_95f2f
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_95f2f.dir/link.txt --verbose=1
+/usr/bin/g++   -v CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o -o cmTC_95f2f  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl
 Using built-in specs.
 COLLECT_GCC=/usr/bin/g++
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper
@@ -805,9 +805,9 @@ Thread model: posix
 gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d3bbe' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccdxa6sf.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d3bbe /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/local/cuda/targets/x86_64-linux/lib/stubs -L/usr/local/cuda/targets/x86_64-linux/lib -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o -lcudadevrt -lcudart_static -lrt -lpthread -ldl -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d3bbe' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_95f2f' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cctxbhva.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_95f2f /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/local/cuda/targets/x86_64-linux/lib/stubs -L/usr/local/cuda/targets/x86_64-linux/lib -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o -lcudadevrt -lcudart_static -lrt -lpthread -ldl -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_95f2f' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
@@ -815,17 +815,17 @@ Parsed CUDA implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_d3bbe/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_d3bbe.dir/build.make CMakeFiles/cmTC_d3bbe.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_95f2f/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_95f2f.dir/build.make CMakeFiles/cmTC_95f2f.dir/build]
   ignore line: [make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building CUDA object CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o]
-  ignore line: [/usr/local/cuda/bin/nvcc     -x cu -c /usr/share/cmake-3.10/Modules/CMakeCUDACompilerABI.cu -o CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o]
-  ignore line: [Linking CUDA device code CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d3bbe.dir/dlink.txt --verbose=1]
-  ignore line: [/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o -o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o ]
-  ignore line: [Linking CUDA executable cmTC_d3bbe]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d3bbe.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/g++   -v CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o -o cmTC_d3bbe  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl]
+  ignore line: [Building CUDA object CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o]
+  ignore line: [/usr/local/cuda/bin/nvcc     -x cu -c /usr/share/cmake-3.10/Modules/CMakeCUDACompilerABI.cu -o CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o]
+  ignore line: [Linking CUDA device code CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_95f2f.dir/dlink.txt --verbose=1]
+  ignore line: [/usr/local/cuda/bin/nvcc     -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o -o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o ]
+  ignore line: [Linking CUDA executable cmTC_95f2f]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_95f2f.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/g++   -v CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o -o cmTC_95f2f  -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -lcudadevrt -lcudart_static -lrt -lpthread -ldl]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/g++]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper]
@@ -837,13 +837,13 @@ Parsed CUDA implicit link information from above output:
   ignore line: [gcc version 8.4.0 (Ubuntu 8.4.0-1ubuntu1~18.04) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/8/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_d3bbe' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/ccdxa6sf.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_d3bbe /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/local/cuda/targets/x86_64-linux/lib/stubs -L/usr/local/cuda/targets/x86_64-linux/lib -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o -lcudadevrt -lcudart_static -lrt -lpthread -ldl -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_95f2f' '-L/usr/local/cuda/targets/x86_64-linux/lib/stubs' '-L/usr/local/cuda/targets/x86_64-linux/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/8/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper -plugin-opt=-fresolution=/tmp/cctxbhva.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_95f2f /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o -L/usr/local/cuda/targets/x86_64-linux/lib/stubs -L/usr/local/cuda/targets/x86_64-linux/lib -L/usr/lib/gcc/x86_64-linux-gnu/8 -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/8/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/8/../../.. CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o -lcudadevrt -lcudart_static -lrt -lpthread -ldl -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/8/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/8/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccdxa6sf.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/cctxbhva.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -861,7 +861,7 @@ Parsed CUDA implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_d3bbe] ==> ignore
+    arg [cmTC_95f2f] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/8/crtbeginS.o] ==> ignore
@@ -875,8 +875,8 @@ Parsed CUDA implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/8/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/8/../../..]
-    arg [CMakeFiles/cmTC_d3bbe.dir/CMakeCUDACompilerABI.cu.o] ==> ignore
-    arg [CMakeFiles/cmTC_d3bbe.dir/cmake_device_link.o] ==> ignore
+    arg [CMakeFiles/cmTC_95f2f.dir/CMakeCUDACompilerABI.cu.o] ==> ignore
+    arg [CMakeFiles/cmTC_95f2f.dir/cmake_device_link.o] ==> ignore
     arg [-lcudadevrt] ==> lib [cudadevrt]
     arg [-lcudart_static] ==> lib [cudart_static]
     arg [-lrt] ==> lib [rt]
@@ -909,42 +909,42 @@ Parsed CUDA implicit link information from above output:
 Determining if the include file pthread.h exists passed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_aa7ce/fast"
-/usr/bin/make -f CMakeFiles/cmTC_aa7ce.dir/build.make CMakeFiles/cmTC_aa7ce.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_443dd/fast"
+/usr/bin/make -f CMakeFiles/cmTC_443dd.dir/build.make CMakeFiles/cmTC_443dd.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_aa7ce.dir/CheckIncludeFile.c.o
-/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_aa7ce.dir/CheckIncludeFile.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
-Linking C executable cmTC_aa7ce
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aa7ce.dir/link.txt --verbose=1
-/usr/bin/cc -fPIC     CMakeFiles/cmTC_aa7ce.dir/CheckIncludeFile.c.o  -o cmTC_aa7ce 
+Building C object CMakeFiles/cmTC_443dd.dir/CheckIncludeFile.c.o
+/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_443dd.dir/CheckIncludeFile.c.o   -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTC_443dd
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_443dd.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC     CMakeFiles/cmTC_443dd.dir/CheckIncludeFile.c.o  -o cmTC_443dd 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
 Determining if the function pthread_create exists in the pthread passed with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_2c5a9/fast"
-/usr/bin/make -f CMakeFiles/cmTC_2c5a9.dir/build.make CMakeFiles/cmTC_2c5a9.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_eeafe/fast"
+/usr/bin/make -f CMakeFiles/cmTC_eeafe.dir/build.make CMakeFiles/cmTC_eeafe.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_2c5a9.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_2c5a9.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_2c5a9
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2c5a9.dir/link.txt --verbose=1
-/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_2c5a9.dir/CheckFunctionExists.c.o  -o cmTC_2c5a9 -lpthread 
+Building C object CMakeFiles/cmTC_eeafe.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_eeafe.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_eeafe
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_eeafe.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_eeafe.dir/CheckFunctionExists.c.o  -o cmTC_eeafe -lpthread 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 
 Performing C++ SOURCE FILE Test HAVE_RUSAGE succeeded with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_cb4cb/fast"
-/usr/bin/make -f CMakeFiles/cmTC_cb4cb.dir/build.make CMakeFiles/cmTC_cb4cb.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_a3c53/fast"
+/usr/bin/make -f CMakeFiles/cmTC_a3c53.dir/build.make CMakeFiles/cmTC_a3c53.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_cb4cb.dir/src.cxx.o
-/usr/bin/c++    -Wno-deprecated-declarations -O3 -msse3 -DHAVE_RUSAGE   -std=gnu++11 -o CMakeFiles/cmTC_cb4cb.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
-Linking CXX executable cmTC_cb4cb
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_cb4cb.dir/link.txt --verbose=1
-/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_RUSAGE    CMakeFiles/cmTC_cb4cb.dir/src.cxx.o  -o cmTC_cb4cb 
+Building CXX object CMakeFiles/cmTC_a3c53.dir/src.cxx.o
+/usr/bin/c++    -Wno-deprecated-declarations -O3 -msse3 -DHAVE_RUSAGE   -std=gnu++11 -o CMakeFiles/cmTC_a3c53.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_a3c53
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a3c53.dir/link.txt --verbose=1
+/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_RUSAGE    CMakeFiles/cmTC_a3c53.dir/src.cxx.o  -o cmTC_a3c53 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 Source file was:
@@ -956,14 +956,14 @@ return usage.ru_maxrss; }
 Performing C++ SOURCE FILE Test HAVE_XDRUINTXX_T succeeded with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_d4e7d/fast"
-/usr/bin/make -f CMakeFiles/cmTC_d4e7d.dir/build.make CMakeFiles/cmTC_d4e7d.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_6b990/fast"
+/usr/bin/make -f CMakeFiles/cmTC_6b990.dir/build.make CMakeFiles/cmTC_6b990.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_d4e7d.dir/src.cxx.o
-/usr/bin/c++    -Wno-deprecated-declarations -O3 -msse3 -DHAVE_XDRUINTXX_T   -std=gnu++11 -o CMakeFiles/cmTC_d4e7d.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
-Linking CXX executable cmTC_d4e7d
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d4e7d.dir/link.txt --verbose=1
-/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_XDRUINTXX_T    CMakeFiles/cmTC_d4e7d.dir/src.cxx.o  -o cmTC_d4e7d 
+Building CXX object CMakeFiles/cmTC_6b990.dir/src.cxx.o
+/usr/bin/c++    -Wno-deprecated-declarations -O3 -msse3 -DHAVE_XDRUINTXX_T   -std=gnu++11 -o CMakeFiles/cmTC_6b990.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_6b990
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6b990.dir/link.txt --verbose=1
+/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_XDRUINTXX_T    CMakeFiles/cmTC_6b990.dir/src.cxx.o  -o cmTC_6b990 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 Source file was:
@@ -986,14 +986,14 @@ int main(int count, char** v){
 Performing C++ SOURCE FILE Test HAVE_CONSTCORRECTMPI succeeded with the following output:
 Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_06eb2/fast"
-/usr/bin/make -f CMakeFiles/cmTC_06eb2.dir/build.make CMakeFiles/cmTC_06eb2.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_be1ec/fast"
+/usr/bin/make -f CMakeFiles/cmTC_be1ec.dir/build.make CMakeFiles/cmTC_be1ec.dir/build
 make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_06eb2.dir/src.cxx.o
-/usr/bin/c++   -I/opt/openmpi-3.0.0/include  -Wno-deprecated-declarations -O3 -msse3 -DHAVE_CONSTCORRECTMPI -Werror   -pthread -std=gnu++11 -o CMakeFiles/cmTC_06eb2.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
-Linking CXX executable cmTC_06eb2
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_06eb2.dir/link.txt --verbose=1
-/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_CONSTCORRECTMPI -Werror    CMakeFiles/cmTC_06eb2.dir/src.cxx.o  -o cmTC_06eb2 -Wl,-rpath,/opt/openmpi-3.0.0/lib /opt/openmpi-3.0.0/lib/libmpi.so 
+Building CXX object CMakeFiles/cmTC_be1ec.dir/src.cxx.o
+/usr/bin/c++   -I/opt/openmpi-3.0.0/include  -Wno-deprecated-declarations -O3 -msse3 -DHAVE_CONSTCORRECTMPI -Werror   -pthread -std=gnu++11 -o CMakeFiles/cmTC_be1ec.dir/src.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_be1ec
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_be1ec.dir/link.txt --verbose=1
+/usr/bin/c++   -Wno-deprecated-declarations -O3 -msse3 -DHAVE_CONSTCORRECTMPI -Werror    CMakeFiles/cmTC_be1ec.dir/src.cxx.o  -o cmTC_be1ec -Wl,-rpath,/opt/openmpi-3.0.0/lib /opt/openmpi-3.0.0/lib/libmpi.so 
 make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/src_v1_24a/build/CMakeFiles/CMakeTmp'
 
 Source file was:

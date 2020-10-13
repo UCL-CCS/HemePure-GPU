@@ -1,0 +1,52 @@
+// cuda_params.h
+#ifndef cuda_params_h
+#define cuda_params_h
+
+#include <stdint.h> // to use uint64_t below
+#include "units.h"
+
+namespace hemelb
+{
+
+
+//#ifdef HEMELB_USE_GPU
+	//__constant__ const hemelb::Direction _NUMVECTORS = 1; // compiles fine like this (Why does it need the const )-  need to test the value passed to the device constant memory
+
+	extern __constant__ unsigned int _NUMVECTORS;
+
+	extern __constant__ double dev_tau;
+	extern __constant__ double dev_minusInvTau;
+	
+	extern __constant__ int _InvDirections_19[19];
+
+	extern __constant__ double _EQMWEIGHTS_19[19];
+	
+	extern __constant__ int _CX_19[19];
+	extern __constant__ int _CY_19[19];
+	extern __constant__ int _CZ_19[19];
+
+	//__constant__ int _InvDirections_19[19]; // =  { 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17 };
+
+	inline void check_cuda_errors(const char *filename, const int line_number, int myProc);
+	
+	// Declare global cuda functions here - Callable from within a class	
+	// __global__ void GPU_Collide_testing(long lower_limit, long upper_limit);
+
+	__global__ void GPUCalcMacroVars(double* GMem_dbl_fOld_b, double* GMem_dbl_fNew_b, unsigned int nArr_dbl, long long lower_limit, long long upper_limit);
+
+	__global__ void GPU_CollideStream_1_PreSend(double* GMem_dbl_fOld_b, double* GMem_dbl_fNew_b, int64_t* GMem_int64_Neigh, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs);
+
+	__global__ void GPU_CollideStream_1_PreReceive(double* GMem_dbl_fOld_b, double* GMem_dbl_fNew_b, double* GMem_dbl_MacroVars, int64_t* GMem_int64_Neigh, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs);
+
+	__global__ void GPU_CollideStream_mWallCollision_sBB(double* GMem_dbl_fOld_b, double* GMem_dbl_fNew_b, double* GMem_dbl_MacroVars, int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs);
+
+	__global__ void GPU_CollideStream_3_NashZerothOrderPressure(double* GMem_dbl_fOld_b, double* GMem_dbl_fNew_b, double* GMem_dbl_MacroVars, int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, double* GMem_ghostDensity, float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl,uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs);
+	
+	__global__ void GPU_CollideStream_wall_sBB_iolet_Nash( distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars, int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link, distribn_t* GMem_ghostDensity, float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs);
+	
+	
+	//#endif
+
+
+}
+#endif
