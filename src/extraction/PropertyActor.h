@@ -13,10 +13,6 @@
 #include "lb/SimulationState.h"
 #include "net/IteratedAction.h"
 
-//#include "extraction/asynch_write.h"
-#include <thread>
-//#include "cuda_kernels_def_decl/Threads.h"
-
 namespace hemelb
 {
   namespace extraction
@@ -49,13 +45,9 @@ namespace hemelb
          * Override the iterated actor end of iteration method to perform writing.
          */
         void EndIteration();
-        int thread_Write();
 
         // Added 5 August 2020
         int GetMaxSimTime();
-
-        //int ThreadWork_Save_Files(Threads::Thread* thread);
-        //Threads Worker;
 
       private:
         const lb::SimulationState& simulationState;

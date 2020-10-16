@@ -1968,32 +1968,32 @@ template<class LatticeType>
 
 				// 2.a. Weight coefficients for the equilibrium distr. functions
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (1)\n"); return false;
 					//goto Error;
 				}
 
 				// 2.b. Number of vectors: LatticeType::NUMVECTORS
 				static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (2)\n"); return false;
 					//goto Error;
 				}
 
 				// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (3)\n"); return false;
 					//goto Error;
 				}
 
 				// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (4)\n"); return false; //goto Error;
 				}
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (5)\n"); return false; //goto Error;
 				}
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (6)\n"); return false; //goto Error;
 				}
 
 				// 2.e. Relaxation Time tau
@@ -2003,15 +2003,15 @@ template<class LatticeType>
 				double minus_inv_tau = mParams.GetOmega();	// printf("Minus Inv. Relaxation Time = %.5f\n\n", minus_inv_tau);
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::dev_tau, &tau, sizeof(tau), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (7)\n"); return false; //goto Error;
 				}
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::dev_minusInvTau, &minus_inv_tau, sizeof(minus_inv_tau), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (8)\n"); return false; //goto Error;
 				}
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_Cs2, &Cs2, sizeof(Cs2), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (9)\n"); return false; //goto Error;
 				}
 				//=================================================================================================================================
 
@@ -3675,7 +3675,7 @@ template<class LatticeType>
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
 				// NO CUDA-aware mpi branch -
-				std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << " Need to do H2D memcopy totalSharedFs distr. functions in fOld to the GPU " << std::endl;
+				//std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << " Need to do H2D memcopy totalSharedFs distr. functions in fOld to the GPU " << std::endl;
 
 				// Think how it could be possible to call this earlier. To do!!!
 				// It requires the completion of the MPI exchange step... Step: Send
