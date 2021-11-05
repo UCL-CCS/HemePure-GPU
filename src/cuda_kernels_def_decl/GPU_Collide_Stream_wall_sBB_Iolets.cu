@@ -1,4 +1,3 @@
-
 // This file is part of the GPU development for HemeLB
 // 7-1-2019
 /**
@@ -1634,7 +1633,8 @@ namespace hemelb
 																float* GMem_inletNormal,
 																int nInlets,
 																uint64_t nArr_dbl,
-																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step, int num_local_Iolets, Iolets Iolets_info)
+																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs,
+																bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit;
@@ -1862,7 +1862,8 @@ namespace hemelb
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if(time_Step%_Send_MacroVars_DtH == 0){
+		//if(time_Step%_Send_MacroVars_DtH == 0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
@@ -1900,7 +1901,8 @@ namespace hemelb
 																float* GMem_inletNormal,
 																int nInlets,
 																uint64_t nArr_dbl,
-																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step, int num_local_Iolets, site_t* GMem_Iolets_info)
+																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs,
+																bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit;
@@ -2137,7 +2139,8 @@ namespace hemelb
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if(time_Step%_Send_MacroVars_DtH == 0){
+		//if(time_Step%_Send_MacroVars_DtH == 0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
@@ -2180,7 +2183,7 @@ namespace hemelb
 																uint32_t* GMem_uint32_Iolet_Link,
 																uint64_t nArr_dbl,
 																distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom,
-																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step)
+																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, bool write_GlobalMem)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit;
@@ -2372,7 +2375,9 @@ namespace hemelb
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if(time_Step%_Send_MacroVars_DtH == 0){
+		//printf("_Send_MacroVars_DtH: %d \n\n", _Send_MacroVars_DtH);
+		//if(time_Step%_Send_MacroVars_DtH == 0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;

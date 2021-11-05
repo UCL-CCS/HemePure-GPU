@@ -313,6 +313,12 @@ void SimulationMaster::Initialise() {
 
 // =============================================================================================
 #ifdef HEMELB_USE_GPU
+
+/**
+Function to:
+a. Check if there are CUDA capable devices
+b. Call cudaSetDevice (assign a GPU device to the current rank depending on how many are available on the node)
+*/
 void SimulationMaster::check_GPU_capabilities()
 {
 	//hemelb::net::MpiCommunicator rank_Com;
@@ -450,6 +456,7 @@ void SimulationMaster::DoTimeStep() {
 
 	// Check the stability of the code
 	if (simulationState->GetStability() == hemelb::lb::Unstable) {
+		printf("Rank: %d, Unstable simulation!!! Need to Abort \n", communicationNet.Rank());
 		OnUnstableSimulation();
 	}
 
@@ -502,6 +509,17 @@ void SimulationMaster::Abort() {
 }
 
 void SimulationMaster::LogStabilityReport() {
+
+/*
+	printf("Rank: %d, Time: %07i, IncompressibilityCheck Value :%d & Densities are available: %d \n\n", communicationNet.Rank(), simulationState->GetTimeStep(),monitoringConfig->doIncompressibilityCheck, incompressibilityChecker->AreDensitiesAvailable() );
+	printf("time step %07i :: tau: %.6f, max_relative_press_diff: %.3f, Ma: %.3f, max_vel_phys: %e \n",
+			simulationState->GetTimeStep(),
+			latticeBoltzmannModel->GetLbmParams()->GetTau(),
+			incompressibilityChecker->GetMaxRelativeDensityDifference(),
+			incompressibilityChecker->GetGlobalLargestVelocityMagnitude()/ hemelb::Cs,
+			unitConverter->ConvertVelocityToPhysicalUnits(incompressibilityChecker->GetGlobalLargestVelocityMagnitude()));
+*/
+
 	if (monitoringConfig->doIncompressibilityCheck
 			&& incompressibilityChecker->AreDensitiesAvailable()) {
 		hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("time step %07i :: tau: %.6f, max_relative_press_diff: %.3f, Ma: %.3f, max_vel_phys: %e",

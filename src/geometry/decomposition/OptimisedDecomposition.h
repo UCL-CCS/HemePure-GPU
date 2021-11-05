@@ -29,7 +29,7 @@ namespace hemelb
 							const Geometry& geometry,
 							const lb::lattices::LatticeInfo& latticeInfo,
 							const std::unordered_map<site_t, proc_t>& procForEachBlock,
-							const std::unordered_map<site_t, uint16_t>& fluidSitesOnEachBlock);
+							const std::unordered_map<site_t, uint32_t>& fluidSitesOnEachBlock);
 
 					/**
 					 * Returns a vector with the number of moves coming from each core
@@ -210,7 +210,7 @@ namespace hemelb
 					const Geometry& geometry; //! The geometry being optimised.
 					const lb::lattices::LatticeInfo& latticeInfo; //! The lattice info to optimise for.
 					const std::unordered_map<site_t, proc_t>& procForEachBlock; //! The processor assigned to each block at the moment
-					const std::unordered_map<site_t, uint16_t>& fluidSitesOnEachBlock;
+					const std::unordered_map<site_t, uint32_t>& fluidSitesOnEachBlock;
 					std::vector<idx_t> vtxDistribn; //! The vertex distribution across participating cores.
 					std::unordered_map<site_t, idx_t> firstSiteIndexPerBlock; //! The global contiguous index of the first fluid site on each block.
 					std::vector<idx_t> adjacenciesPerVertex; //! The number of adjacencies for each local fluid site

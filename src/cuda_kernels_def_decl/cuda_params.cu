@@ -174,7 +174,7 @@ VERSIONS v*.b will follow the original sequence
 	 			for each iolet type:
 					i.e. Inlet, Inlet with walls, Outlet, Outlet with walls and
 								for the PreSend and PreReceive steps
-					resulting up to 8 different possible arrays and the following pointers to thet data in GPU global memory:
+					resulting up to 8 different possible arrays and the following pointers to that data in GPU global memory:
 							void *GPUDataAddr_wallMom_Inlet_Edge;
 							void *GPUDataAddr_wallMom_InletWall_Edge;
 							void *GPUDataAddr_wallMom_Inlet_Inner;
@@ -232,26 +232,72 @@ VERSIONS v*.b will follow the original sequence
 	HemeLB version 1.24.a
 
 	Sept 2020
-	TODO: 1. CUDA-aware mpi
+	Done: 1. CUDA-aware mpi
 							Flag: HEMELB_CUDA_AWARE_MPI
 						Make the changes in
 							void BaseNet::Receive()
 							void BaseNet::Send()
-							
+
 				2. Pointers to GPU global memory must be transfered from class LBM to class geometry::LatticeData
 				 				class LBM is friend class of class LatticeData
 								hence object of class LBM can access the private and protected members of the class geometry::LatticeData
 
 
+//------------------------------------------------------------------------------
+	HemeLB version 1.26.a
+
+	Feb 2021
+	1.	Check stability of the simulation on the GPU and calls Abort()
+				see hemelb::GPU_Check_Stability called in PreSend()
+				every 1000 steps.
+
+	2. 	Abort if Initialise_GPU() fails - corrected a bug.
+
+
+//------------------------------------------------------------------------------
+		HemeLB version 1.27.a
+
+		March 2021
+		1.	Removed the explicit swap of distr. functions at the end of each iteration
+				Just swap the corresponding pointers to GPU global memory (No need to move the data)
+
+
+		2. Implemented Jon's modifications to the code to allow output of geometry outlets
+				see: https://github.com/UCL-CCS/HemePure/commit/d0fb59eed8a0b41beec466295ddbfc681d246fed
+
+				Files to be processed with post processing tools,
+					see https://github.com/JonMcCullough/HemePure_tools
+
+//------------------------------------------------------------------------------
+	HemeLB version 1.28.a
+
+	May 2021
+		1. Fixed a bug related to Vel BCs (reading from file - time dependent values)
+
+
+//------------------------------------------------------------------------------
+	HemeLB version 1.29.a
+	Oct 2021
+
+	TODO:
+	June 2021 - Still the Vel BCs case is much slower than the Pres BCs cases
+		1. I need to send the correction term (single value) to the GPU and not the 3 component wall momentum
+		2. Pass the boolean variable associated with sending data (macroVariables) to the GPU global memory
+				as an argument to the collision-streaming kernels
+
+
+
+
 	##############################################################################
 	To do - Think about the following:
-	1. 	Use 256 threads per block for the Collision type 1
-											Use 128/64 for the other types of Collision
+	1. 	What is the optimum kernel launch config?
+			e.g. 	Use 256 threads per block for the Collision type 1
+						Use 128/64 for the other types of Collision
 
 	2. 	Change the way of allocating memory for:
 				I. Data_uint32_IoletIntersect (GPUDataAddr_uint32_Iolet)
 				II. Data_uint32_WallIntersect (GPUDataAddr_uint32_Wall)
-			as I currently define the above variables for each fluid node - Too much!!!
+			as I currently define the above variables for each fluid node - Too much memory needed!!!
 			It should be done only for the corresponding number of fluid nodes involved in these collision-streaming types. Check the limits from there.
 
 	3. 	Transfer in Initialise_kernels_GPU all the set-up for the individual cuda kernels
@@ -259,7 +305,8 @@ VERSIONS v*.b will follow the original sequence
 
 	4. Evaluate other macrovariables on the GPU - memcpy to host according to specified frequency for saving to disk
 
-	5. Stability evaluation every X timesteps on the GPU - maybe at the same time when evaluating/saving MacroVariables
+	5. Done!!!
+			Stability evaluation every X timesteps on the GPU - maybe at the same time when evaluating/saving MacroVariables
 	    Maybe add this when saving the velocity and density at each one of the collsiion-streaming kernels
 
 	6. Pass the boolean Variable:
@@ -307,14 +354,14 @@ namespace hemelb
 
 	__constant__ int _InvDirections_19[19];
 
-	__constant__ double _EQMWEIGHTS_19[19];
+	__device__ __constant__ double _EQMWEIGHTS_19[19];
 
 	__constant__ int _CX_19[19];
 	__constant__ int _CY_19[19];
 	__constant__ int _CZ_19[19];
 
 	__constant__ int _WriteStep = 1000;
-	__constant__ int _Send_MacroVars_DtH = 1;
+	__constant__ int _Send_MacroVars_DtH = 1000; // Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
 
 
 	//===================================================================================================================
@@ -322,6 +369,94 @@ namespace hemelb
 	/**
 	__global__ GPU kernels
 	*/
+
+
+
+	//**************************************************************
+	/** Kernel for assessing the stability of the code
+			Remember that the enum Stability is defined in SimulationState.h:
+							enum Stability
+							{
+								UndefinedStability = -1,
+								Unstable = 0,
+								Stable = 1,
+								StableAndConverged = 2
+							};
+			Initial value set to UndefinedStability(i.e. -1).
+
+			*** CRITERION ***
+			The kernel assesses the stability by:
+			1. Examining whether f_new > 0.0
+						SAME approach as the CPU version of hemeLB
+			2. Consider in the future checking for NaNs values (maybe just the density will suffice)
+
+			If unstable (see criterion above):
+				flag d_Stability_flag set to 0 (global memory int*).
+	*/
+	//**************************************************************
+	__global__ void GPU_Check_Stability(distribn_t* GMem_dbl_fOld_b,
+																		distribn_t* GMem_dbl_fNew_b,
+																		int* d_Stability_flag,
+																		site_t nArr_dbl,
+																		site_t lower_limit, site_t upper_limit,
+																		int time_Step)
+	{
+			unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
+			Ind = Ind + lower_limit;
+
+			if(Ind >= upper_limit)
+				return;
+
+			int Stability_GPU = *d_Stability_flag;
+			//printf("Site ID = %lld - Stability flag: %d \n\n", Ind, Stability_GPU);
+
+			/** At first, follow the same approach as in the CPU version of hemeLB,
+					i.e. examine whether the distribution functions are positive, see lb/StabilityTester.h
+					//--------------------------------------------------------------------
+					Also, see SimulationState.h for the enum Stability:
+					namespace lb
+  				{
+    				enum Stability
+    				{
+				      UndefinedStability = -1,
+				      Unstable = 0,
+				      Stable = 1,
+				      StableAndConverged = 2
+				    };
+				  }
+					//--------------------------------------------------------------------
+			// Note that by testing for value > 0.0, we also catch stray NaNs.
+			if (! (value > 0.0))
+			{
+				mUpwardsStability = Unstable;
+				break;
+			}
+			*/
+
+			// Load the distribution functions fNew_GPU_b[19]
+			// distribn_t dev_ff_new[19];
+
+			for(int direction = 0; direction< _NUMVECTORS; direction++){
+				distribn_t ff = GMem_dbl_fNew_b[(unsigned long long)direction * nArr_dbl + Ind];
+				//dev_ff_new[direction] = ff;
+				if (!(ff > 0.0)) // Unstable simulation
+				{
+					Stability_GPU = 0;
+					*d_Stability_flag = 0;
+					return;
+				}
+				if(Stability_GPU==0)
+					return;
+
+
+			} // Ends the loop over the LB-directions
+
+			// DEbugging test
+			//if(time_Step%200 ==0) *d_Stability_flag = 0;
+
+	} // Ends the kernel GPU_Check_Stability
+	//==========================================================================================
+
 
 	//**************************************************************
 	// Kernel for the Collision step
@@ -342,7 +477,7 @@ namespace hemelb
 										uint32_t* GMem_uint32_Wall_Link,
 										site_t nArr_dbl,
 										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, int time_Step)
+										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit_MidFluid;
@@ -367,7 +502,7 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		/*for(int direction = 0; direction< _NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			nn += dev_ff[direction];
 		}
@@ -377,13 +512,25 @@ namespace hemelb
 			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
 			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
 		}
+		*/
+		for(int direction = 0; direction< _NUMVECTORS; direction++){
+			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
+			dev_ff[direction] = ff;
+			nn += ff;
 
-		//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
+			// Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
+			momentum_x += (double)_CX_19[direction] * ff;
+			momentum_y += (double)_CY_19[direction] * ff;
+			momentum_z += (double)_CZ_19[direction] * ff;
+		}
+
 		/*
+		// Evaluate momentum explicitly - The number of registers per thread increases though (56 from 51) compared to the approach of multiplying with the lattice direction's projections !!! Why?
 		// Based on HemeLB's vector definition
 		momentum_x = dev_ff[1] - dev_ff[2] + dev_ff[7]  - dev_ff[8]  + dev_ff[9]  - dev_ff[10] + dev_ff[11] - dev_ff[12] + dev_ff[13] - dev_ff[14]; // HemeLB vector definition is different than the one I am using
 		momentum_y = dev_ff[3] - dev_ff[4] + dev_ff[7]  - dev_ff[8]  - dev_ff[9]  + dev_ff[10] + dev_ff[15] - dev_ff[16] + dev_ff[17] - dev_ff[18];
 		momentum_z = dev_ff[5] - dev_ff[6] + dev_ff[11] - dev_ff[12] - dev_ff[13] + dev_ff[14] + dev_ff[15] - dev_ff[16] - dev_ff[17] + dev_ff[18];
+		//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		*/
 		/*
 		// Based on my definition of the D3Q19 vectors
@@ -471,13 +618,21 @@ namespace hemelb
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
 		}
-
 		// __syncthreads(); // Check if needed!
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS;
+
+		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+
+		//==========================================================================
+		// Get the local fluid site mem. location - Debugging purposes:  (Remove later)
+		// int64_t local_fluid_site_mem_loc = GMem_int64_Neigh[Ind];
+		//==========================================================================
+
 		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
 				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
+				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
+				// Option 1:
 				if(dev_NeighInd == index_wall) // Wall Link
 				{
 					// Simple Bounce Back case:
@@ -486,8 +641,22 @@ namespace hemelb
 				else{
 					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
 				}
+				//printf("Local ID : %llu, Mem. Location: %.llu, LB_dir = %d, Neighbour = %llu \n\n", Ind, local_fluid_site_mem_loc, LB_Dir, dev_NeighInd);
 
+				/*
+				// Option 2: Use of ternary operator to replace the if-else statement
+				int64_t arr_index = (dev_NeighInd == index_wall) ? (unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind : dev_NeighInd;
+				GMem_dbl_fNew_b[arr_index] = dev_ff[LB_Dir];
+				*/
+
+				/*
+				// Option 3: Avoid the if-else operator by multiplying with a boolean variable (wall link or not)
+				bool is_Wall_link_test = (dev_NeighInd == index_wall);
+				int64_t arr_index = ((unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind) * is_Wall_link_test + dev_NeighInd * (!is_Wall_link_test);
+				GMem_dbl_fNew_b[arr_index] = dev_ff[LB_Dir];
+				*/
 		}
+
 
 		// --------------------------------------------------------------------------------
 		// Streaming Step:
@@ -577,7 +746,8 @@ namespace hemelb
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if (time_Step%_Send_MacroVars_DtH ==0){
+		//if (time_Step%_Send_MacroVars_DtH ==0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;

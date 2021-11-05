@@ -218,7 +218,8 @@ namespace hemelb
                 if (base::GetSendParentOverlap(progress - firstAscent, &sendOverlap)
                     && base::GetParent() >= 0)
                 {
-                  //PostSendToParent(*it, sendOverlap);
+                  // Comment this out later... TODO!!!  
+                  PostSendToParent(*it, sendOverlap);
                 }
               }
             }

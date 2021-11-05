@@ -22,7 +22,7 @@ namespace hemelb
 					reporting::Timers& timers, net::MpiCommunicator& comms, const Geometry& geometry,
 					const lb::lattices::LatticeInfo& latticeInfo,
 					const std::unordered_map<site_t, proc_t>& procForEachBlock,
-					const std::unordered_map<site_t, uint16_t>& fluidSitesOnEachBlock) :
+					const std::unordered_map<site_t, uint32_t>& fluidSitesOnEachBlock) :
 				timers(timers), comms(comms), geometry(geometry), latticeInfo(latticeInfo),
 				procForEachBlock(procForEachBlock), fluidSitesOnEachBlock(fluidSitesOnEachBlock)
 			{

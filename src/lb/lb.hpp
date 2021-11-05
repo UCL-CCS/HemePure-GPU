@@ -9,6 +9,9 @@
 #include "io/writers/xdr/XdrMemWriter.h"
 #include "lb/lb.h"
 
+#ifdef HEMELB_USE_GPU
+#include <cuda_profiler_api.h>
+#endif
 
 // Add the following line when calling the function:
 // hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // Check for last cuda error: Remember that it is in DEBUG flag
@@ -452,7 +455,6 @@ namespace hemelb
 				}
 				//======================================================================
 
-
 				return true;
 			} // Ends the Read_DistrFunctions_GPU_to_CPU_totalSharedFs
 
@@ -504,6 +506,36 @@ namespace hemelb
 				cudaStatus = cudaMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, 3*nArr_wallMom * sizeof(distribn_t), cudaMemcpyHostToDevice);
 
 				//======================================================================
+				/*
+				// Testing - Remove later
+				printf("\n\n");
+				for (int site_i=firstIndex; site_i< (firstIndex+siteCount); site_i++){
+					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_i);
+
+					site_t shifted_Fluid_Ind = site_i - firstIndex;
+
+					for (int LB_dir=1; LB_dir<19; LB_dir++){
+
+						double wallMom_x = Data_dbl_WallMom[(LB_dir-1)*siteCount + shifted_Fluid_Ind];
+						double wallMom_y = Data_dbl_WallMom[(LB_dir-1)*siteCount + shifted_Fluid_Ind + 1*nArr_wallMom];
+						double wallMom_z = Data_dbl_WallMom[(LB_dir-1)*siteCount + shifted_Fluid_Ind + 2*nArr_wallMom];
+
+
+						// Debugging - Case of Vel BCs - Remove later
+						if (site_i==9919 && LB_dir==18){
+							if(wallMom_x !=0 || wallMom_y !=0 || wallMom_z !=0)
+							printf("Section MemCopy : site_i: %lu, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site_i, \
+																													LB_dir, wallMom_x, wallMom_y, wallMom_z);
+							//printf("Section 4.1 : wallMom_InletWall_Inner / site_i: %lu / Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site_i, site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, \
+																															LB_dir, wallMom_x, wallMom_y, wallMom_z);
+            }
+
+					}
+				}
+				*/
+				//======================================================================
+
+				//======================================================================
 				if(cudaStatus != cudaSuccess){
 					const char * eStr = cudaGetErrorString (cudaStatus);
 					printf("GPU memory allocation for wallMom failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
@@ -526,26 +558,40 @@ namespace hemelb
 			// 2. fill the appropriate vector that will be used to send the data to the GPU global memory
 			//=================================================================================================
 		template<class LatticeType>
-			void LBM<LatticeType>::read_WallMom_from_propertyCache(site_t firstIndex, site_t siteCount, lb::MacroscopicPropertyCache& propertyCache,
+			void LBM<LatticeType>::read_WallMom_from_propertyCache(site_t firstIndex, site_t siteCount, const lb::MacroscopicPropertyCache& propertyCache,
 																															std::vector<util::Vector3D<double> >& wallMom_Iolet)
 			{
+				std::vector<util::Vector3D<double> > wallMom_forReadFromCache;
+
 				for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 				{
 					for (unsigned int direction = 0; direction < LatticeType::NUMVECTORS; direction++)
 					{
-						LatticeVelocity site_WallMom = propertyCache.wallMom_Cache.Get((siteIndex-firstIndex)*LatticeType::NUMVECTORS+direction);
+						// If I already wrote to propertyCache starting from location 0
+						//LatticeVelocity site_WallMom = propertyCache.wallMom_Cache.Get((siteIndex-firstIndex)*LatticeType::NUMVECTORS+direction);
+
+						// If I already wrote to propertyCache starting from the location based on fluid ID index
+						LatticeVelocity site_WallMom = propertyCache.wallMom_Cache.Get(siteIndex*LatticeType::NUMVECTORS+direction);
 						/*
+						if (siteIndex==9919 && direction==18){
 						if(site_WallMom.x !=0 || site_WallMom.y !=0 || site_WallMom.z !=0)
 							printf("Received Wall Mom in LBM - Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction,
 																			site_WallMom.x,
 																			site_WallMom.y,
 																			site_WallMom.z);
+						}
 						*/
-						wallMom_Iolet.push_back(site_WallMom);
+						//wallMom_Iolet.push_back(site_WallMom);
+							wallMom_forReadFromCache.push_back(site_WallMom);
 					}
 				}
 
+				wallMom_Iolet = wallMom_forReadFromCache;
+				//wallMom_Iolet.insert(wallMom_Iolet.begin(),wallMom_forReadFromCache);
+
 				/*
+				//======================================================================
+				// Remove later
 				for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 				{
 					for (unsigned int direction = 0; direction < LatticeType::NUMVECTORS; direction++)
@@ -556,9 +602,18 @@ namespace hemelb
 																		wallMom_Iolet[(siteIndex-firstIndex)*LatticeType::NUMVECTORS+direction].z);
 					}
 				}
+				//======================================================================
 				*/
-
 			}
+
+
+			template<class LatticeType>
+				void LBM<LatticeType>::swap_Pointers_GPU_glb_mem(void **pointer_GPU_glb_left, void **pointer_GPU_gbl_right)
+				{
+					void *pSwap = *pointer_GPU_glb_left;
+			    *pointer_GPU_glb_left = *pointer_GPU_gbl_right;
+			    *pointer_GPU_gbl_right = pSwap;
+				}
 
 
 			//=================================================================================================
@@ -585,6 +640,8 @@ namespace hemelb
 				*/
 				cudaError_t cudaStatus;
 
+				bool res_Read_MacroVars = true;
+
 			  // Total number of fluid sites
 			  uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
 
@@ -593,7 +650,11 @@ namespace hemelb
 
 			  distribn_t* dens_GPU = new distribn_t[siteCount];
 
-			  if(dens_GPU==0){printf("Density Memory allocation failure"); return false;}
+			  if(dens_GPU==0){
+					printf("Density Memory allocation failure");
+					res_Read_MacroVars = false;
+					//return false;
+				}
 
 			  unsigned long long MemSz = siteCount*sizeof(distribn_t);
 
@@ -603,7 +664,8 @@ namespace hemelb
 			  if(cudaStatus != cudaSuccess){
 			    printf("GPU memory transfer for density failed\n");
 			    delete[] dens_GPU;
-			    return false;
+					res_Read_MacroVars = false;
+			    //return res_Read_MacroVars;
 			  }
 
 			  // b. Velocity
@@ -611,14 +673,21 @@ namespace hemelb
 			  distribn_t* vy_GPU = new distribn_t[siteCount];
 			  distribn_t* vz_GPU = new distribn_t[siteCount];
 
-			  if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){ printf("Memory allocation failure"); return false;}
+			  if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){
+					printf("Memory allocation failure");
+					res_Read_MacroVars = false;
+			    //return res_Read_MacroVars;
+					//return false;
+				}
 
 			  cudaStatus = cudaMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz, cudaMemcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 			  //cudaStatus = cudaMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, cudaMemcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 			  if(cudaStatus != cudaSuccess){
 			    printf("GPU memory transfer Vel(1) failed\n");
 			    delete[] vx_GPU;
-			    return false;
+					res_Read_MacroVars = false;
+			    //return res_Read_MacroVars;
+			    //return false;
 			  }
 
 			  cudaStatus = cudaMemcpyAsync(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes + firstIndex]), MemSz, cudaMemcpyDeviceToHost, stream_Read_Data_GPU_Dens);
@@ -626,15 +695,19 @@ namespace hemelb
 			  if(cudaStatus != cudaSuccess){
 			    printf("GPU memory transfer Vel(2) failed\n");
 			    delete[] vy_GPU;
-			    return false;
+					res_Read_MacroVars = false;
+			    //return res_Read_MacroVars;
+			    //return false;
 			  }
 
 			  cudaStatus = cudaMemcpyAsync(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes + firstIndex]), MemSz, cudaMemcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 			  //cudaStatus = cudaMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, cudaMemcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 			  if(cudaStatus != cudaSuccess){
-			    printf("GPU memory transfer Vel(2) failed\n");
+			    printf("GPU memory transfer Vel(3) failed\n");
 			    delete[] vz_GPU;
-			    return false;
+					res_Read_MacroVars = false;
+			    //return res_Read_MacroVars;
+					//return false;
 			  }
 			  //--------------------------------------------------------------------------
 			  //hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // Check for last cuda error: Remember that it is in DEBUG flag
@@ -672,12 +745,164 @@ namespace hemelb
 
 
 				// Free memory once the mem.copies are Completed
-				delete[] dens_GPU;
-				delete[] vx_GPU, vy_GPU, vz_GPU;
+				if(res_Read_MacroVars){
+					delete[] dens_GPU;
+					delete[] vx_GPU, vy_GPU, vz_GPU;
+				}
+
+				return res_Read_MacroVars;
+			}
+
+
+			//=================================================================================================
+				/** Check the following!!! TODO!!!
+				Function for reading:
+							a. the Distribution Functions post-collision, fNew,
+							b. Density [nFluid nodes]
+							c. Velocity[nFluid nodes*3]
+				 		ONLY FOR THE FLUID NODES at the current rank (WITHOUT the f's in totalSharedFs)
+						from the GPU and copying to the CPU (device-to-host mem. copy - Synchronous)
+
+
+				//	b.	When data needs to be saved to the disk on the CPU
+				//
+				// Remember that from the host perspective the mem copy is synchronous, i.e. blocking
+				// so the host will wait the data transfer to complete and then proceed to the next function call
+				//=================================================================================================
+				*/
+		template<class LatticeType>
+			bool LBM<LatticeType>::Read_DistrFunctions_GPU_to_CPU_FluidSites()
+			{
+				cudaError_t cudaStatus;
+
+				// Local rank
+				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
+				int myPiD = rank_Com.Rank();
+
+				// Total number of fluid sites
+				uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
+				uint64_t totSharedFs = mLatDat->totalSharedFs;
+
+				//--------------------------------------------------------------------------
+				// a. Distribution functions fNew, i.e. post collision populations:
+				// unsigned long long TotalMem_dbl_fOld_b = ( nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs)  * sizeof(distribn_t); // Total memory size
+				unsigned long long TotalMem_dbl_fNew_b = ( nFluid_nodes * LatticeType::NUMVECTORS)  * sizeof(distribn_t); // Total memory size
+
+				//distribn_t* fNew_GPU_b = new distribn_t[TotalMem_dbl_fNew_b/sizeof(distribn_t)];	// distribn_t (type double)
+				distribn_t* fNew_GPU_b = new distribn_t[nFluid_nodes * LatticeType::NUMVECTORS ];	// distribn_t (type double)
+
+				//if(!fOld_GPU_b || !fNew_GPU_b){ std::cout << "Memory allocation error - ReadGPU_distr" << std::endl; return false;}
+				/* else{ std::printf("Memory allocation for ReadGPU_distr successful from Proc# %i \n\n", myPiD); } */
+				if(!fNew_GPU_b){ std::cout << "Memory allocation error - ReadGPU_distr" << std::endl; return false;}
+
+				//cudaStatus = cudaMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, cudaMemcpyDeviceToHost, stream_Read_distr_Data_GPU);
+				cudaStatus = cudaMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, cudaMemcpyDeviceToHost);
+				if(cudaStatus != cudaSuccess){
+					const char * eStr = cudaGetErrorString (cudaStatus);
+					printf("GPU memory transfer for ReadGPU_distr failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
+					delete[] fNew_GPU_b;
+					return false;
+				}
+
+				/**
+				 	Place the received distributions (fNew_GPU_b) in the PROPER location
+					TAKING INTO ACCOUNT the different data layout in the CPU version of hemeLB
+				*/
+				// Read fNew[] from all the fluid nodes - Ignore what is in totalSharedFs
+				site_t firstIndex = 0;
+				site_t siteCount = nFluid_nodes;
+
+				for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
+				{
+					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
+
+					for (int ii = 0; ii < LatticeType::NUMVECTORS; ii++)
+					{
+						*(mLatDat->GetFNew(siteIndex * LatticeType::NUMVECTORS + ii)) = fNew_GPU_b[ii* nFluid_nodes + siteIndex];
+						*(mLatDat->GetFOld(siteIndex * LatticeType::NUMVECTORS + ii)) = fNew_GPU_b[ii* nFluid_nodes + siteIndex];
+
+						//******************************************************************************
+						// FNew index in hemeLB HOST array (after streaming):
+						//			site.GetStreamedIndex<LatticeType> (ii) = the element in the array neighbourIndices[iSiteIndex * LatticeType::NUMVECTORS + iDirectionIndex];
+						//
+						// 			int64_t streamedIndex = site.GetStreamedIndex<LatticeType> (ii); // ii: direction
+
+						// given the streamed index value find the fluid ID index: iFluidIndex = (Array_Index - iDirectionIndex)/NumVectors,
+						//	i.e. iFluidIndex = (site.GetStreamedIndex<LatticeType> (ii) - ii)/NumVectors;
+						// Applies if streaming ends within the domain in the same rank.
+						// If not then the postcollision fNew will stream in the neighbouring rank.
+						// It will be placed then in location for the totalSharedFs
+
+						// Need to include the case of inlet BCs - Unstreamed Unknown populations - Done!!!
+						//******************************************************************************
+
+						/*
+						if (site.HasIolet(ii)) //ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
+						{
+							int unstreamed_dir = LatticeType::INVERSEDIRECTIONS[ii];
+
+							// unsigned long long heme_Index_Array = siteIndex * LatticeType::NUMVECTORS + unstreamed_dir;
+							*(mLatDat->GetFNew(siteIndex * LatticeType::NUMVECTORS + unstreamed_dir)) = fNew_GPU_b[unstreamed_dir* nFluid_nodes + siteIndex] ; // ghostHydrovars.GetFEq()[unstreamed];
+							*(mLatDat->GetFOld(siteIndex * LatticeType::NUMVECTORS + unstreamed_dir)) = fNew_GPU_b[unstreamed_dir* nFluid_nodes + siteIndex] ; // ghostHydrovars.GetFEq()[unstreamed];
+						}
+						else if (site.HasWall(ii)){
+							// Propagate the post-collisional f into the opposite direction - Simple Bounce Back: same FluidIndex
+							unsigned long long BB_Index_Array = siteIndex * LatticeType::NUMVECTORS + LatticeType::INVERSEDIRECTIONS[ii];
+							*(mLatDat->GetFNew(BB_Index_Array)) = fNew_GPU_b[(LatticeType::INVERSEDIRECTIONS[ii])* nFluid_nodes + siteIndex];
+							*(mLatDat->GetFOld(BB_Index_Array)) = fNew_GPU_b[(LatticeType::INVERSEDIRECTIONS[ii])* nFluid_nodes + siteIndex];
+
+							// printf("Site ID = %lld - Wall in Dir: %d, Streamed Array Index = %lld /(%lld), Value fNew = %.5e \n\n", siteIndex, ii, BB_Index_Array, (nFluid_nodes * LatticeType::NUMVECTORS), fNew_GPU_b[(LatticeType::INVERSEDIRECTIONS[ii])* nFluid_nodes + siteIndex]);
+						}
+						else{ // If Bulk-link
+
+							if((site.GetStreamedIndex<LatticeType> (ii)) < (nFluid_nodes * LatticeType::NUMVECTORS)){		// Within the domain
+								// fNew_GPU_b index should be:
+								// Dir(b) * nFluidnodes + iFluidIndex, i.e. fNew_GPU_b[ii * mLatDat->GetLocalFluidSiteCount() + iFluidIndex]
+								uint64_t iFluidIndex = ((site.GetStreamedIndex<LatticeType> (ii)) - ii)/LatticeType::NUMVECTORS;
+
+								*(mLatDat->GetFNew(site.GetStreamedIndex<LatticeType> (ii))) = fNew_GPU_b[ii * nFluid_nodes + iFluidIndex]; // When streaming on the GPU
+								*(mLatDat->GetFOld(site.GetStreamedIndex<LatticeType> (ii))) = fNew_GPU_b[ii * nFluid_nodes + iFluidIndex]; // When streaming on the GPU
+								// * (mLatDat->GetFNew(site.GetStreamedIndex<LatticeType> (ii))) = fNew_GPU_b[ii * (mLatDat->GetLocalFluidSiteCount()) + siteIndex]; // no streaming on the GPU
+
+								//printf("Fluid ID: %lld (/%lld), Data ADddres To Stream: %lld, fNew_GPU[%d] = %.5f \n\n", iFluidIndex, nFluid_nodes, site.GetStreamedIndex<LatticeType> (ii), ii, fNew_GPU_b[ii * nFluid_nodes + iFluidIndex]);
+							}
+							//else	// Will Stream out of the domain to neighbour ranks (put in totalSharedFs)
+							//{
+							//	*(mLatDat->GetFNew(site.GetStreamedIndex<LatticeType> (ii))) = fNew_GPU_b[site.GetStreamedIndex<LatticeType> (ii)];
+							//	*(mLatDat->GetFOld(site.GetStreamedIndex<LatticeType> (ii))) = fNew_GPU_b[site.GetStreamedIndex<LatticeType> (ii)];
+							//	// printf("Data ADddres: %lld, fNew_GPU[%d] = %.5f \n\n", site.GetStreamedIndex<LatticeType> (ii), ii, fNew_GPU_b[site.GetStreamedIndex<LatticeType> (ii)]);
+							//	if (site.GetStreamedIndex<LatticeType> (ii) >= (nFluid_nodes * LatticeType::NUMVECTORS+1+totSharedFs)) printf("Error!!! Stream.Dir.= %d, Max. Streaming addr = %lld Vs Stream. Addr.=%lld \n\n", ii, nFluid_nodes * LatticeType::NUMVECTORS+1+totSharedFs, site.GetStreamedIndex<LatticeType> (ii) );
+							//}
+
+						} // Ends the if Bulk link case
+						*/
+
+						/*
+						//
+						// Debugging
+						uint64_t max_Perm_Ind = nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs;
+						uint64_t ind_fNew_GPU_b = ii * nFluid_nodes + iFluidIndex;
+
+						uint64_t max_Perm_Ind_CPU = nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs;
+						uint64_t ind_GetFNew = site.GetStreamedIndex<LatticeType> (ii);
+
+						// if(iFluidIndex > nFluid_nodes) printf("Attempting to access Fluid ID index = %lld - Max. Fluid nodes = %lld  \n\n", iFluidIndex, nFluid_nodes);
+						if(ind_GetFNew > max_Perm_Ind_CPU) printf("Wow!!! Attempting to access CPU index = %lld - Max. Permited = %lld  \n\n", ind_GetFNew, max_Perm_Ind_CPU);
+						if(ind_fNew_GPU_b > max_Perm_Ind) printf("Error!!! Attempting to access index = %lld - Max. Permited = %lld  \n\n", ind_fNew_GPU_b, max_Perm_Ind);
+
+						// printf("Index in fNew: Method 1: SiteIndex = %lld, Index of fNew[%d] = %lld Vs Index_2 = %lld \n\n", siteIndex, ii, (ii * mLatDat->GetLocalFluidSiteCount() + iFluidIndex), (siteIndex*LatticeType::NUMVECTORS + ii));
+						// printf("SiteIndex = %lld, Streamed Fluid SiteIndex = %lld, fNew[%d] = %.5f \n\n", siteIndex, iFluidIndex, ii, fNew_GPU_b[ii * mLatDat->GetLocalFluidSiteCount() + iFluidIndex]);
+						//
+						*/
+					} // Ends the loop over the lattice directions (	for (int ii = 0; ii < LatticeType::NUMVECTORS; ii++))
+			}// Ends the loop over the sites
+				//
+
+				// Delete the variables when copy is completed
+				delete[] fNew_GPU_b;
 
 				return true;
 			}
-
 
 
 			//=================================================================================================
@@ -687,8 +912,11 @@ namespace hemelb
 			//	c. Velocity[nFluid nodes*3]
 			// from the GPU and copying to the CPU (device-to-host mem. copy - Synchronous)
 			//
+			//	Total (Read_DistrFunctions_GPU_to_CPU_tot) refers to the fact that these distr. functions include the totalSharedFs as well
+			//
 			// Development phase:
 			//	Necessary at each time step as ALL data need to reside on the CPU
+			//
 			// Final phase: (All collision/streaming types implemented)
 			//	a.	to be called at the domain bundaries
 			//		for the exchange of the fNew to be exchanged
@@ -698,7 +926,7 @@ namespace hemelb
 			// so the host will wait the data transfer to complete and then proceed to the next function call
 			//=================================================================================================
 		template<class LatticeType>
-			bool LBM<LatticeType>::Read_DistrFunctions_GPU_to_CPU(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache) // Is it necessary to use lb::MacroscopicPropertyCache& propertyCache or just propertyCache, as it is being initialised with the LBM constructor???
+			bool LBM<LatticeType>::Read_DistrFunctions_GPU_to_CPU_tot(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache) // Is it necessary to use lb::MacroscopicPropertyCache& propertyCache or just propertyCache, as it is being initialised with the LBM constructor???
 			{
 				cudaError_t cudaStatus;
 
@@ -839,9 +1067,10 @@ namespace hemelb
 					for (int ii = 0; ii < LatticeType::NUMVECTORS; ii++)
 					{
 						//******************************************************************************
-						// FNew index in hemeLB array (after streaming): site.GetStreamedIndex<LatticeType> (ii) = the element in the array neighbourIndices[iSiteIndex * LatticeType::NUMVECTORS + iDirectionIndex];
+						// FNew index in hemeLB HOST array (after streaming):
+						//			site.GetStreamedIndex<LatticeType> (ii) = the element in the array neighbourIndices[iSiteIndex * LatticeType::NUMVECTORS + iDirectionIndex];
 						//
-						// int64_t streamedIndex = site.GetStreamedIndex<LatticeType> (ii); // ii: direction
+						// 			int64_t streamedIndex = site.GetStreamedIndex<LatticeType> (ii); // ii: direction
 
 						// given the streamed index value find the fluid ID index: iFluidIndex = (Array_Index - iDirectionIndex)/NumVectors,
 						//	i.e. iFluidIndex = (site.GetStreamedIndex<LatticeType> (ii) - ii)/NumVectors;
@@ -849,7 +1078,7 @@ namespace hemelb
 						// If not then the postcollision fNew will stream in the neighbouring rank.
 						// It will be placed then in location for the totalSharedFs
 
-						// Need to include the case of inlet BCs - Unstreamed Unknown populations - To do!!!
+						// Need to include the case of inlet BCs - Unstreamed Unknown populations - Done!!!
 						//******************************************************************************
 
 
@@ -988,6 +1217,8 @@ namespace hemelb
 				cudaStreamDestroy(stream_SwapOldAndNew);
 				cudaStreamDestroy(stream_memCpy_CPU_GPU_domainEdge);
 
+				cudaStreamDestroy(stability_check_stream);
+
 				// Destroy the cuda stream created for the asynch. MemCopy DtH at the domain edges: created a stream in net::BaseNet object
 				hemelb::net::Net& mNet_cuda_stream = *mNet;	// Access the mNet object
 				mNet_cuda_stream.Destroy_stream_memCpy_GPU_CPU_domainEdge_new2(); // Which one is correct? Does it actually create the stream and then it imposes a barrier in net::BaseNet::Send
@@ -1076,6 +1307,8 @@ template<class LatticeType>
 					iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits)
 			{
 
+				bool initialise_GPU_res = true;
+
 				mInletValues = iInletValues;
 				mOutletValues = iOutletValues;
 				mUnits = iUnits;
@@ -1086,6 +1319,65 @@ template<class LatticeType>
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
 				// std::printf("Local Rank = %i and local fluid sites = %i \n\n", myPiD, mLatDat->GetLocalFluidSiteCount());
+
+				//======================================================================
+				// Preliminary check -
+				// Compare: a) available GPU mem. and
+				//					b) mem. requirements based on simulation domain
+
+				// Available GPU memory
+				cudaDeviceProp dev_prop;
+
+				// Just obtain the properties of GPU assigned to task 1
+				cudaGetDeviceProperties( &dev_prop, 0);
+				hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD);
+
+				// Rank 1 only reports:
+				if(myPiD==1){
+					std::cout << "===============================================" << "\n";
+					std::cout << "Device properties: " << std::endl;
+					printf("Device name:        %s\n", dev_prop.name);
+					printf("Compute Capability: %d.%d\n\n", dev_prop.major, dev_prop.minor);
+					printf("Total Global Mem:    %.1fGB\n", ((double)dev_prop.totalGlobalMem/1073741824.0));
+					std::cout << "Number of Streaming Multiprocessors:  "<< dev_prop.multiProcessorCount<< std::endl;
+					printf("Shared Mem Per SM:   %.0fKB\n", ((double)dev_prop.sharedMemPerBlock/1024));
+					//cout << "Clock Rate:  "<< dev_prop.clockRate<< endl;
+					std::cout << "Max Number of Threads per Block:  "<< dev_prop.maxThreadsPerBlock << std::endl;
+					std::cout << "Max Number of Blocks allowed in x-dir:  "<< dev_prop.maxGridSize[0]<< std::endl;
+					std::cout << "Max Number of Blocks allowed in y-dir:  "<< dev_prop.maxGridSize[1]<< std::endl;
+					std::cout << "Warp Size:  "<< dev_prop.warpSize<< std::endl;
+					std::cout << "===============================================" << "\n\n";
+					fflush(stdout);
+				}
+
+				// a. Available GPU mem.
+				unsigned long long avail_GPU_mem = (double)dev_prop.totalGlobalMem;
+
+				// b. Rough estimate of the GPU Memory requested:
+				// Total number of fluid sites and totSharedFs
+				uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
+				uint64_t totSharedFs = mLatDat->totalSharedFs;
+
+				unsigned long long TotalMem_dbl_fOld = ( nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs)  * sizeof(distribn_t); // Total memory size for fOld
+				unsigned long long TotalMem_dbl_MacroVars = (1+3) * nFluid_nodes  * sizeof(distribn_t); // Total memory size for macroVariables: density and Velocity n[nFluid_nodes], u[nFluid_nodes][3]
+				unsigned long long TotalMem_int64_Neigh = ( nFluid_nodes * LatticeType::NUMVECTORS)  * sizeof(site_t); // Total memory size for neighbouring Indices
+				// Reconsider the memory required for the following 2 (Wall / Iolet Intersection) - Needs to change... TODO!!!
+				unsigned long long TotalMem_uint32_WallIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
+				unsigned long long TotalMem_uint32_IoletIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
+				unsigned long long TotalMem_int64_streamInd = totSharedFs * sizeof(site_t); // Total memory size for streamingIndicesForReceivedDistributions
+
+				unsigned long long est_TotalMem_req = (TotalMem_dbl_fOld * 2 +  TotalMem_dbl_MacroVars + TotalMem_int64_Neigh + TotalMem_uint32_WallIntersect + TotalMem_uint32_IoletIntersect + TotalMem_int64_streamInd);
+
+				if(est_TotalMem_req >= avail_GPU_mem){
+					std::printf("Rank %i - Approx. estimate of GPU mem. required: %.1fGB - Available GPU mem. %.1fGB\n", myPiD, ((double)est_TotalMem_req/1073741824.0), ((double)dev_prop.totalGlobalMem/1073741824.0));
+					std::cout << "Warning: Not sufficient GPU memory!!! Increase the number of ranks or decrease system size" << std::endl;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
+
+				//======================================================================
+
 
 				// --------------------------------------------------------------------------------------------------------------------------------------------------------------
 				// Distribution functions:
@@ -1098,13 +1390,13 @@ template<class LatticeType>
 				// KEEP ONLY Option (b) - Refer to earlier versions of the code for option (a).
 
 				// Total number of fluid sites
-				uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
-				uint64_t totSharedFs = mLatDat->totalSharedFs;
+				//uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
+				//uint64_t totSharedFs = mLatDat->totalSharedFs;
 				// std::printf("Proc# %i : Total Fluid nodes = %i, totalSharedFs = %i \n\n", myPiD, nFluid_nodes, totSharedFs);	// Test that I can access the value of totalSharedFs (protected member of class LatticeData (geometry/LatticeData.h) - declares class LBM as friend)
 
-				unsigned long long TotalMem_dbl_fOld = ( nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs)  * sizeof(distribn_t); // Total memory size for fOld
+				TotalMem_dbl_fOld = ( nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs)  * sizeof(distribn_t); // Total memory size for fOld
 				unsigned long long TotalMem_dbl_fNew = TotalMem_dbl_fOld;	// Total memory size for fNew
-				unsigned long long TotalMem_dbl_MacroVars = (1+3) * nFluid_nodes  * sizeof(distribn_t); // Total memory size for macroVariables: density and Velocity n[nFluid_nodes], u[nFluid_nodes][3]
+				TotalMem_dbl_MacroVars = (1+3) * nFluid_nodes  * sizeof(distribn_t); // Total memory size for macroVariables: density and Velocity n[nFluid_nodes], u[nFluid_nodes][3]
 
 				//--------------------------------------------------------------------------------------------------
 				// Alocate memory on the GPU for MacroVariables: density and Velocity
@@ -1112,7 +1404,12 @@ template<class LatticeType>
 				// uint64_t nArray_MacroVars = nFluid_nodes; // uint64_t (unsigned long long int)
 
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_dbl_MacroVars, TotalMem_dbl_MacroVars);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation MacroVariables failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//--------------------------------------------------------------------------------------------------
 
 				//--------------------------------------------------------------------------------------------------
@@ -1127,7 +1424,9 @@ template<class LatticeType>
 
 				if(!Data_dbl_fOld_b || !Data_dbl_fNew_b){
 					std::cout << "Memory allocation error" << std::endl;
-					return false;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				// 	f_old - Done!!!
@@ -1159,18 +1458,38 @@ template<class LatticeType>
 				//	b. Arrange by index_LB
 				//		i.e. f0[0 to (nFluid_nodes-1)], f1[0 to (nFluid_nodes-1)], ..., f_(q-1)[0 to (nFluid_nodes-1)]
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_dbl_fOld_b, nArray_Distr * sizeof(distribn_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation  (f_old distr.functions) failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_dbl_fNew_b, nArray_Distr * sizeof(distribn_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation (f_new distr.functions) failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_dbl_fOld_b) to Device (GPUDataAddr_dbl_fOld_b)
 				cudaStatus = cudaMemcpy(GPUDataAddr_dbl_fOld_b, Data_dbl_fOld_b, nArray_Distr * sizeof(distribn_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer (f_old distr.functions) Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_dbl_fNew_b) to Device (GPUDataAddr_dbl_fNew_b)
 				cudaStatus = cudaMemcpy(GPUDataAddr_dbl_fNew_b, Data_dbl_fNew_b, nArray_Distr * sizeof(distribn_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer (f_new distr.functions) Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// For cuda-aware mpi we need to have access to
 				// Test if I can access the pointer to global memory declared in class LatticeData (GPUDataAddr_dbl_fOld_b_mLatDat)
@@ -1180,13 +1499,23 @@ template<class LatticeType>
 				cudaStatus = cudaMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat), nArray_Distr * sizeof(distribn_t));
 				cudaStatus = cudaMemcpy(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 																	Data_dbl_fOld_b, nArray_Distr * sizeof(distribn_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				//cudaStatus = cudaMallocManaged((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
 				cudaStatus = cudaMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
 				cudaStatus = cudaMemcpy(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 																	Data_dbl_fNew_b, nArray_Distr * sizeof(distribn_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//=================================================================================================================================
 
 
@@ -1194,20 +1523,24 @@ template<class LatticeType>
 				// Neighbouring indices - necessary for the STREAMING STEP
 
 				// 	The total size of the neighbouring indices should be: neighbourIndices.resize(latticeInfo.GetNumVectors() * localFluidSites); (see geometry/LatticeData.cc:369)
-				// 	Keep only method d: refer to the actual streaming index in f's array (arranged following method (b): Arrange by index_LB)
+				// 	Keep only method (d): refer to the actual streaming index in f's array (arranged following method (b): Arrange by index_LB)
 
 				//		Type site_t (units.h:28:		typedef int64_t site_t;)
 				//		geometry/LatticeData.h:634:		std::vector<site_t> neighbourIndices; //! Data about neighbouring fluid sites.
 				//	Memory requirements
-				unsigned long long TotalMem_int64_Neigh = ( nFluid_nodes * LatticeType::NUMVECTORS)  * sizeof(site_t); // Total memory size for neighbouring Indices
+				TotalMem_int64_Neigh = ( nFluid_nodes * LatticeType::NUMVECTORS)  * sizeof(site_t); // Total memory size for neighbouring Indices
 
 				// -----------------------------------------------------------------------
 				// d. Arrange by index_LB, i.e. neigh_0[0 to (nFluid_nodes-1)], neigh_1[0 to (nFluid_nodes-1)], ..., neigh_(q-1)[0 to (nFluid_nodes-1)]
-				//		But instead of keeping the array index from HemeLB, convert to refer to the actual fluid ID and then to the actual address in global Memory
+				//		But instead of keeping the array index from HemeLB, convert to:
+				//		1. the actual fluid ID and then to
+				//		2. the actual address in global Memory
 				site_t* Data_int64_Neigh_d = new site_t[TotalMem_int64_Neigh/sizeof(site_t)];	// site_t (type int64_t)
 				if(!Data_int64_Neigh_d){
 					std::cout << "Memory allocation error - Neigh. (d)" << std::endl;
-					return false;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				// Re-arrange the neighbouring data - organised by index LB
@@ -1256,11 +1589,21 @@ template<class LatticeType>
 				//	d. Arrange by index_LB, i.e. neigh_0[0 to (nFluid_nodes-1)], neigh_1[0 to (nFluid_nodes-1)], ..., neigh_(q-1)[0 to (nFluid_nodes-1)]
 				//	 		But refer to ACTUAL address in Global memory (method b) for the FLUID ID index - TO BE USED ONLY when in PreReceive() - streaming in the simulation domain!!!
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_int64_Neigh_d, nArray_Neigh * sizeof(site_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation for Neigh.(d) failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation for Neigh.(d) failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_int64_Neigh_b) to Device (GPUDataAddr_int64_Neigh_b)
 				cudaStatus = cudaMemcpy(GPUDataAddr_int64_Neigh_d, Data_int64_Neigh_d, nArray_Neigh * sizeof(site_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Neigh.(d) failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for Neigh.(d) failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//=================================================================================================================================
 
 
@@ -1275,12 +1618,17 @@ template<class LatticeType>
 								Fluid-Wall intersection can be accessed from the neighbouring fluid index above.
 				*/
 
-				unsigned long long TotalMem_uint32_WallIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
+				TotalMem_uint32_WallIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
 
 				// Allocate memory on the host
 				// Think about the following: Do I need to allocate nFluid_nodes or just the siteCount for this type of collision (check the limits for the mWallCollision). To do!!!
 				uint32_t* Data_uint32_WallIntersect = new uint32_t[nFluid_nodes];	// distribn_t (type double)
-				if(!Data_uint32_WallIntersect){ std::cout << "Memory allocation error - Neigh." << std::endl; return false;}
+				if(!Data_uint32_WallIntersect){
+					std::cout << "Memory allocation error - Neigh." << std::endl;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Fill the array Data_uint32_WallIntersect
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
@@ -1317,11 +1665,21 @@ template<class LatticeType>
 
 				// Alocate memory on the GPU
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_uint32_Wall, nFluid_nodes * sizeof(uint32_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation for Wall-Fluid Intersection failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation for Wall-Fluid Intersection failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_uint32_WallIntersect) to Device (GPUDataAddr_uint32_Wall)
 				cudaStatus = cudaMemcpy(GPUDataAddr_uint32_Wall, Data_uint32_WallIntersect, nFluid_nodes * sizeof(uint32_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Neigh. failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for Wall-Fluid Intersection failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//***********************************************************************************************************************************
 
 				//***********************************************************************************************************************************
@@ -1343,11 +1701,16 @@ template<class LatticeType>
 				// To do:
 				// 1. Allocate just for the fluid sites involved (siteCount_iolet_PreSend + siteCount_iolet_PreReceive + ...)
 
-				unsigned long long TotalMem_uint32_IoletIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
+				TotalMem_uint32_IoletIntersect = nFluid_nodes * sizeof(uint32_t); // Total memory size
 
 				// Allocate memory on the host
 				uint32_t* Data_uint32_IoletIntersect = new uint32_t[nFluid_nodes];	// distribn_t (type double)
-				if(!Data_uint32_IoletIntersect){ std::cout << "Memory allocation error - iolet" << std::endl; return false;}
+				if(!Data_uint32_IoletIntersect){
+					std::cout << "Memory allocation error - iolet" << std::endl;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Fill the array Data_uint32_IoletIntersect
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
@@ -1385,11 +1748,21 @@ template<class LatticeType>
 
 				// Alocate memory on the GPU
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_uint32_Iolet, nFluid_nodes * sizeof(uint32_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation for Iolet-Fluid Intersection failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation for Iolet-Fluid Intersection failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 				cudaStatus = cudaMemcpy(GPUDataAddr_uint32_Iolet, Data_uint32_IoletIntersect, nFluid_nodes * sizeof(uint32_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for Iolet failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//***********************************************************************************************************************************
 
 
@@ -1488,11 +1861,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalInlets_mInlet_Edge *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_Inlet_Edge, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Inlet Edge failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Inlet Edge failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_Inlet_Edge, &Iolets_Inlet_Edge[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Edge failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Edge failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 
 				// Case 1.1.b. Collision Type 5: mInletWallCollision
@@ -1513,11 +1896,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalInlets_mInletWall_Edge *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_InletWall_Edge, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Edge failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Edge failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_InletWall_Edge, &Iolets_InletWall_Edge[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Edge failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Edge failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1555,11 +1948,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalInlets_mInlet *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_Inlet_Inner, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Inlet Inner failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Inlet Inner failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_Inlet_Inner, &Iolets_Inlet_Inner[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Inner failed\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Inner failed\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 
 				// Case 1.2.b. 	Collision Type 5: mInletWallCollision
@@ -1581,11 +1984,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalInlets_mInletWall *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_InletWall_Inner, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Inner failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Inner failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_InletWall_Inner, &Iolets_InletWall_Inner[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Inner failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Inner failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 				//=============================================================================================================================================================
@@ -1627,11 +2040,21 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 					site_t MemSz = 3 * n_LocalOutlets_mOutlet_Edge *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_Outlet_Edge, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Outlet Edge failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Outlet Edge failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_Outlet_Edge, &Iolets_Outlet_Edge[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Edge failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Edge failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 
 				// Case 2.1.b. Collision Type 6: mOutletWallCollision
@@ -1640,6 +2063,7 @@ template<class LatticeType>
 				n_unique_LocalOutlets_mOutletWall_Edge = 0;
 				if (site_Count_OutletWall_Edge!=0){
 					Iolets_OutletWall_Edge = identify_Range_iolets_ID(start_Index_OutletWall_Edge, (start_Index_OutletWall_Edge + site_Count_OutletWall_Edge), &n_LocalOutlets_mOutletWall_Edge, &n_unique_LocalOutlets_mOutletWall_Edge);
+
 					// Remove later the struct object OutletWall_Edge - Replaced by GPU Global memory  Array
 					OutletWall_Edge.n_local_iolets = n_LocalOutlets_mOutletWall_Edge;
 					memcpy(&OutletWall_Edge.Iolets_ID_range, &Iolets_OutletWall_Edge[0], sizeof(OutletWall_Edge.Iolets_ID_range));
@@ -1651,11 +2075,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutletWall_Edge *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_OutletWall_Edge, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Edge failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Edge failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_OutletWall_Edge, &Iolets_OutletWall_Edge[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Edge failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Edge failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1691,11 +2125,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutlet *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_Outlet_Inner, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Outlet Inner failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Outlet Inner failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_Outlet_Inner, &Iolets_Outlet_Inner[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Inner failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Inner failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 
 				// Case 2.2.b. 	Collision Type 6: mOutletWallCollision
@@ -1715,11 +2159,21 @@ template<class LatticeType>
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutletWall *  sizeof(site_t);
 					cudaStatus = cudaMalloc((void**)&GPUDataAddr_OutletWall_Inner, MemSz);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Inner failed...\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Inner failed...\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
 					cudaStatus = cudaMemcpy(GPUDataAddr_OutletWall_Inner, &Iolets_OutletWall_Inner[0], MemSz, cudaMemcpyHostToDevice);
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Inner failed... \n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Inner failed... \n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 				/*
@@ -1774,45 +2228,70 @@ template<class LatticeType>
 
 				// Inlets BCs
 				if(hemeIoletBC_Inlet == "LADDIOLET"){
-					printf("INDEED the Inlet Type of BCs is: %s \n", hemeIoletBC_Inlet.c_str()); //note the use of c_str
+					//printf("INDEED the Inlet Type of BCs is: %s \n", hemeIoletBC_Inlet.c_str()); //note the use of c_str
 
 					// Allocate memory on the GPU for the case of Inlet Velocity BCs
 					site_t site_Count_Inlet_Edge = mLatDat->GetDomainEdgeCollisionCount(2);
 					if(site_Count_Inlet_Edge!=0){
 						MemSz = 3 * site_Count_Inlet_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_Inlet_Edge, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - Inlet Edge failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - Inlet Edge failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_InletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(4);
 					if(site_Count_InletWall_Edge!=0){
 						MemSz = 3 * site_Count_InletWall_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_InletWall_Edge, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - InletWall Edge failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - InletWall Edge failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_Inlet_Inner = mLatDat->GetMidDomainCollisionCount(2);
 					if(site_Count_Inlet_Inner!=0){
 						MemSz = 3 * site_Count_Inlet_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_Inlet_Inner, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - Inlet Inner failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - Inlet Inner failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_InletWall_Inner = mLatDat->GetMidDomainCollisionCount(4);
 					if(site_Count_InletWall_Inner!=0){
 						MemSz = 3 * site_Count_InletWall_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_InletWall_Inner, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - InletWall Inner failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - InletWall Inner failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 				}
 				else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
-					printf("INDEED the Inlet Type of BCs is: %s \n", hemeIoletBC_Inlet.c_str()); //note the use of c_str
+					// printf("INDEED the Inlet Type of BCs is: %s \n", hemeIoletBC_Inlet.c_str()); //note the use of c_str
 
 					// Allocate memory on the GPU for the case of Inlet Pressure BCs
 					// Ghost Density Inlet
 					cudaStatus = cudaMalloc((void**)&d_ghostDensity, n_Inlets * sizeof(distribn_t));
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation ghostDensity failed\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation ghostDensity failed\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				/*// TODO: must REMOVE the following later
 				cudaStatus = cudaMalloc((void**)&d_ghostDensity, n_Inlets * sizeof(distribn_t));
@@ -1823,45 +2302,70 @@ template<class LatticeType>
 				//----------------------------------------------------------------------
 				// Outlets BCs
 				if(hemeIoletBC_Outlet == "LADDIOLET"){
-					printf("INDEED the Outlet Type of BCs is: %s \n", hemeIoletBC_Outlet.c_str()); //note the use of c_str
+					//printf("INDEED the Outlet Type of BCs is: %s \n", hemeIoletBC_Outlet.c_str()); //note the use of c_str
 
 					// Allocate memory on the GPU for the case of Outlet Velocity BCs
 					site_t site_Count_Outlet_Edge = mLatDat->GetDomainEdgeCollisionCount(3);
 					if(site_Count_Outlet_Edge!=0){
 						MemSz = 3 * site_Count_Outlet_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_Outlet_Edge, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - Outlet Edge failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - Outlet Edge failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_OutletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(5);
 					if(site_Count_OutletWall_Edge!=0){
 						MemSz = 3 * site_Count_OutletWall_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_OutletWall_Edge, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - OutletWall Edge failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - OutletWall Edge failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_Outlet_Inner = mLatDat->GetMidDomainCollisionCount(3);
 					if(site_Count_Outlet_Inner!=0){
 						MemSz = 3 * site_Count_Outlet_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_Outlet_Inner, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - Outlet Inner failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - Outlet Inner failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 					site_t site_Count_OutletWall_Inner = mLatDat->GetMidDomainCollisionCount(5);
 					if(site_Count_OutletWall_Inner!=0){
 						MemSz = 3 * site_Count_OutletWall_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
 						cudaStatus = cudaMalloc((void**)&GPUDataAddr_wallMom_OutletWall_Inner, MemSz);
-						if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation wallMom - OutletWall Inner failed\n"); return false; }
+						if(cudaStatus != cudaSuccess){
+							fprintf(stderr, "GPU memory allocation wallMom - OutletWall Inner failed\n");
+							initialise_GPU_res = false;
+							return initialise_GPU_res;
+							//return false;
+						}
 					}
 
 				}
 				else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
-					printf("INDEED the Outlet Type of BCs is: %s \n", hemeIoletBC_Outlet.c_str()); //note the use of c_str
+					//printf("INDEED the Outlet Type of BCs is: %s \n", hemeIoletBC_Outlet.c_str()); //note the use of c_str
 
 					// Allocate memory on the GPU for the case of Outlet Pressure BCs
 					// Ghost Density Outlet
 					cudaStatus = cudaMalloc((void**)&d_ghostDensity_out, n_Outlets * sizeof(distribn_t));
-					if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation ghostDensity failed\n"); return false; }
+					if(cudaStatus != cudaSuccess){
+						fprintf(stderr, "GPU memory allocation ghostDensity failed\n");
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+						//return false;
+					}
 				}
 				//----------------------------------------------------------------------
 
@@ -1894,10 +2398,20 @@ template<class LatticeType>
 				}
 
 				cudaStatus = cudaMalloc((void**)&d_inletNormal, 3*n_Inlets * sizeof(float));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation inletNormal failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation inletNormal failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				// Memory copy from host (h_inletNormal) to Device (d_inletNormal)
 				cudaStatus = cudaMemcpy(d_inletNormal, h_inletNormal, 3*n_Inlets * sizeof(float), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Outlets:
 				float* h_outletNormal = new float[3*n_Outlets]; 	// x,y,z components
@@ -1910,10 +2424,20 @@ template<class LatticeType>
 				}
 
 				cudaStatus = cudaMalloc((void**)&d_outletNormal, 3*n_Outlets * sizeof(float));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation outletNormal failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation outletNormal failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				// Memory copy from host (h_outletNormal) to Device (d_outletNormal)
 				cudaStatus = cudaMemcpy(d_outletNormal, h_outletNormal, 3*n_Outlets * sizeof(float), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//----------------------------------------------------------------------
 				//***********************************************************************************************************************************
 
@@ -1922,12 +2446,14 @@ template<class LatticeType>
 				// Allocate memory for streamingIndicesForReceivedDistributions on the GPU constant Memory
 				// From geometry/LatticeData.h:	std::vector<site_t> streamingIndicesForReceivedDistributions; //! The indices to stream to for distributions received from other processors.
 
-				unsigned long long TotalMem_int64_streamInd = totSharedFs * sizeof(site_t); // Total memory size for streamingIndicesForReceivedDistributions
+				TotalMem_int64_streamInd = totSharedFs * sizeof(site_t); // Total memory size for streamingIndicesForReceivedDistributions
 				site_t* Data_int64_streamInd = new site_t[totSharedFs];	// site_t (type int64_t)
 
 				if(!Data_int64_streamInd){
 					std::cout << "Memory allocation error - streamingIndicesForReceivedDistributions" << std::endl;
-					return false;
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				Data_int64_streamInd = &(mLatDat->streamingIndicesForReceivedDistributions[0]);  // Data_int64_streamInd points to &(mLatDat->streamingIndicesForReceivedDistributions[0])
@@ -1940,12 +2466,55 @@ template<class LatticeType>
 
 				// Alocate memory on the GPU
 				cudaStatus = cudaMalloc((void**)&GPUDataAddr_int64_streamInd, totSharedFs * sizeof(site_t));
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory allocation for streamingIndicesForReceivedDistributions failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory allocation for streamingIndicesForReceivedDistributions failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 
 				// Memory copy from host (Data_int64_streamInd) to Device (GPUDataAddr_int64_Neigh)
 				cudaStatus = cudaMemcpy(GPUDataAddr_int64_streamInd, Data_int64_streamInd, totSharedFs * sizeof(site_t), cudaMemcpyHostToDevice);
-				if(cudaStatus != cudaSuccess){ fprintf(stderr, "GPU memory transfer Host To Device for streamingIndicesForReceivedDistributions failed\n"); return false; }
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for streamingIndicesForReceivedDistributions failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
 				//***********************************************************************************************************************************
+
+				//***********************************************************************************************************************************
+				// Flag for the stability of the Code
+				// Set up the stability value as UndefinedStability (value -1) and modify
+				//  to value Unstable (value 0), see SimulationState.h
+
+
+				//int* d_Stability_GPU;
+				mLatDat->h_Stability_GPU_mLatDat=-1;
+				h_Stability_GPU=-1;
+				//h_Stability_GPU[0] = -1; // Same value as the one used to denote UndefinedStability (value -1)
+				cudaStatus = cudaMalloc((void**)&d_Stability_GPU, sizeof(int));
+				cudaStatus = cudaMalloc((void**)&(mLatDat->d_Stability_GPU_mLatDat), sizeof(int));
+
+				cudaStatus = cudaMemcpy(d_Stability_GPU, &h_Stability_GPU, sizeof(int), cudaMemcpyHostToDevice);
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
+
+				cudaStatus = cudaMemcpy(mLatDat->d_Stability_GPU_mLatDat, &(mLatDat->h_Stability_GPU_mLatDat), sizeof(int), cudaMemcpyHostToDevice);
+				if(cudaStatus != cudaSuccess){
+					fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
+				}
+
+				//***********************************************************************************************************************************
+
+
 
 				//***********************************************************************************************************************************
 				// Check the total memory requirements
@@ -1968,50 +2537,87 @@ template<class LatticeType>
 
 				// 2.a. Weight coefficients for the equilibrium distr. functions
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (1)\n"); return false;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (1)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 					//goto Error;
 				}
 
 				// 2.b. Number of vectors: LatticeType::NUMVECTORS
 				static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (2)\n"); return false;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (2)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 					//goto Error;
 				}
 
 				// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (3)\n"); return false;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (3)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 					//goto Error;
 				}
 
 				// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (4)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (4)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (5)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (5)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (6)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (6)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				// 2.e. Relaxation Time tau
 				//static const int num_Vectors = LatticeType::NUMVECTORS;
 				// mParams object of type hemelb::lb::LbmParameters (struct LbmParameters)
-				double tau = mParams.GetTau();				// printf("Relaxation Time = %.5f\n\n", tau);
+				double tau = mParams.GetTau();
+				printf("Relaxation Time = %.5f\n\n", tau);
 				double minus_inv_tau = mParams.GetOmega();	// printf("Minus Inv. Relaxation Time = %.5f\n\n", minus_inv_tau);
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::dev_tau, &tau, sizeof(tau), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (7)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (7)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::dev_minusInvTau, &minus_inv_tau, sizeof(minus_inv_tau), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (8)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (8)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 
 				cudaStatus = cudaMemcpyToSymbol(hemelb::_Cs2, &Cs2, sizeof(Cs2), 0, cudaMemcpyHostToDevice);
-				if (cudaStatus != cudaSuccess) { fprintf(stderr, "GPU constant memory copy failed (9)\n"); return false; //goto Error;
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "GPU constant memory copy failed (9)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+					//return false;
 				}
 				//=================================================================================================================================
 
@@ -2042,6 +2648,7 @@ template<class LatticeType>
 				cudaStreamCreate(&stream_memCpy_CPU_GPU_domainEdge);
 
 				cudaStreamCreate(&stream_Read_Data_GPU_Dens);
+				cudaStreamCreate(&stability_check_stream);
 
 				//----------------------------------------------------------------------
 				// Create the cuda stream for the asynch. MemCopy DtH at the domain edges: creates a stream in net::BaseNet object
@@ -2063,7 +2670,8 @@ template<class LatticeType>
 				delete[] Data_uint32_IoletIntersect;
 				delete[] h_inletNormal, h_outletNormal;
 
-				return true;
+				return initialise_GPU_res;
+
 			}
 
 
@@ -2442,12 +3050,53 @@ template<class LatticeType>
 				int myPiD = rank_Com.Rank();
 
 #ifdef HEMELB_USE_GPU	// If exporting computation on GPUs
+				//cudaProfilerStart();
 
 				cudaError_t cudaStatus;
+
+				// Boolean variable for sending macroVariables to GPU global memory (avoids the if statement time%_Send_MacroVars_DtH==0 in the GPU kernels)
+				bool Write_GlobalMem = (mState->GetTimeStep()%frequency_WriteGlobalMem == 0) ? 1 : 0;
 
 				// Before the collision starts make sure that the swap of distr. functions at the previous step has Completed
 				//if (myPiD!=0) cudaStreamSynchronize(stream_SwapOldAndNew);
 				if (myPiD!=0) cudaStreamSynchronize(stream_ReceivedDistr);
+
+				//--------------------------------------------------------------------------------------------------------------------------
+
+				// Check the stability of the Code// Insert a GPU kernel launch here that checks for NaN values
+				// Just check the density, as any NaN values will eventually affect all variables
+				site_t offset_test = 0;	// site_t is type int64_t
+				site_t nFluid_nodes_test = mLatDat->GetLocalFluidSiteCount();
+				site_t first_Index_test = offset_test;
+				site_t site_Count_test = nFluid_nodes_test;
+				//----------------------------------
+				// Cuda kernel set-up
+				int nThreadsPerBlock_Check = 128;				//Number of threads per block for checking the stability of the simulation
+				dim3 nThreads_Check(nThreadsPerBlock_Check);
+				// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
+				int nBlocks_Check = (site_Count_test)/nThreadsPerBlock_Check			+ ((site_Count_test % nThreadsPerBlock_Check > 0)         ? 1 : 0);
+
+
+				// TODO: Frequency of checking stability set to 200 / 1000 time-steps. Modify/Check again in the future!
+				if(nBlocks_Check!=0 && mState->GetTimeStep()%1000 ==0){
+						hemelb::GPU_Check_Stability <<< nBlocks_Check, nThreads_Check, 0, stability_check_stream >>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+																									(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+																									(int*)mLatDat->d_Stability_GPU_mLatDat,
+																									 nFluid_nodes_test,
+																									 first_Index_test, (first_Index_test + site_Count_test), mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
+						/*
+						// Debugging purposes - Remove later and move in PreReceive()
+						// 	(get the value returned by the kernel GPU_Check_Stability if unstable simulation -see StabilityTester.h)
+						cudaStreamSynchronize(stability_check_stream);
+						// MemCopy from Device To Host the value for the Stability - TODO!!!
+						cudaStatus = cudaMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), cudaMemcpyDeviceToHost, stability_check_stream);
+						//printf("Rank = %d - Host Stability flag: %d \n\n", myPiD, mLatDat->h_Stability_GPU_mLatDat);
+						*/
+				}
+
+			 //--------------------------------------------------------------------------------------------------------------------------
+
+
 
 				//#####################################################################################################################################################
 				// Merge the first 2 Types of collision-streaming
@@ -2483,7 +3132,7 @@ template<class LatticeType>
 																									(uint32_t*)GPUDataAddr_uint32_Wall,
 																									nFluid_nodes,
 																									first_Index, (first_Index + site_Count_MidFluid),
-																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
+																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
 				//#####################################################################################################################################################
 
 
@@ -2559,6 +3208,8 @@ template<class LatticeType>
 				distribn_t* h_ghostDensity_out;
 				//----------------------------------------------------------------------
 
+				lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
+
 				// Inlets BCs
 				if(hemeIoletBC_Inlet == "LADDIOLET"){
 					//printf("Entering the LaddIolet loop \n\n");
@@ -2569,9 +3220,11 @@ template<class LatticeType>
 					site_t start_Index_Inlet_Edge =	mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0) + mLatDat->GetDomainEdgeCollisionCount(1);
 					site_t site_Count_Inlet_Edge = mLatDat->GetDomainEdgeCollisionCount(2);
 					if (site_Count_Inlet_Edge!=0){
-						GetWallMom(mInletCollision, start_Index_Inlet_Edge, site_Count_Inlet_Edge); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mInletCollision, start_Index_Inlet_Edge, site_Count_Inlet_Edge, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_Inlet_Edge, site_Count_Inlet_Edge, propertyCache, wallMom_Inlet_Edge);
 						wallMom_Inlet_Edge.resize(site_Count_Inlet_Edge*LatticeType::NUMVECTORS);
+
+						printf("Entering section 1: wallMom_Inlet_Edge \n\n");
 
 						// Function to allocate memory on the GPU's global memory for the wallMom
 						memCpy_HtD_GPUmem_WallMom(start_Index_Inlet_Edge, site_Count_Inlet_Edge, wallMom_Inlet_Edge, GPUDataAddr_wallMom_Inlet_Edge);
@@ -2582,9 +3235,11 @@ template<class LatticeType>
 					                                    + mLatDat->GetDomainEdgeCollisionCount(2) + mLatDat->GetDomainEdgeCollisionCount(3);
 					site_t site_Count_InletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(4);
 					if (site_Count_InletWall_Edge!=0){
-						GetWallMom(mInletWallCollision, start_Index_InletWall_Edge, site_Count_InletWall_Edge); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mInletWallCollision, start_Index_InletWall_Edge, site_Count_InletWall_Edge, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_InletWall_Edge, site_Count_InletWall_Edge, propertyCache, wallMom_InletWall_Edge);
 						wallMom_InletWall_Edge.resize(site_Count_InletWall_Edge*LatticeType::NUMVECTORS);
+
+						printf("Entering section 2: wallMom_InletWall_Edge \n\n");
 
 						// Function to allocate memory on the GPU's global memory for the wallMom
 						memCpy_HtD_GPUmem_WallMom(start_Index_InletWall_Edge, site_Count_InletWall_Edge, wallMom_InletWall_Edge, GPUDataAddr_wallMom_InletWall_Edge);
@@ -2596,9 +3251,28 @@ template<class LatticeType>
 					site_t start_Index_Inlet_Inner = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1);
 					site_t site_Count_Inlet_Inner = mLatDat->GetMidDomainCollisionCount(2);
 					if (site_Count_Inlet_Inner!=0){
-						GetWallMom(mInletCollision, start_Index_Inlet_Inner, site_Count_Inlet_Inner); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mInletCollision, start_Index_Inlet_Inner, site_Count_Inlet_Inner, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_Inlet_Inner, site_Count_Inlet_Inner, propertyCache, wallMom_Inlet_Inner);
 						wallMom_Inlet_Inner.resize(site_Count_Inlet_Inner*LatticeType::NUMVECTORS);
+
+						//------------------------------------------------------------------
+		/*				printf("\nEntering section 3: wallMom_Inlet_Inner with size: %lu \n\n", site_Count_Inlet_Inner);
+						for (int site_i=0; site_i<site_Count_Inlet_Inner; site_i++){
+							geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_i+start_Index_Inlet_Inner);
+							for (int LB_dir=0; LB_dir<19; LB_dir++){
+
+								double wallMom_x = wallMom_Inlet_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].x;
+								double wallMom_y = wallMom_Inlet_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].y;
+								double wallMom_z = wallMom_Inlet_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].z;
+
+								if(wallMom_x !=0 || wallMom_y !=0 || wallMom_z !=0)
+									printf("Section 3.1 : wallMom_Inlet_Inner / site_i: %lu, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", (site_i+start_Index_Inlet_Inner), \
+																																LB_dir, wallMom_x, wallMom_y, wallMom_z);
+								//printf("Section 3.1 : wallMom_Inlet_Inner / site_i: %lu / Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site_i, site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, \
+																																LB_dir, wallMom_x, wallMom_y, wallMom_z);
+							}
+						}
+			*/			//------------------------------------------------------------------
 
 						// Function to allocate memory on the GPU's global memory for the wallMom
 						memCpy_HtD_GPUmem_WallMom(start_Index_Inlet_Inner, site_Count_Inlet_Inner, wallMom_Inlet_Inner, GPUDataAddr_wallMom_Inlet_Inner);
@@ -2608,9 +3282,31 @@ template<class LatticeType>
 					site_t start_Index_InletWall_Inner = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2) + mLatDat->GetMidDomainCollisionCount(3);
 					site_t site_Count_InletWall_Inner = mLatDat->GetMidDomainCollisionCount(4);
 					if (site_Count_InletWall_Inner!=0){
-						GetWallMom(mInletWallCollision, start_Index_InletWall_Inner, site_Count_InletWall_Inner); // Fills the propertyCache.wallMom_Cache
+						//propertyCache.wallMom_Cache.SetRefreshFlag(); // Is this needed??? TODO: Check
+						GetWallMom(mInletWallCollision, start_Index_InletWall_Inner, site_Count_InletWall_Inner, propertyCache); // Fills the propertyCache.wallMom_Cache
+						//propertyCache.wallMom_Cache.SetRefreshFlag(); // Is this needed??? TODO: Check
+
 						read_WallMom_from_propertyCache(start_Index_InletWall_Inner, site_Count_InletWall_Inner, propertyCache, wallMom_InletWall_Inner);
 						wallMom_InletWall_Inner.resize(site_Count_InletWall_Inner*LatticeType::NUMVECTORS);
+
+/*						//------------------------------------------------------------------
+						printf("\nEntering section 4: wallMom_InletWall_Inner with size: %lu \n\n", site_Count_InletWall_Inner);
+						for (int site_i=0; site_i<site_Count_InletWall_Inner; site_i++){
+							geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_i+start_Index_InletWall_Inner);
+							for (int LB_dir=0; LB_dir<19; LB_dir++){
+
+								double wallMom_x = wallMom_InletWall_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].x;
+								double wallMom_y = wallMom_InletWall_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].y;
+								double wallMom_z = wallMom_InletWall_Inner[site_i * LatticeType::NUMVECTORS + LB_dir].z;
+
+								if(wallMom_x !=0 || wallMom_y !=0 || wallMom_z !=0)
+								printf("Section 4.1 : wallMom_InletWall_Inner / site_i: %lu, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", (site_i+start_Index_InletWall_Inner), \
+																															LB_dir, wallMom_x, wallMom_y, wallMom_z);
+								//printf("Section 4.1 : wallMom_InletWall_Inner / site_i: %lu / Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site_i, site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, \
+																																LB_dir, wallMom_x, wallMom_y, wallMom_z);
+							}
+						}
+	*/					//------------------------------------------------------------------
 
 						// Function to allocate memory on the GPU's global memory for the wallMom
 						memCpy_HtD_GPUmem_WallMom(start_Index_InletWall_Inner, site_Count_InletWall_Inner, wallMom_InletWall_Inner, GPUDataAddr_wallMom_InletWall_Inner);
@@ -2650,7 +3346,7 @@ template<class LatticeType>
 					site_t start_Index_Outlet_Edge = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0) + mLatDat->GetDomainEdgeCollisionCount(1) + mLatDat->GetDomainEdgeCollisionCount(2);
 					site_t site_Count_Outlet_Edge = mLatDat->GetDomainEdgeCollisionCount(3);
 					if (site_Count_Outlet_Edge!=0){
-						GetWallMom(mOutletCollision, start_Index_Outlet_Edge, site_Count_Outlet_Edge); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mOutletCollision, start_Index_Outlet_Edge, site_Count_Outlet_Edge, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_Outlet_Edge, site_Count_Outlet_Edge, propertyCache, wallMom_Outlet_Edge);
 						wallMom_Outlet_Edge.resize(site_Count_Outlet_Edge * LatticeType::NUMVECTORS);
 
@@ -2663,7 +3359,7 @@ template<class LatticeType>
 					                                    + mLatDat->GetDomainEdgeCollisionCount(2) + mLatDat->GetDomainEdgeCollisionCount(3) + mLatDat->GetDomainEdgeCollisionCount(4);
 					site_t site_Count_OutletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(5);
 					if (site_Count_OutletWall_Edge!=0){
-						GetWallMom(mOutletWallCollision, start_Index_OutletWall_Edge, site_Count_OutletWall_Edge); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mOutletWallCollision, start_Index_OutletWall_Edge, site_Count_OutletWall_Edge, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_OutletWall_Edge, site_Count_OutletWall_Edge, propertyCache, wallMom_OutletWall_Edge);
 						wallMom_OutletWall_Edge.resize(site_Count_OutletWall_Edge * LatticeType::NUMVECTORS);
 
@@ -2676,7 +3372,7 @@ template<class LatticeType>
 					site_t start_Index_Outlet_Inner = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2);
 					site_t site_Count_Outlet_Inner = mLatDat->GetMidDomainCollisionCount(3);
 					if (site_Count_Outlet_Inner!=0){
-						GetWallMom(mOutletCollision, start_Index_Outlet_Inner, site_Count_Outlet_Inner); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mOutletCollision, start_Index_Outlet_Inner, site_Count_Outlet_Inner, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_Outlet_Inner, site_Count_Outlet_Inner, propertyCache, wallMom_Outlet_Inner);
 						wallMom_Outlet_Inner.resize(site_Count_Outlet_Inner * LatticeType::NUMVECTORS);
 
@@ -2690,7 +3386,7 @@ template<class LatticeType>
 					                                      + mLatDat->GetMidDomainCollisionCount(3) + mLatDat->GetMidDomainCollisionCount(4);
 					site_t site_Count_OutletWall_Inner = mLatDat->GetMidDomainCollisionCount(5);
 					if (site_Count_OutletWall_Inner!=0){
-						GetWallMom(mOutletWallCollision, start_Index_OutletWall_Inner, site_Count_OutletWall_Inner); // Fills the propertyCache.wallMom_Cache
+						GetWallMom(mOutletWallCollision, start_Index_OutletWall_Inner, site_Count_OutletWall_Inner, propertyCache); // Fills the propertyCache.wallMom_Cache
 						read_WallMom_from_propertyCache(start_Index_OutletWall_Inner, site_Count_OutletWall_Inner, propertyCache, wallMom_OutletWall_Inner);
 						wallMom_OutletWall_Inner.resize(site_Count_OutletWall_Inner * LatticeType::NUMVECTORS);
 
@@ -2783,7 +3479,7 @@ template<class LatticeType>
 																														(uint32_t*)GPUDataAddr_uint32_Iolet,
 																														(mLatDat->GetLocalFluidSiteCount()),
 																														(distribn_t*)GPUDataAddr_wallMom_Inlet_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						// Make sure it has received the values for ghost density on the GPU for the case of Pressure BCs
@@ -2799,7 +3495,7 @@ template<class LatticeType>
 																														(float*)d_inletNormal,
 																														n_Inlets,
 																														(mLatDat->GetLocalFluidSiteCount()),
-																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																														n_LocalInlets_mInlet_Edge, Inlet_Edge);
 						}
 						else{
@@ -2812,7 +3508,7 @@ template<class LatticeType>
 																															(float*)d_inletNormal,
 																															n_Inlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalInlets_mInlet_Edge, (site_t*)GPUDataAddr_Inlet_Edge);
 						}
 					}
@@ -2850,7 +3546,7 @@ template<class LatticeType>
 																														(uint32_t*)GPUDataAddr_uint32_Iolet,
 																														(mLatDat->GetLocalFluidSiteCount()),
 																														(distribn_t*)GPUDataAddr_wallMom_Outlet_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						// Make sure it has received the values for ghost density on the GPU
@@ -2867,7 +3563,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutlet_Edge, Outlet_Edge); //
 						}
 						else{
@@ -2880,7 +3576,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutlet_Edge, (site_t*)GPUDataAddr_Outlet_Edge);
 						}
 
@@ -2921,7 +3617,7 @@ template<class LatticeType>
 	 																												 (uint32_t*)GPUDataAddr_uint32_Iolet,
 																													 (mLatDat->GetLocalFluidSiteCount()),
 																													 (distribn_t*)GPUDataAddr_wallMom_InletWall_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 
@@ -2937,7 +3633,7 @@ template<class LatticeType>
 																														 (float*)d_inletNormal,
 																														 n_Inlets,
 																														 (mLatDat->GetLocalFluidSiteCount()),
-																														 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																														 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																														 n_LocalInlets_mInletWall_Edge, InletWall_Edge); //
 						}
 						else{
@@ -2951,7 +3647,7 @@ template<class LatticeType>
 																														 (float*)d_inletNormal,
 																														 n_Inlets,
 																														 (mLatDat->GetLocalFluidSiteCount()),
-																														 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																														 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																														 n_LocalInlets_mInletWall_Edge, (site_t*)GPUDataAddr_InletWall_Edge); //
 						}
 					}
@@ -2992,7 +3688,7 @@ template<class LatticeType>
 	 																												 (uint32_t*)GPUDataAddr_uint32_Iolet,
 																													 (mLatDat->GetLocalFluidSiteCount()),
 																													 (distribn_t*)GPUDataAddr_wallMom_OutletWall_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						if(n_LocalOutlets_mOutletWall_Edge<=(local_iolets_MaxSIZE/3))
@@ -3007,7 +3703,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutletWall_Edge, OutletWall_Edge);
 						}
 						else{
@@ -3021,7 +3717,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutletWall_Edge, (site_t*)GPUDataAddr_OutletWall_Edge);
 						}
 					}
@@ -3052,6 +3748,7 @@ template<class LatticeType>
 					if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity_out;
 					if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity;
 
+					//cudaProfilerStop();
 #else	// If computations on CPUs
 
 				// printf("Calling CPU PART \n\n");
@@ -3130,6 +3827,32 @@ template<class LatticeType>
 
 				cudaError_t cudaStatus;
 
+				// Boolean variable for sending macroVariables to GPU global memory (avoids the if statement time%_Send_MacroVars_DtH==0 in the GPU kernels)
+				bool Write_GlobalMem = (mState->GetTimeStep()%frequency_WriteGlobalMem == 0) ? 1 : 0;
+
+				//######################################################################
+				/*
+				// Initial Location of Synch was at the end of PreReceive - Moved here just for testing
+				// Overlap the calculations during PreReceive and the memory transfer at domain edges
+				// Only if the steps sequence is modified.
+				// 		a. PreSend
+				//		b. PreReceive
+				//		c. Send
+				// Synchronisation barrier
+				if(myPiD!=0){
+					cudaStreamSynchronize(Collide_Stream_PreSend_1);
+					cudaStreamSynchronize(Collide_Stream_PreSend_2);
+					cudaStreamSynchronize(Collide_Stream_PreSend_3);
+					cudaStreamSynchronize(Collide_Stream_PreSend_4);
+					cudaStreamSynchronize(Collide_Stream_PreSend_5);
+					cudaStreamSynchronize(Collide_Stream_PreSend_6);
+				}
+				*/
+				//######################################################################
+
+
+
+
 				//#####################################################################################################################################################
 				// Merge the first 2 Types of collision-streaming
 				// Collision Types 1 & 2:
@@ -3148,7 +3871,7 @@ template<class LatticeType>
 
 				//----------------------------------
 				// Cuda kernel set-up
-				int nThreadsPerBlock_Collide = 128;				//Number of threads per block for the Collision step
+				int nThreadsPerBlock_Collide = 256;				//Number of threads per block for the Collision step
 				dim3 nThreads_Collide(nThreadsPerBlock_Collide);
 				// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 				int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
@@ -3164,7 +3887,7 @@ template<class LatticeType>
 																									(uint32_t*)GPUDataAddr_uint32_Wall,
 																									nFluid_nodes,
 																									first_Index, (first_Index + site_Count_MidFluid),
-																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
+																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
 				//#####################################################################################################################################################
 
 
@@ -3311,7 +4034,7 @@ template<class LatticeType>
 																														(uint32_t*)GPUDataAddr_uint32_Iolet,
 																														(mLatDat->GetLocalFluidSiteCount()),
 																														(distribn_t*)GPUDataAddr_wallMom_Inlet_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						if(n_LocalInlets_mInlet<=(local_iolets_MaxSIZE/3))
@@ -3325,7 +4048,7 @@ template<class LatticeType>
 																															(float*)d_inletNormal,
 																															n_Inlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalInlets_mInlet, Inlet_Inner); // (int64_t*)GPUDataAddr_int64_Neigh_b
 						}
 						else{
@@ -3338,7 +4061,7 @@ template<class LatticeType>
 																										(float*)d_inletNormal,
 																										n_Inlets,
 																										(mLatDat->GetLocalFluidSiteCount()),
-																										first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																										first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																										n_LocalInlets_mInlet, (site_t*)GPUDataAddr_Inlet_Inner);
 						}
 					}
@@ -3379,7 +4102,7 @@ template<class LatticeType>
 																														(uint32_t*)GPUDataAddr_uint32_Iolet,
 																														(mLatDat->GetLocalFluidSiteCount()),
 																														(distribn_t*)GPUDataAddr_wallMom_Outlet_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																														first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						if(n_LocalOutlets_mOutlet<=(local_iolets_MaxSIZE/3))
@@ -3393,7 +4116,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutlet, Outlet_Inner); //
 						}
 						else{
@@ -3406,7 +4129,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutlet, (site_t*)GPUDataAddr_Outlet_Inner);
 						}
 
@@ -3449,7 +4172,7 @@ template<class LatticeType>
 	 																												 (uint32_t*)GPUDataAddr_uint32_Iolet,
 																													 (mLatDat->GetLocalFluidSiteCount()),
 																													 (distribn_t*)GPUDataAddr_wallMom_InletWall_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						if(n_LocalInlets_mInletWall<=(local_iolets_MaxSIZE/3))
@@ -3464,7 +4187,7 @@ template<class LatticeType>
 																															(float*)d_inletNormal,
 																															n_Inlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalInlets_mInletWall, InletWall_Inner);
 						}
 						else{
@@ -3478,7 +4201,7 @@ template<class LatticeType>
 																															(float*)d_inletNormal,
 																															n_Inlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalInlets_mInletWall, (site_t*)GPUDataAddr_InletWall_Inner);
 						}
 
@@ -3522,7 +4245,7 @@ template<class LatticeType>
 	 																												 (uint32_t*)GPUDataAddr_uint32_Iolet,
 																													 (mLatDat->GetLocalFluidSiteCount()),
 																													 (distribn_t*)GPUDataAddr_wallMom_OutletWall_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep());
+																													 first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
 					}
 					else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						if(n_LocalOutlets_mOutletWall<=(local_iolets_MaxSIZE/3))
@@ -3537,7 +4260,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutletWall, OutletWall_Inner); //
 						}
 						else{
@@ -3551,7 +4274,7 @@ template<class LatticeType>
 																															(float*)d_outletNormal,
 																															n_Outlets,
 																															(mLatDat->GetLocalFluidSiteCount()),
-																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep(),
+																															first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 																															n_LocalOutlets_mOutletWall, (site_t*)GPUDataAddr_OutletWall_Inner);
 						}
 
@@ -3562,6 +4285,8 @@ template<class LatticeType>
 				// ====================================================================================================================================================
 
 				//-------------------------------------------------------------------------------------------------------------
+
+				// Initial Location of Synch (1) - Moved for testing at the beginning of PreReceive()
 				// Overlap the calculations during PreReceive and the memory transfer at domain edges
 				// Only if the steps sequence is modified.
 				// 		a. PreSend
@@ -3594,6 +4319,19 @@ template<class LatticeType>
 
 				// Stream for the asynchronous MemCopy DtH - f's at domain edges - after the collision-streaming kernels in PreSend().
 				//if(myPiD!=0) cudaStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge);
+
+
+				// Synchronisation point for the kernel GPU_Check_Stability launched at the beginning of PreSend() step. Ensure the stability check has completed and the results are ready
+				// memcopy D2H value of stability copied to mLatDat->h_Stability_GPU_mLatDat
+				if(myPiD!=0 && mState->GetTimeStep()%1000 ==0){
+						cudaStreamSynchronize(stability_check_stream);
+						// MemCopy from Device To Host the value for the Stability - TODO!!!
+						// cudaStatus = cudaMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), cudaMemcpyDeviceToHost, stability_check_stream);
+						cudaStatus = cudaMemcpy( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), cudaMemcpyDeviceToHost);
+
+						if(mLatDat->h_Stability_GPU_mLatDat==0)
+							printf("Rank = %d - Unstable SImulation: Host Stability flag: %d \n\n", myPiD, mLatDat->h_Stability_GPU_mLatDat);
+				}
 
 /*
 				// ====================================================================================================================================================
@@ -3670,10 +4408,12 @@ template<class LatticeType>
 				// 		see: *GetFNew(streamingIndicesForReceivedDistributions[i]) = *GetFOld(neighbouringProcs[0].FirstSharedDistribution + i);
 				// 		from LatticeData::CopyReceived()
 
-#ifndef HEMELB_CUDA_AWARE_MPI
 				// Local rank
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
+
+#ifndef HEMELB_CUDA_AWARE_MPI
+
 				// NO CUDA-aware mpi branch -
 				//std::cout << "NO CUDA-aware mpi branch: Current rank: " << myPiD << " Need to do H2D memcopy totalSharedFs distr. functions in fOld to the GPU " << std::endl;
 
@@ -3694,10 +4434,11 @@ template<class LatticeType>
 							hemelb::GPU_StreamReceivedDistr
 						OR THE REVERSE CASE: Use the stream: stream_ReceivedDistr. Follow this approach !!!
 				*/
+				/*
+				// Not needed if using the stream: stream_ReceivedDistr in Read_DistrFunctions_CPU_to_GPU_totalSharedFs.
 				if(myPiD!=0) {
-					// Not needed if using the stream: stream_ReceivedDistr in Read_DistrFunctions_CPU_to_GPU_totalSharedFs.
 					// cudaStreamSynchronize(stream_memCpy_CPU_GPU_domainEdge); // Needed if we switch to asynch memcopy and use this stream in Read_DistrFunctions_CPU_to_GPU_totalSharedFs
-					/*
+
 					// The following might be needed here for cases where the PostReceive Step is usefull, e.g. for interpolating types of BCs,
 					// Otherwise could be moved before the GPU_SwapOldAndNew kernel
 					cudaStreamSynchronize(Collide_Stream_PreRec_1);
@@ -3706,8 +4447,8 @@ template<class LatticeType>
 					cudaStreamSynchronize(Collide_Stream_PreRec_4);
 					cudaStreamSynchronize(Collide_Stream_PreRec_5);
 					cudaStreamSynchronize(Collide_Stream_PreRec_6);
-					*/
 				}
+				*/
 #endif
 
 				//----------------------------------
@@ -3790,9 +4531,11 @@ template<class LatticeType>
 			  int myPiD = rank_Com.Rank();
 
 				// Synchronisation barrier for stream_ReceivedDistr
-				// Ensure that the received distr. functions have been placed in fNew beforing swaping the populations (fNew -> fOld)
-				//if (myPiD!=0) cudaStreamSynchronize(stream_ReceivedDistr);
+				// 		Ensure that the received distr. functions have been placed in fNew beforing swaping the populations (fNew -> fOld)
+				//		if (myPiD!=0) cudaStreamSynchronize(stream_ReceivedDistr);
+				// Or simply use the same cuda stream: stream_ReceivedDistr
 
+				// 25-3-2021
 				// Swap the f's (Place fNew in fOld).
 				// fluid sites limits (just swap the distr. functions of the fluid sites (ignore the totalSharedFs):
 				site_t offset = 0;
@@ -3813,7 +4556,7 @@ template<class LatticeType>
 				/*
 				// Approach 1: Using a GPU copy kernel
 				// Cuda kernel set-up
-				int nThreadsPerBlock_SwapOldAndNew = 64;				//Number of threads per block for the Collision step
+				int nThreadsPerBlock_SwapOldAndNew = 128;				//Number of threads per block for the Collision step
 				dim3 nThreads_Swap(nThreadsPerBlock_SwapOldAndNew);
 				int nBlocks_Swap = site_Count/nThreadsPerBlock_SwapOldAndNew			+ ((site_Count % nThreadsPerBlock_SwapOldAndNew > 0)         ? 1 : 0);
 
@@ -3823,32 +4566,47 @@ template<class LatticeType>
 				// End of Approach 1
 				*/
 
+				/*
+				// 25-3-2021
+				// Consider whether to Comment out the following and transfer in Step PostReceive()
 				//========================================================================================================
 				// Approach 2: Using cudaMemcpyDeviceToDevice:
 				// As this is a single large copy from device global memory to device global memory, then  cudaMemcpyDeviceToDevice should be ok.
 				// See the discussion here: https://stackoverflow.com/questions/22345391/cuda-device-memory-copies-cudamemcpydevicetodevice-vs-copy-kernel
 				if (myPiD!=0) {
-				cudaError_t cudaStatus;
-				unsigned long long MemSz = site_Count * LatticeType::NUMVECTORS * sizeof(distribn_t); // Total memory size
-				cudaStatus = cudaMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[0]), &(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[0]), MemSz, cudaMemcpyDeviceToDevice, stream_ReceivedDistr);
-				if (cudaStatus != cudaSuccess) fprintf(stderr, "GPU memory copy device-to-device failed ... \n");
+					cudaError_t cudaStatus;
+					unsigned long long MemSz = site_Count * LatticeType::NUMVECTORS * sizeof(distribn_t); // Total memory size
+					cudaStatus = cudaMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[0]), &(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[0]), MemSz, cudaMemcpyDeviceToDevice, stream_ReceivedDistr);
+					if (cudaStatus != cudaSuccess) fprintf(stderr, "GPU memory copy device-to-device failed ... \n");
 				}
 				// End of Approach 2
 				//========================================================================================================
+				*/
 
+				//========================================================================================================
+				// Approach 3: SWap the pointers to GPU global memory:
+				swap_Pointers_GPU_glb_mem(&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat),&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat));
+				// End of Approach 3
+				//========================================================================================================
 
 				//========================================================================================================
 				// Think where to place this!!! To do!!!
 				//kernels::HydroVarsBase<LatticeType> hydroVars(geometry::Site<geometry::LatticeData> _site);
 				//kernels::HydroVarsBase<LatticeType> hydroVars;
-				if (mState->GetTimeStep() % 1000 == 0)
+				// TODO: Need to use the frequency as specified in the input file (.xml) - What is the parameter???
+				if (mState->GetTimeStep() % 100 == 0)
 				{
 					// Check whether the hemeLB picks up the macroVariables at the EndIteration step???
 					// Only the data in propertyCache, i.e. propertyCache.densityCache and propertyCache.velocityCache
 					lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
-					if(myPiD!=0)
+
+					if(myPiD!=0){
 						//Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache, kernels::HydroVars<LB_KERNEL> hydroVars(const geometry::Site<geometry::LatticeData>& _site)); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.
-						Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache);
+						Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache); // Practicaly in a synchronous way... Check if it can be modified in the future.
+
+						// Think about sending the distribution functions in fNew GPU global memory to fOld in CPU host memory
+						//Read_DistrFunctions_GPU_to_CPU_FluidSites();
+					}
 				}
 				//========================================================================================================
 

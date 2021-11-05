@@ -1604,7 +1604,7 @@ namespace hemelb
 																float* GMem_inletNormal,
 																int nInlets,
 																uint64_t nArr_dbl,
-																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step, int num_local_Iolets, Iolets Iolets_info)
+																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit;
@@ -1824,7 +1824,8 @@ namespace hemelb
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if(time_Step%_Send_MacroVars_DtH==0){
+		//if(time_Step%_Send_MacroVars_DtH==0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
@@ -1865,7 +1866,7 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* 
 															float* GMem_inletNormal,
 															int nInlets,
 															uint64_t nArr_dbl,
-															uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step, int num_local_Iolets, site_t* GMem_Iolets_info)
+															uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info)
 {
 	unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 	Ind = Ind + lower_limit;
@@ -2092,7 +2093,8 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* 
 	// Write old density and velocity to memory -
 	// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 	// Check -  To do!!!
-	if(time_Step%_Send_MacroVars_DtH==0){
+	//if(time_Step%_Send_MacroVars_DtH==0){
+	if (write_GlobalMem){
 		GMem_dbl_MacroVars[Ind] = nn;
 		GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 		GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
@@ -2134,7 +2136,7 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* 
 																uint32_t* GMem_uint32_Iolet_Link,
 																uint64_t nArr_dbl,
 																distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom,
-																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, int time_Step)
+																uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs, bool write_GlobalMem)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit;
@@ -2251,6 +2253,16 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* 
 				WallMom_y = GMem_dbl_WallMom[1ULL*nArr_wallMom + (unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
 				WallMom_z = GMem_dbl_WallMom[2ULL*nArr_wallMom + (unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
 
+				//======================================================================
+				/*
+				if (Ind==9919 && LB_Dir==18){
+				if(WallMom_x !=0 || WallMom_y !=0 || WallMom_z !=0)
+					printf("Section GPU : site_i: %lu, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", Ind, \
+																												LB_Dir, WallMom_x, WallMom_y, WallMom_z);
+				}
+				*/
+				//======================================================================
+
 				//-----------------------
 				// TODO: Pass the boolean variable: CollisionType::CKernel::LatticeType::IsLatticeCompressible()
 				// Remember that the wall mom. does not include the correction (multiplication by local density) If Compressible:
@@ -2295,7 +2307,9 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* 
 		// Write old density and velocity to memory -
 		// Maybe use a different cuda kernel for these calculations (if saving the MacroVariables delays the collision/streaming kernel)
 		// Check -  To do!!!
-		if(time_Step%_Send_MacroVars_DtH==0){
+		//printf("_Send_MacroVars_DtH: %d \n\n", _Send_MacroVars_DtH);
+		//if(time_Step%_Send_MacroVars_DtH==0){
+		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
 			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
 			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
