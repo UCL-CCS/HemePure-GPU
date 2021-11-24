@@ -1,7 +1,6 @@
 # HemePure_GPU
-
-GPU version of HemePure\\
-Build dependencies before attempting to build HemePure.
+**GPU version of HemePure**.  <br />
+Build dependencies before attempting to build `hemepure_gpu`.
 
 ## DEPENDENCIES #
 1) Create `dep/build/` .
