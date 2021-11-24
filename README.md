@@ -1,15 +1,16 @@
 # HemePure_GPU
-GPU version of HemePure
+
+GPU version of HemePure\\
 Build dependencies before attempting to build HemePure.
 
-DEPENDENCIES
-Create dep/build/.
-In dep/build/ run ccmake -B. -H../' or 'ccmake ...
-Configure using CMake.
-Run make in dep/build/.
+## DEPENDENCIES #
+1) Create `dep/build/` .
+2) In `dep/build/` run `ccmake -B. -H../` or `ccmake ..` .
+3) Configure using CMake.
+4) Run `make` in `dep/build/`.
 
-SOURCE
-Create src/build/.
-In src/build/ run ccmake -B. -H../ or ccmake ...
-Configure using CMake.
-Run make in src/build/.
+## SOURCE #
+1) Create `src/build/`.
+2) In `src/build/` run `ccmake -B. -H../` or `ccmake ..` .
+3) Configure using CMake.
+4) Run `make` in `src/build/`.
