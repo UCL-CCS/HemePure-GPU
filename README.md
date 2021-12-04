@@ -16,3 +16,13 @@ Build dependencies before attempting to build `hemepure_gpu`.
 2) In `src/build/` run `ccmake -B. -H../` or `ccmake ..` .
 3) Configure using CMake.
 4) Run `make` in `src/build/`.
+
+
+## EXECUTION OF THE PROGRAM #
+Running the executable can be done in the same way as the CPU version. <br />
+**Launch a HemeLB simulation with the instruction:** <br />
+mpirun -n N <hemelb executable address> -in <input file *.xml address> -out <output directory address> <br />
+  e.g. mpirun -n 4 ./hemepure_gpu -in ./input.xml -out results <br />
+
+A detailed description of the input file and how to run a simulation is provided in the official HemeLB website <br />
+http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/
