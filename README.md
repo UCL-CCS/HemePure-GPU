@@ -32,3 +32,7 @@ http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/
 The folder `cases/bifurcation_hires/` contains:
   1) the geometry input file (`bifurcation.gmy`)
   2) the input file for the simulation (`input.xml`)
+  
+## Analysis of results
+The analysis of results can be done following the instructions provided in the official HemeLB website <br />
+  http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/sim_section3/
