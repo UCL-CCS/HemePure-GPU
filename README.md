@@ -26,3 +26,9 @@ mpirun -n N <hemelb executable address> -in <input file *.xml address> -out <out
 
 A detailed description of the input file and how to run a simulation is provided in the official HemeLB website <br />
 http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/
+  
+
+## Cases
+The folder `cases/bifurcation_hires/` contains:
+  1) the geometry input file (`bifurcation.gmy`)
+  2) the input file for the simulation (`input.xml`)
