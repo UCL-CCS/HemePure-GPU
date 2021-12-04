@@ -17,6 +17,9 @@ Build dependencies before attempting to build `hemepure_gpu`.
 3) Configure using CMake.
 4) Run `make` in `src/build/`.
 
+**IMPORTANT NOTE** <br />
+Remember to modify the following (in the script `FullBuild.sh`, or in `src/CMakeLists.txt`) depending on the GPU compute capability (`-gencode arch=compute_70,code=sm_70`) of the NVIDIA GPUs available on the system <br />
+`-DCMAKE_CUDA_FLAGS="-ccbin g++ -gencode arch=compute_70,code=sm_70 -lineinfo --ptxas-options=-v --disable-warnings" `
 
 ## EXECUTION OF THE PROGRAM #
 Running the executable can be done in the same way as the CPU version. <br />
