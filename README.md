@@ -1,7 +1,10 @@
 # HemePure-GPU
 **GPU version of HemePure**.  <br />
-Build dependencies before attempting to build `hemepure_gpu`.
+The user can either:
+1. Run the Full build script (FullBuild.sh), which first builds the dependencies and then compiles the source code or 
+2. Do these steps as listed here: 
 
+Build dependencies before attempting to build `hemepure_gpu`.
 ## DEPENDENCIES #
 1) Create `dep/build/` .
 2) In `dep/build/` run `ccmake -B. -H../` or `ccmake ..` .
