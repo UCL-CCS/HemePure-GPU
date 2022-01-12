@@ -28,7 +28,7 @@ mpirun -n N <hemelb executable address> -in <input file *.xml address> -out <out
   e.g. mpirun -n 4 ./hemepure_gpu -in ./input.xml -out results <br />
 
 A detailed description of the input file and how to run a simulation is provided in the official HemeLB website <br />
-http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/
+http://hemelb.org/tutorials/simulation/
   
 
 ## Cases
@@ -38,4 +38,4 @@ The folder `cases/bifurcation_hires/` contains:
   
 ## Analysis of results
 The analysis of results can be done following the instructions provided in the official HemeLB website <br />
-  http://hemelb.org.s3-website.eu-west-2.amazonaws.com/tutorials/simulation/sim_section3/
+  http://hemelb.org/tutorials/simulation/sim_section3/
