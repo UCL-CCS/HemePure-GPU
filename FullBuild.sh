@@ -36,7 +36,7 @@ cmake  \
   -DHEMELB_WALL_INLET_BOUNDARY="NASHZEROTHORDERPRESSURESBB"\
   -DHEMELB_OUTLET_BOUNDARY="NASHZEROTHORDERPRESSUREIOLET"\
   -DHEMELB_WALL_OUTLET_BOUNDARY="NASHZEROTHORDERPRESSURESBB"\
-  -DCMAKE_CUDA_FLAGS="-ccbin g++ -gencode arch=compute_70, code=sm_70 -lineinfo --ptxas-options=-v --disable-warnings" \
+  -DCMAKE_CUDA_FLAGS="-ccbin g++ -gencode arch=compute_70,code=sm_70 -lineinfo --ptxas-options=-v --disable-warnings" \
   	$SOURCE_DIR/src
 make -j && echo "Done HemeLB Source"
 cd ../..
