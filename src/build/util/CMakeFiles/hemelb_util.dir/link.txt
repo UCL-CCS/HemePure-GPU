@@ -1,2 +1,0 @@
-/usr/bin/ar qc libhemelb_util.a CMakeFiles/hemelb_util.dir/fileutils.cc.o CMakeFiles/hemelb_util.dir/UnitConverter.cc.o CMakeFiles/hemelb_util.dir/utilityFunctions.cc.o CMakeFiles/hemelb_util.dir/Vector3D.cc.o CMakeFiles/hemelb_util.dir/Vector3DHemeLb.cc.o CMakeFiles/hemelb_util.dir/Matrix3D.cc.o CMakeFiles/hemelb_util.dir/Bessel.cc.o
-/usr/bin/ranlib libhemelb_util.a
