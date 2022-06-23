@@ -10,19 +10,10 @@
 #include "net/PhasedBroadcastRegular.h"
 #include "geometry/LatticeData.h"
 
-
-// IZ
-#ifdef HEMELB_USE_GPU
-#include "cuda_kernels_def_decl/cuda_params.h"
-#endif
-// IZ
-
-
 namespace hemelb
 {
   namespace lb
   {
-
     /**
      * Class to repeatedly assess the stability of the simulation, using the PhasedBroadcast
      * interface.
@@ -64,7 +55,6 @@ namespace hemelb
           }
         }
 
-
       protected:
         /**
          * Override the methods from the base class to propagate data from the root, and
@@ -90,38 +80,6 @@ namespace hemelb
           SendToParent<int>(&mUpwardsStability, 1);
         }
 
-/*
-#ifdef HEMELB_USE_GPU
-        void call_Stability_tester_GPU(){
-          // Just testing
-          // mSimState->SetStability((Stability) mUpwardsStability);
-
-          // Insert a GPU kernel launch here that checks for NaN values
-          // Just check the density, as any NaN values will eventually affect all variables
-          site_t offset = 0;	// site_t is type int64_t
-          site_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount();
-
-          site_t first_Index = offset;
-          site_t site_Count = nFluid_nodes;
-
-          //----------------------------------
-          // Cuda kernel set-up
-          int nThreadsPerBlock_Check = 128;				//Number of threads per block for checking the stability of the simulation
-          dim3 nThreads_Check(nThreadsPerBlock_Check);
-          // Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
-          int nBlocks_Check = (site_Count)/nThreadsPerBlock_Check			+ ((site_Count % nThreadsPerBlock_Check > 0)         ? 1 : 0);
-
-
-          if(nBlocks_Check!=0)
-            hemelb::GPU_Check_Stability <<< nBlocks_Check, nThreads_Check >>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-                                                    (distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
-                                                     nFluid_nodes,
-                                                     first_Index, (first_Index + site_Count), mSimState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
-
-        }
-#endif
-*/
-
         /**
          * The algorithm that checks distribution function convergence must be run in this
          * method rather than in ProgressToParent to make sure that the current timestep has
@@ -132,72 +90,24 @@ namespace hemelb
         void PostSendToParent(unsigned long splayNumber)
         {
           timings[hemelb::reporting::Timers::monitoring].Start();
-
-
-          /** Check the stability of the simulation on the GPU
-                Get the value for the stability from the GPU kernel hemelb::GPU_Check_Stability
-                1. GPU kernel hemelb::GPU_Check_Stability launched at the beginning of PreSend() step (cuda stream: stability_check_stream)
-                2. Synchronisation barrier placed at the end of PreReceive() step,
-                    so that the result (mLatDat->h_Stability_GPU_mLatDat) is copied (D2H) and
-                    accessible here in PostSendToParent (copied in mUpwardsStability).
-          */
-
+/*
 #ifdef HEMELB_USE_GPU
-
           // No need to bother testing out local lattice points if we're going to be
           // sending up a 'Unstable' value anyway.
           if (mUpwardsStability != Unstable)
           {
             bool unconvergedSitePresent = false;
 
-            mUpwardsStability = mLatDat->h_Stability_GPU_mLatDat;
+            // Insert a GPU kernel launch here that checks for NaN values
+            // Just check the density, as any NaN values will eventually affect all variables
 
-            /*
-            if(mUpwardsStability==0) {
-                //printf("Unstable Simulation - Stability Tester (After) - mUpwardsStability = %d, Host Stability flag: %d \n\n", mUpwardsStability, mLatDat->h_Stability_GPU_mLatDat);
-                // If Unstable Pass the info to simState now(?), so that it then calls Abort() in SimulationMaster.cu
-                //mSimState->SetStability((Stability)  mUpwardsStability);
-            }*/
-
-            /*
-            if(mUpwardsStability!=Unstable){
-              //----------------------------------------------------------------
-              // TODO: Implement the following section on the GPU (launch GPU kernel)
-              for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
-              {
-              if (testerConfig->doConvergenceCheck)
-                {
-                  distribn_t relativeDifference =
-                      ComputeRelativeDifference(mLatDat->GetFNew(i * LatticeType::NUMVECTORS),
-                                                mLatDat->GetSite(i).GetFOld<LatticeType>());
-
-                  if (relativeDifference > testerConfig->convergenceRelativeTolerance)
-                  {
-                    // The simulation is stable but hasn't converged in the whole domain yet.
-                    unconvergedSitePresent = true;
-                  }
-                }
-              }
-              //----------------------------------------------------------------
-            }*/
-
-            switch (mUpwardsStability)
-            {
-              case UndefinedStability:
-              case Stable:
-              case StableAndConverged:
-                mUpwardsStability = (testerConfig->doConvergenceCheck && !unconvergedSitePresent) ?
-                  StableAndConverged :
-                  Stable;
-                break;
-              case Unstable:
-                break;
-            }
 
           }
-#else // CPU code
-//#endif
 
+#else
+
+#endif
+*/
           // No need to bother testing out local lattice points if we're going to be
           // sending up a 'Unstable' value anyway.
           if (mUpwardsStability != Unstable)
@@ -250,7 +160,6 @@ namespace hemelb
                 break;
             }
           }
-#endif
 
           timings[hemelb::reporting::Timers::monitoring].Stop();
         }
@@ -318,8 +227,6 @@ namespace hemelb
         void TopNodeAction()
         {
           mDownwardsStability = mUpwardsStability;
-          //printf("Rank: %d, Inside TopNodeAction - Time: %lu - Stability (mDownwardsStability) reported: %d \n\n", \
-                          this->mNet->GetCommunicator().Rank(), this->mSimState->GetTimeStep(), mDownwardsStability);
         }
 
         /**
@@ -385,7 +292,6 @@ namespace hemelb
         void Effect()
         {
           mSimState->SetStability((Stability) mDownwardsStability);
-          //printf("Rank: %d, Inside Effect(), Time: %lu - mDownwardsStability = %d \n\n", this->mNet->GetCommunicator().Rank(), this->mSimState->GetTimeStep(), (Stability) mDownwardsStability);
         }
 
       private:
@@ -419,8 +325,6 @@ namespace hemelb
         /** Object containing the user-provided configuration for this class */
         const hemelb::configuration::SimConfig::MonitoringConfig* testerConfig;
     };
-
-
   }
 }
 

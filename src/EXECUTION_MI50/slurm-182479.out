@@ -1,0 +1,175 @@
+	linux-vdso.so.1 (0x00007ffdbd7b3000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x000015125b12e000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x000015125af0e000)
+	libm.so.6 => /lib64/libm.so.6 (0x000015125ab8c000)
+	librt.so.1 => /lib64/librt.so.1 (0x000015125a984000)
+	libctemplate.so.3 => /home_nfs/hablotl/2021_CompBioMed2/HemePure_GPU-master_copy/dep/install/lib/libctemplate.so.3 (0x000015125a723000)
+	libz.so.1 => /opt/grpc/lib/libz.so.1 (0x000015125a505000)
+	libmpi.so.40 => /software/mpi/openmpi/4.1.1-aocc-3.1.0/lib/libmpi.so.40 (0x000015125a25a000)
+	libtirpc.so.3 => /lib64/libtirpc.so.3 (0x000015125a027000)
+	libamdhip64.so.4 => /home_nfs/bguibertd/nix/store/d5nyxyc4qjm20akqy6885a16i17zmcmd-hip-4.3.1/lib/libamdhip64.so.4 (0x000015125927f000)
+	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x0000151258eea000)
+	libc.so.6 => /lib64/libc.so.6 (0x0000151258b27000)
+	/lib64/ld-linux-x86-64.so.2 (0x000015125b346000)
+	liblustreapi.so.1 => /lib64/liblustreapi.so.1 (0x00001512588f5000)
+	libopen-rte.so.40 => /software/mpi/openmpi/4.1.1-aocc-3.1.0/lib/libopen-rte.so.40 (0x000015125b435000)
+	libopen-orted-mpir.so => /software/mpi/openmpi/4.1.1-aocc-3.1.0/lib/libopen-orted-mpir.so (0x000015125b430000)
+	libopen-pal.so.40 => /software/mpi/openmpi/4.1.1-aocc-3.1.0/lib/libopen-pal.so.40 (0x0000151258797000)
+	libucp.so.0 => /lib64/libucp.so.0 (0x000015125852d000)
+	libuct.so.0 => /lib64/libuct.so.0 (0x00001512582fb000)
+	libucm.so.0 => /lib64/libucm.so.0 (0x00001512580e3000)
+	libucs.so.0 => /lib64/libucs.so.0 (0x0000151257d5a000)
+	libudev.so.1 => /lib64/libudev.so.1 (0x0000151257ac5000)
+	libpciaccess.so.0 => /lib64/libpciaccess.so.0 (0x00001512578bb000)
+	libpmi2.so.0 => /lib64/libpmi2.so.0 (0x00001512576a3000)
+	libpmi.so.0 => /lib64/libpmi.so.0 (0x000015125749d000)
+	libpmix.so.2 => /software/mpi/openmpi/4.1.1-aocc-3.1.0/lib/libpmix.so.2 (0x000015125734a000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x0000151257146000)
+	libnl-3.so.200 => /lib64/libnl-3.so.200 (0x0000151256f23000)
+	libnl-route-3.so.200 => /lib64/libnl-route-3.so.200 (0x0000151256c9d000)
+	libutil.so.1 => /lib64/libutil.so.1 (0x0000151256a99000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x0000151256844000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x000015125655b000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x0000151256344000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x0000151256140000)
+	libhsa-runtime64.so.1 => /home_nfs/bguibertd/nix/store/8gkyyszk7cfw28x1nkajighf5vhvsqjp-hsa-rocr-dev-4.3.1/lib/libhsa-runtime64.so.1 (0x0000151255ccd000)
+	libamd_comgr.so.2 => /home_nfs/bguibertd/nix/store/qqbkp4zap090qpr1h567q9ymgbn5cjrd-comgr-4.3.1/lib64/libamd_comgr.so.2 (0x000015124d0e8000)
+	libnuma.so.1 => /home_nfs/bguibertd/nix/store/09fddrnqvhf3cq4058x9563x5a7sr4x3-numactl-2.0.14/lib/libnuma.so.1 (0x000015124cedd000)
+	libreadline.so.7 => /lib64/libreadline.so.7 (0x000015124cc8e000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x000015124ca8a000)
+	libmount.so.1 => /lib64/libmount.so.1 (0x000015124c830000)
+	libslurmfull.so => /usr/lib64/slurm/libslurmfull.so (0x000015124c421000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x000015124c210000)
+	libcrypto.so.1.1 => /lib64/libcrypto.so.1.1 (0x000015124bd2a000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x000015124bb13000)
+	libhsakmt.so.1 => /home_nfs/bguibertd/nix/store/swcf4gz6smhdc3pzvxq17c1qvlga4940-hsakmt-roct-4.3.1/lib64/libhsakmt.so.1 (0x000015124b8e9000)
+	libelf.so.0 => /home_nfs/bguibertd/nix/store/35hgj7ibw0c3shbr7xf2vkxjxp14m4s5-libelf-0.8.13/lib/libelf.so.0 (0x000015124b6d4000)
+	libtinfo.so.6 => /home_nfs/bguibertd/nix/store/y8y7f8na8kd66q690gy1lhwn4zc5bxq1-ncurses-6.2/lib/libtinfo.so.6 (0x000015124b498000)
+	libatomic.so.1 => /lib64/libatomic.so.1 (0x000015124b290000)
+	libblkid.so.1 => /lib64/libblkid.so.1 (0x000015124b03d000)
+	libuuid.so.1 => /lib64/libuuid.so.1 (0x000015124ae35000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x000015124ac0b000)
+	libpcre2-8.so.0 => /lib64/libpcre2-8.so.0 (0x000015124a987000)
+
+
+========================ROCm System Management Interface========================
+================================================================================
+GPU  Temp   AvgPwr  SCLK    MCLK     Fan   Perf  PwrCap  VRAM%  GPU%  
+1    30.0c  39.0W   930Mhz  1000Mhz  0.0%  auto  225.0W    0%   0%    
+2    30.0c  34.0W   930Mhz  1000Mhz  0.0%  auto  225.0W    0%   0%    
+3    31.0c  37.0W   930Mhz  1000Mhz  0.0%  auto  225.0W    0%   0%    
+4    30.0c  39.0W   930Mhz  1000Mhz  0.0%  auto  225.0W    0%   0%    
+================================================================================
+==============================End of ROCm SMI Log ==============================
+[Rank 0000000, 3.148026e-03 s, 00000001029524 kB] :: INITIALISE
+[Rank 0000000, 3.198160e-03 s, 00000001030232 kB] :: ----------
+[Rank 0000000, 3.218443e-03 s, 00000001030232 kB] :: --> loading input and decomposing geometry
+[Rank 0000000, 1.341791e-02 s, 00000001033540 kB] :: ----> opened data file /home_nfs/hablotl/2021_CompBioMed2/Orig/HemePure_GPU-master_copy/cases/FileSharingIZPK/CBM2019_Arteries_patched.gmy
+[Rank 0000000, 1.370665e-02 s, 00000001034228 kB] :: ----> reading preamble
+[Rank 0000000, 1.410231e-02 s, 00000001034228 kB] :: ----> reading header (start)
+[Rank 0000000, 5.757301e+00 s, 00000001083860 kB] :: ----> reading header (end)
+[Rank 0000000, 8.939709e+00 s, 00000001083880 kB] :: ----> non-empty blocks: 199393
+[Rank 0000000, 8.939745e+00 s, 00000001083880 kB] ::           total blocks: 119617344
+[Rank 0000000, 8.939772e+00 s, 00000001083880 kB] ::                  ratio: 0.001667
+[Rank 0000000, 8.939801e+00 s, 00000001083880 kB] ::                  sites: 66401494
+[Rank 0000000, 8.939820e+00 s, 00000001083880 kB] :: ----> blockInformation.size(): 199393
+[Rank 0000000, 8.939837e+00 s, 00000001083880 kB] ::  fluidSitesOnEachBlock.size(): 0
+[Rank 0000000, 8.939854e+00 s, 00000001083880 kB] ::           blockWeights.size(): 0
+[Rank 0000000, 8.939871e+00 s, 00000001083880 kB] :: ----> is blockInformation.size() == nonEmptyBlocks? yes
+[Rank 0000000, 8.939888e+00 s, 00000001083880 kB] :: ----> not optimising decomposition
+[Rank 0000000, 8.943738e+00 s, 00000001084460 kB] :: ----> basic decomposition (start)
+[Rank 0000001, 2.046029e+01 s, 00000000230692 kB] :: ----> load distribution: 0.000010
+[Rank 0000000, 2.046547e+01 s, 00000001140620 kB] :: ----> basic decomposition (end)
+[Rank 0000000, 2.046552e+01 s, 00000001140620 kB] :: ----> read blocks (start)
+[Rank 0000001, 3.718375e+01 s, 00000000242632 kB] :: ----> blockInformation.size(): 199393
+[Rank 0000003, 3.718373e+01 s, 00000000231688 kB] :: ----> blockInformation.size(): 50813
+[Rank 0000004, 3.718352e+01 s, 00000000233760 kB] :: ----> blockInformation.size(): 50540
+[Rank 0000002, 3.718331e+01 s, 00000000244068 kB] :: ----> blockInformation.size(): 199393
+[Rank 0000000, 1.812208e+02 s, 00000021031836 kB] :: ----> read blocks (end)
+[Rank 0000000, 1.943694e+02 s, 00000021025352 kB] :: --> lattice data
+[Rank 0000000, 2.401727e+02 s, 00000057238348 kB] :: ----> gathering lattice information (start)
+[Rank 0000000, 2.401728e+02 s, 00000057238348 kB] :: ----> gathering lattice information (end)
+[Rank 0000000, 3.079294e+02 s, 00000067098204 kB] :: --> neighbouring data manager
+[Rank 0000000, 3.079294e+02 s, 00000067098204 kB] :: --> lattice-Boltzmann model
+Rank 0: Detected 4 CUDA Capable device(s)
+Rank: 4, Iolet ID: 18, Frequency: 2 
+Rank: 4, Iolet ID: 19, Frequency: 2 
+Rank: 4, Iolet ID: 23, Frequency: 2 
+Rank: 4, Iolet ID: 24, Frequency: 1 
+Rank: 4, Iolet ID: 25, Frequency: 2 
+Rank: 4, Iolet ID: 26, Frequency: 2 
+Rank: 4, Iolet ID: 27, Frequency: 1 
+Rank: 4, Iolet ID: 28, Frequency: 1 
+Rank: 4, Iolet ID: 29, Frequency: 1 
+Rank: 4, Iolet ID: 32, Frequency: 1 
+Rank: 4, Iolet ID: 33, Frequency: 1 
+Rank: 4, Iolet ID: 34, Frequency: 1 
+Rank: 4, Iolet ID: 35, Frequency: 1 
+Rank: 4, Iolet ID: 36, Frequency: 1 
+Rank: 4, Iolet ID: 37, Frequency: 1 
+Rank: 4, Iolet ID: 18, Frequency: 3 
+Rank: 4, Iolet ID: 19, Frequency: 2 
+Rank: 4, Iolet ID: 23, Frequency: 3 
+Rank: 4, Iolet ID: 24, Frequency: 2 
+Rank: 4, Iolet ID: 25, Frequency: 2 
+Rank: 4, Iolet ID: 26, Frequency: 2 
+Rank: 4, Iolet ID: 27, Frequency: 1 
+Rank: 4, Iolet ID: 28, Frequency: 1 
+Rank: 4, Iolet ID: 29, Frequency: 1 
+Rank: 4, Iolet ID: 32, Frequency: 1 
+Rank: 4, Iolet ID: 33, Frequency: 1 
+Rank: 4, Iolet ID: 34, Frequency: 1 
+Rank: 4, Iolet ID: 35, Frequency: 1 
+Rank: 4, Iolet ID: 36, Frequency: 1 
+Rank: 4, Iolet ID: 37, Frequency: 1 
+INDEED the Inlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+INDEED the Outlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+Rank: 4 - Total requested global memory 7.29GB 
+
+INDEED the Inlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+INDEED the Outlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+Rank: 2 - Total requested global memory 7.70GB 
+
+INDEED the Inlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+INDEED the Outlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+Rank: 1 - Total requested global memory 7.74GB 
+
+INDEED the Inlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+INDEED the Outlet Type of BCs is: NASHZEROTHORDERPRESSUREIOLET 
+Rank: 3 - Total requested global memory 7.97GB 
+
+[Rank 0000000, 3.385904e+02 s, 00000126490408 kB] :: -------------------
+[Rank 0000000, 3.385904e+02 s, 00000126490408 kB] :: INITIALISE FINISHED
+[Rank 0000000, 3.397064e+02 s, 00000126480684 kB] :: SIMULATION STARTING
+[Rank 0000000, 3.397064e+02 s, 00000126480684 kB] :: -------------------
+[Rank 0000000, 3.516818e+02 s, 00000126610204 kB] :: time step 0000200 :: write_image_to_disk 0
+[Rank 0000000, 3.637727e+02 s, 00000126610844 kB] :: time step 0000400 :: write_image_to_disk 0
+[Rank 0000000, 3.758588e+02 s, 00000126611484 kB] :: time step 0000600 :: write_image_to_disk 0
+[Rank 0000000, 3.879496e+02 s, 00000126611484 kB] :: time step 0000800 :: write_image_to_disk 0
+[Rank 0000000, 4.000457e+02 s, 00000126611484 kB] :: time step 0001000 :: write_image_to_disk 1
+[Rank 0000000, 4.197077e+02 s, 00000127649164 kB] :: time step 0001200 :: write_image_to_disk 0
+[Rank 0000000, 4.318233e+02 s, 00000127649164 kB] :: time step 0001400 :: write_image_to_disk 0
+[Rank 0000000, 4.439356e+02 s, 00000127649164 kB] :: time step 0001600 :: write_image_to_disk 0
+[Rank 0000000, 4.560505e+02 s, 00000127649164 kB] :: time step 0001800 :: write_image_to_disk 0
+[Rank 0000000, 4.681612e+02 s, 00000127649164 kB] :: time step 0002000 :: write_image_to_disk 1
+[Rank 0000000, 4.878284e+02 s, 00000128686944 kB] :: time step 0002200 :: write_image_to_disk 0
+[Rank 0000000, 4.999570e+02 s, 00000128686944 kB] :: time step 0002400 :: write_image_to_disk 0
+[Rank 0000000, 5.120848e+02 s, 00000128686944 kB] :: time step 0002600 :: write_image_to_disk 0
+[Rank 0000000, 5.242201e+02 s, 00000128686944 kB] :: time step 0002800 :: write_image_to_disk 0
+[Rank 0000000, 5.363560e+02 s, 00000128686944 kB] :: time step 0003000 :: write_image_to_disk 1
+[Rank 0000000, 5.560158e+02 s, 00000129724544 kB] :: time step 0003200 :: write_image_to_disk 0
+[Rank 0000000, 5.681441e+02 s, 00000129724544 kB] :: time step 0003400 :: write_image_to_disk 0
+[Rank 0000000, 5.802736e+02 s, 00000129724544 kB] :: time step 0003600 :: write_image_to_disk 0
+[Rank 0000000, 5.923968e+02 s, 00000129724544 kB] :: time step 0003800 :: write_image_to_disk 0
+[Rank 0000000, 6.045198e+02 s, 00000129724544 kB] :: time step 0004000 :: write_image_to_disk 1
+[Rank 0000000, 6.241693e+02 s, 00000130762400 kB] :: time step 0004200 :: write_image_to_disk 0
+[Rank 0000000, 6.363032e+02 s, 00000130762400 kB] :: time step 0004400 :: write_image_to_disk 0
+[Rank 0000000, 6.484343e+02 s, 00000130762400 kB] :: time step 0004600 :: write_image_to_disk 0
+[Rank 0000000, 6.605715e+02 s, 00000130762400 kB] :: time step 0004800 :: write_image_to_disk 0
+[Rank 0000000, 6.727118e+02 s, 00000130762400 kB] :: time step 0005000 :: write_image_to_disk 1
+[Rank 0000000, 6.820464e+02 s, 00000131430320 kB] :: -------------------
+[Rank 0000000, 6.820465e+02 s, 00000131430320 kB] :: SIMULATION FINISHED
+
+real	11m25.206s
+user	56m19.574s
+sys	23m55.437s

@@ -250,35 +250,14 @@ namespace hemelb
 									*/
 
 									/*
-									// Debugging - Case of Vel BCs - Remove later
-									if (site.GetIndex()==9919 && direction==18){
-										if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
-											printf("IoletStreamerTypeFactory - Site Id: %ld, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", siteIndex, \
-																																	direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
-
-											//printf("Loc.1 / Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, \
-																																		direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
-									}
+									wallMom_Vect_x.push_back(wallMom.x);
+									wallMom_Vect_y.push_back(wallMom.y);
+									wallMom_Vect_z.push_back(wallMom.z);
 									*/
-
-										// Write to propertyCache starting from location 0
-									 	//propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
-
-										// Write to propertyCache starting from the location based on the actual fluid ID
-									 	propertyCache.wallMom_Cache.Put(siteIndex*LatticeType::NUMVECTORS + direction, wallMom_received);
-
-										/*
-										//----------------------------------------------------------
-										// Passed the test: Test that I read the correct values back - Remove later
-										LatticeVelocity site_WallMom_read = propertyCache.wallMom_Cache.Get(siteIndex*LatticeType::NUMVECTORS + direction);
-
-										if (site.GetIndex()==9919 && direction==18){
-											if(site_WallMom_read.x !=0 || site_WallMom_read.y !=0 || site_WallMom_read.z !=0)
-											printf("Read from Cache IoletStreamerTypeFactory - Site Id: %ld, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", siteIndex, \
-																																direction, site_WallMom_read.x, site_WallMom_read.y, site_WallMom_read.z);
-									  }
-										//----------------------------------------------------------
-										*/
+									//wallMom_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache.Put(site.GetIndex()*LatticeType::NUMVECTORS+direction, wallMom);
+									propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
 									}
 								}
 
@@ -435,27 +414,21 @@ namespace hemelb
 									*/
 									/*// Testing - Print the density from the propertyCache
 									printf("Loc.2 - Density from densityCache: %.5f \n\n", propertyCache.densityCache.Get(siteIndex));
-									*/
 
-									/*	
-									// Debugging - Case of Vel BCs - Remove later
 									// Testing - print the values received
-									if (site.GetIndex()==9919 && direction==18){
 									if(wallMom_received.x !=0 || wallMom_received.y !=0 || wallMom_received.z !=0)
-									printf("WallIoletStreamerTypeFactory - Site Id: %ld, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", siteIndex, \
-																																	direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
-										//printf("Loc.2 / Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, \
-																																		direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
-										//printf("Time: %d, Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", bValues->GetTimeStep(), site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, ii, wallMom.x, wallMom.y, wallMom.z);
-									}
+										printf("Loc.2 - Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", direction, wallMom_received.x, wallMom_received.y, wallMom_received.z);
 									*/
 
-									// Write to propertyCache starting from location 0
-									//propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
-
-									// Write to propertyCache starting from the location based on the actual fluid ID
-									propertyCache.wallMom_Cache.Put(siteIndex*LatticeType::NUMVECTORS + direction, wallMom_received);
-
+									/*
+									wallMom_Vect_x.push_back(wallMom.x);
+									wallMom_Vect_y.push_back(wallMom.y);
+									wallMom_Vect_z.push_back(wallMom.z);
+									*/
+									//wallMom_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache_Vect3D.push_back(wallMom);
+									//propertyCache.wallMom_Cache.Put(site.GetIndex()*LatticeType::NUMVECTORS+direction, wallMom);
+									propertyCache.wallMom_Cache.Put((siteIndex - firstIndex)*LatticeType::NUMVECTORS + direction, wallMom_received);
 									}
 								}
 

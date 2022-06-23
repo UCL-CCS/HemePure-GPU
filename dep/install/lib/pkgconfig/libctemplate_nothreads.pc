@@ -1,0 +1,12 @@
+prefix=/gpfs/alpine/proj-shared/chm155/izacharo/hemeLB_HIP/HemePure_GPU-master_hipified_June2022/dep/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ctemplate
+Version: 2.3
+Description: Simple but powerful template language for C++
+URL: http://code.google.com/p/ctemplate
+Requires:
+Libs: -L${libdir} -lctemplate_nothreads
+Cflags: -I${includedir}

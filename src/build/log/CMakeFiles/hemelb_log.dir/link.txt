@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhemelb_log.a CMakeFiles/hemelb_log.dir/Logger.cc.o
+/usr/bin/ranlib libhemelb_log.a

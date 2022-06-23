@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(HemeLB_GPU)
 
-set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -14,8 +14,8 @@ option(HEMELB_IMAGES_TO_NULL "write images to null" ON)
 option(HEMELB_STATIC_ASSERT "use simple compile-time assertions" ON)
 option(HEMELB_TRACER_PARTICLES "use particles as tracers" ON)
 option(HEMELB_USE_ALL_WARNINGS_GNU "show all compiler warnings on development builds (gnu-style-compilers)" OFF)
-option(HEMELB_USE_SSE3 "use SSE3 intrinsics" ON)
-option(HEMELB_USE_VELOCITY_WEIGHTS_FILE "use velocity weights file" ON)
+option(HEMELB_USE_SSE3 "use SSE3 intrinsics" OFF)
+option(HEMELB_USE_VELOCITY_WEIGHTS_FILE "use velocity weights file" OFF)
 option(HEMELB_USE_GMYPLUS "use GMY+ format" OFF)
 option(HEMELB_USE_MPI_CALL "use standard MPI functions when reading blocks" OFF)
 option(HEMELB_USE_MPI_WIN "" OFF)
@@ -111,16 +111,17 @@ endif()
 
 if(HEMELB_USE_SSE3)
 	add_definitions(-DHEMELB_USE_SSE3)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3")
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --compiler-option='-march=native'")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -msse3")
 	set(CMAKE_CXX_FLAGS_RELEASE "${HEMELB_OPTIMISATION} -msse3")
 endif()
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 
 ## ==============================================================================================================================
 # Print the CXX_FLAGS
 message('CXX Flags = ' ${CMAKE_CXX_FLAGS})
-
 
 ## ==============================================================================================================================
 ## Added 29-10-2019
@@ -128,8 +129,8 @@ message('CXX Flags = ' ${CMAKE_CXX_FLAGS})
 if(HEMELB_USE_GPU)
 
 	add_definitions(-DHEMELB_USE_GPU)
-	add_definitions(-DDEBUG)
-
+	# add_definitions(-DDEBUG)
+        add_definitions(-D__HIP_PLATFORM_NVCC__)
 	##------------------------------------
 	## If CUDA-aware mpi is enabled
 	if(HEMELB_CUDA_AWARE_MPI)
@@ -137,50 +138,41 @@ if(HEMELB_USE_GPU)
 	endif()
 	##------------------------------------
 
-	enable_language(CUDA)
 
-	find_package(CUDA REQUIRED)
-	if(NOT CUDA_FOUND)
-	    message(FATAL_ERROR "CUDA not found.")
-	else()
-	    message("CUDA found.")
-	endif()
+        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
 
-	## ADDED 25-3-2020
-	include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
-	include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
+	#set(HIP_PATH "/home_nfs/bguibertd/nix/store/5znamhiz6d2qmfqz8n0c7bpn8w9fqkyi-hip-4.3.1")
+	#set(CMAKE_C_COMPILER "/opt/rocm-4.1.1/llvm/bin/clang")
+	#set(CMAKE_C_COMPILER "/home_nfs/bguibertd/nix/store/qzzy4rqsgqhyc328krc613swd7jdpksz-llvm-amdgpu-4.3.1/bin/clang")
+	#set(CMAKE_CXX_COMPILER "/opt/rocm-4.1.1/hip/bin/hipcc")
+	set(CMAKE_CXX_COMPILER "${HIP_PATH}/bin/hipcc")
 
-	set(CUDA_PROPAGATE_HOST_FLAGS ON)
+	#SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} --hip-link")
+	message (${HIP_PATH})
 
+  set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+  #list (APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm)
+  #list (APPEND CMAKE_PREFIX_PATH /home_nfs/bguibertd/nix/store/5znamhiz6d2qmfqz8n0c7bpn8w9fqkyi-hip-4.3.1)
+  list (APPEND CMAKE_PREFIX_PATH
+		 "${HIP_PATH}/lib/cmake"
+		 "${HIP_PATH}/../lib/cmake" 
+  )
 
-	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
-	if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-	  message("gnu COMPILER")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptx\
-as-options=-v --disable-warnings")
-	    #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-	    #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
-	elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-	    # using Intel C++
-	    message("intel COMPILER")
-#	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
-#	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
-
-	  #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	  #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+  #set(CMAKE_INCLUDE_PATH "${CMAKE_INCLUDE_PATH} /usr/include/tirpc")
 
 
-	endif()
-	message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
+	find_package(HIP)
+if(HIP_FOUND)
+    message(STATUS "Found HIP: " ${HIP_VERSION})
+else()
+    message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
+endif()
+include_directories("${HIP_PATH}/include")	
+#include_directories("/usr/include/tirpc")	
+include_directories("${OMPI_HOME}/include")	
 
 endif()
 ## ==============================================================================================================================
-
-
-
 
 if(HEMELB_USE_VELOCITY_WEIGHTS_FILE)
 	add_definitions(-DHEMELB_USE_VELOCITY_WEIGHTS_FILE)
@@ -291,16 +283,16 @@ include_directories("${HEMELB_DEPENDENCIES_INSTALL_PATH}/include")
 ## ==============================================================================================================================
 # HemeLB
 # ------
-set(root_sources SimulationMaster.cu
-	cuda_kernels_def_decl/cuda_params.cu
-	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
-	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
+set(root_sources SimulationMaster.cc
+	cuda_kernels_def_decl/cuda_params.cc
+	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cc
+	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cc)
 
-#cuda_add_executable(${HEMELB_EXECUTABLE} main.cu ${root_sources} OPTIONS -x cu)
+#HIP_ADD_EXECUTABLE(${HEMELB_EXECUTABLE} main.cu ${root_sources} OPTIONS -x cu)
 
-#set_source_files_properties(main.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+#set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ )
 
-add_executable(${HEMELB_EXECUTABLE} main.cu ${root_sources})
+add_executable(${HEMELB_EXECUTABLE} main.cc ${root_sources})
 
 
 include_directories(${PROJECT_SOURCE_DIR})

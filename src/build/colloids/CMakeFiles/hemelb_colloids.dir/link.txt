@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhemelb_colloids.a CMakeFiles/hemelb_colloids.dir/ParticleMpiDatatypes.cc.o CMakeFiles/hemelb_colloids.dir/ParticleSet.cc.o CMakeFiles/hemelb_colloids.dir/Particle.cc.o CMakeFiles/hemelb_colloids.dir/PersistedParticle.cc.o CMakeFiles/hemelb_colloids.dir/ColloidController.cc.o
+/usr/bin/ranlib libhemelb_colloids.a

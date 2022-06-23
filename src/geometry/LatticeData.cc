@@ -675,12 +675,7 @@ namespace hemelb
 				*/
 
 				int myPiD = GetLocalRank(); // Local rank
-				/*
-				std::cout << "CUDA-aware mpi branch: Current rank: " << myPiD << "   - Requesting Receive from : " \
-								<< (*it).Rank  << " in location : " << (int) ( ( (*it).FirstSharedDistribution)) \
-								<< " Number of elements : " << (int) ( ( (*it).SharedDistributionCount)) \
-								<< std::endl;
-				*/
+				//std::cout << "CUDA-aware mpi branch: Current rank: " << myPiD << "   - Requesting Receive from : " << (*it).Rank  << " in location : " << (int) ( ( (*it).FirstSharedDistribution)) << std::endl;
 
 				// Request the receive into the appropriate bit of FOld (Pointer to GPU global memory)
 				// Replace 	GetFOld( (*it).FirstSharedDistribution)

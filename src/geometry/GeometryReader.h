@@ -201,11 +201,11 @@ namespace hemelb
 				//! Essential block information:
 				//!		the number of bytes each block takes up while still compressed.
 				//!		the number of bytes each block takes up when uncompressed.
-				std::unordered_map<site_t, std::pair<uint32_t, uint32_t> > blockInformation;
+				std::unordered_map<site_t, std::pair<uint16_t, uint16_t> > blockInformation;
 				//! The number of fluid sites on each block in the geometry.
-				std::unordered_map<site_t, uint32_t> fluidSitesOnEachBlock;
+				std::unordered_map<site_t, uint16_t> fluidSitesOnEachBlock;
 				//! Block weights.
-				std::unordered_map<site_t, uint32_t> blockWeights;
+				std::unordered_map<site_t, uint16_t> blockWeights;
 
 				//! Timings object for recording the time taken for each step of the domain decomposition.
 				hemelb::reporting::Timers &timings;

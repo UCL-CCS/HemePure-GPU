@@ -61,7 +61,7 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
+        hipStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
         //printf("Synchronisation point for cuda stream from BaseNet and rank # %d \n\n", myPiD);
       }
       return true;
@@ -72,7 +72,7 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
+        hipStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
         //printf("Created cuda stream from BaseNet and rank # %d \n\n", myPiD);
       }
       return true;
@@ -83,14 +83,14 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
+        hipStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
         //printf("Destroyed cuda stream from BaseNet and rank # %d \n\n", myPiD);
       }
       return true;
     }
 
     // Get the cuda stream - private member
-    cudaStream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
+    hipStream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
     {
       return stream_memCpy_GPU_CPU_domainEdge_new2;
     }

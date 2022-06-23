@@ -10,7 +10,6 @@
 #include "extraction/StraightLineGeometrySelector.h"
 #include "extraction/PlaneGeometrySelector.h"
 #include "extraction/InletSelector.h"
-#include "extraction/OutletSelector.h"
 #include "extraction/WholeGeometrySelector.h"
 #include "extraction/GeometrySurfaceSelector.h"
 #include "extraction/SurfacePointSelector.h"

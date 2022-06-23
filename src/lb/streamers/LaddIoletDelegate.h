@@ -65,15 +65,10 @@ namespace hemelb
             }*/
             //printf("Entered LADDIOLET delegate!!! \n\n" ); // It does enter here.
 
-            /*
-            // Debugging - Case of Vel BCs - Remove later
-            //if(wallMom.x >=1e-4 && wallMom.y >=1e-4 && wallMom.z >=1e-4 )
-            if (site.GetIndex()==9919 && ii==18){
-              if(wallMom.x !=0 || wallMom.y !=0 || wallMom.z !=0 )
-                //printf("Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", ii, wallMom.x, wallMom.y, wallMom.z);
-                // printf("Time: %d, Coords(x,y,z): (%ld, %ld, %ld), Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", bValues->GetTimeStep(), site.GetGlobalSiteCoords().x, site.GetGlobalSiteCoords().y, site.GetGlobalSiteCoords().z, ii, wallMom.x, wallMom.y, wallMom.z);
-                printf("\n/LaddIolet/ Time: %d - Site Id: %ld, Dir: %d, Wall Mom (x,y,z): (%.5e, %.5e, %.5e) \n", bValues->GetTimeStep(), site.GetIndex(), ii, wallMom.x, wallMom.y, wallMom.z);
-            }
+            // Testing
+            /*//if(wallMom.x >=1e-4 && wallMom.y >=1e-4 && wallMom.z >=1e-4 )
+            if(wallMom.x !=0 || wallMom.y !=0 || wallMom.z !=0 )
+              printf("Dir: %d, Wall Mom_x: %.5e, Wall Mom_y: %.5e, Wall Mom_z: %.5e \n", ii, wallMom.x, wallMom.y, wallMom.z);
             */
 
             *wallMom_tobepassed = wallMom;

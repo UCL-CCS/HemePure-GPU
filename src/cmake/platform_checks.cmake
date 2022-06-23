@@ -1,5 +1,25 @@
 include(CheckCXXSourceCompiles)
 
+find_package(PkgConfig QUIET)
+pkg_check_modules(PC_TIRPC libtirpc)
+
+find_path(TIRPC_INCLUDE_DIRS
+	  NAMES netconfig.h
+	  PATH_SUFFIXES tirpc
+	  HINTS ${PC_TIRPC_INCLUDE_DIRS}
+	  )
+
+find_library(TIRPC_LIBRARIES
+	     NAMES tirpc
+	     HINTS ${PC_TIRPC_LIBRARY_DIRS}
+	     )
+
+set(CMAKE_REQUIRED_INCLUDES "${CMAKE_REQUIRED_INCLUDES} ${TIRPC_INCLUDE_DIRS}")
+set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES} ${TIRPC_LIBRARIES}")
+
+include_directories("${TIRPC_INCLUDE_DIRS}")
+list(APPEND HEMELB_LIBRARIES ${TIRPC_LIBRARIES})
+
 CHECK_CXX_SOURCE_COMPILES("#include <sys/time.h>\n#include <sys/resource.h>\nint main(int c,char** v){ rusage usage;\ngetrusage(RUSAGE_SELF, &usage);\nreturn usage.ru_maxrss; }" HAVE_RUSAGE)
 CHECK_CXX_SOURCE_COMPILES("
 #include <stdint.h>

@@ -347,14 +347,6 @@ namespace hemelb
 
 				int GetLocalRank() const;
 
-#ifdef HEMELB_USE_GPU
-				// The result of the stability check on the GPU: kernel hemelb::GPU_Check_Stability
-				// Needs to be public so that it is accessible from StabilityTester.h and
-				// copy this value in mUpwardsStability
-				int h_Stability_GPU_mLatDat;
-#endif
-
-
 			protected:
 				/**
 				 * The protected default constructor does nothing. It exists to allow derivation from this
@@ -673,10 +665,6 @@ void *GPUDataAddr_wallMom_OutletWall_Inner;
 
 		//GPU Data Addresses - pointers to GPU global memory
 		void *GPUDataAddr_dbl_fOld_b_mLatDat, *GPUDataAddr_dbl_fNew_b_mLatDat;
-		// Pointer to Stability flag
-		void* d_Stability_GPU_mLatDat;
-		//int h_Stability_GPU_mLatDat;
-
 #endif
 
 		};

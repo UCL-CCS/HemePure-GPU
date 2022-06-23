@@ -156,8 +156,6 @@ namespace hemelb
     double IncompressibilityChecker<BroadcastPolicy>::GetMaxRelativeDensityDifference() const
     {
       distribn_t maxDensityDiff = GetGlobalLargestDensity() - GetGlobalSmallestDensity();
-      //std::cout << "Max Density Diff = " << maxDensityDiff << std::endl;
-      //std::cout << "GetGlobalLargestDensity() = " << GetGlobalLargestDensity() << " and GetGlobalSmallestDensity() = " << GetGlobalSmallestDensity() << std::endl;
       assert(maxDensityDiff >= 0.0);
       return maxDensityDiff / REFERENCE_DENSITY;
     }

@@ -471,13 +471,13 @@ namespace hemelb
 
 				if (sites > 0)
 				{
-					if (std::pow(2,32)-1 < sites)
+					if (std::pow(2,16)-1 < sites)
 						throw Exception() << "Too large (sites)!";
-					if (std::pow(2,32)-1 < weights)
+					if (std::pow(2,16)-1 < weights)
 						throw Exception() << "Too large (weights)!";
-					if (std::pow(2,32)-1 < bytes)
+					if (std::pow(2,16)-1 < bytes)
 						throw Exception() << "Too large (bytes)!";
-					if (std::pow(2,32)-1 < uncompressedBytes)
+					if (std::pow(2,16)-1 < uncompressedBytes)
 						throw Exception() << "Too large (uncompressedBytes)!";
 
 					// Essential block information
@@ -559,13 +559,13 @@ namespace hemelb
 
 					if (sites > 0)
 					{
-						if (std::pow(2,32)-1 < sites)
+						if (std::pow(2,16)-1 < sites)
 							throw Exception() << "Too large (sites)!";
-						if (std::pow(2,32)-1 < weights)
+						if (std::pow(2,16)-1 < weights)
 							throw Exception() << "Too large (weights)!";
-						if (std::pow(2,32)-1 < bytes)
+						if (std::pow(2,16)-1 < bytes)
 							throw Exception() << "Too large (bytes)!";
-						if (std::pow(2,32)-1 < uncompressedBytes)
+						if (std::pow(2,16)-1 < uncompressedBytes)
 							throw Exception() << "Too large (uncompressedBytes)!";
 
 						// Essential block information

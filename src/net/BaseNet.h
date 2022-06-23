@@ -17,7 +17,8 @@
 #include "net/MpiCommunicator.h"
 
 #ifdef HEMELB_USE_GPU
-#include "cuda_runtime.h"
+//#include "cuda_runtime.h"
+#include <hip/hip_runtime.h>
 #endif
 
 namespace hemelb
@@ -66,10 +67,10 @@ namespace hemelb
         bool Synchronise_memCpy_GPU_CPU_domainEdge();
         bool Create_stream_memCpy_GPU_CPU_domainEdge_new2();
         bool Destroy_stream_memCpy_GPU_CPU_domainEdge_new2();
-        cudaStream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
+        hipStream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
 
         // Added 17 March 2020
-        cudaStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
+        hipStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
 #endif
 
       protected:

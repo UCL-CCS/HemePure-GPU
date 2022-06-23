@@ -42,8 +42,8 @@ namespace hemelb
 					BasicDecomposition(const Geometry& geometry,
 							const lb::lattices::LatticeInfo& latticeInfo,
 							const net::MpiCommunicator& communicator,
-							const std::unordered_map<site_t, std::pair<uint32_t, uint32_t> >& blockInformation,
-							const std::unordered_map<site_t, uint32_t>& blockWeights);
+							const std::unordered_map<site_t, std::pair<uint16_t, uint16_t> >& blockInformation,
+							const std::unordered_map<site_t, uint16_t>& blockWeights);
 
 					/**
 					 * Does a basic decomposition of the geometry without requiring any communication;
@@ -115,7 +115,7 @@ namespace hemelb
 							site_t unassignedBlocks,
 							const Geometry& geometry,
 							const proc_t unitCount,
-							const std::unordered_map<site_t, std::pair<uint32_t, uint32_t> >& blockInformation);
+							const std::unordered_map<site_t, std::pair<uint16_t, uint16_t> >& blockInformation);
 
 					/**
 					 * Attempt to expand an already connected volume of blocks assigned to one processor
@@ -142,8 +142,8 @@ namespace hemelb
 					const Geometry& geometry; //! The geometry being decomposed.
 					const lb::lattices::LatticeInfo& latticeInfo; //! The lattice to decompose for.
 					const net::MpiCommunicator& communicator; //! The communicator object being decomposed over.
-					const std::unordered_map<site_t, std::pair<uint32_t, uint32_t> >& blockInformation;
-					const std::unordered_map<site_t, uint32_t>& blockWeights;
+					const std::unordered_map<site_t, std::pair<uint16_t, uint16_t> >& blockInformation;
+					const std::unordered_map<site_t, uint16_t>& blockWeights;
 			};
 		} /* namespace decomposition */
 	} /* namespace geometry */

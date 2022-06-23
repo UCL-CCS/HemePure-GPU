@@ -115,16 +115,12 @@ namespace hemelb
           const unsigned long traversalLength =
               PhasedBroadcast<initialAction, splay, overlap, goDown, goUp>::GetTraverseTime();
 
-
           // Propagate this info every 1000 timesteps - Check again in the future!!! To do!!!
-          if(this->mSimState->GetTimeStep() % 1000 == 0){
-            //printf("Rank: %d, PhasedBroadcastRegular -> PostReceive, Time: %lu, iCycleNumber: %lu, firstAscent: %lu, traversalLength: %lu  \n\n", this->mNet->GetCommunicator().Rank(), \
-              this->mSimState->GetTimeStep(), iCycleNumber, firstAscent, traversalLength);
-
+          if(this->mSimState->GetTimeStep() % 200 == 0){
+            // printf("Inside the loop - Time: %lu \n\n", this->mSimState->GetTimeStep());
             // Deal with the case of a cycle with an initial pass down the tree.
             if (goDown)
             {
-              // Enters here indeed!!!  printf("Within the goDown loop, Time: %lu\n\n", this->mSimState->GetTimeStep());
               const unsigned long firstDescent =
                   PhasedBroadcast<initialAction, splay, overlap, goDown, goUp>::GetFirstDescending();
 
@@ -141,7 +137,6 @@ namespace hemelb
                 // can be applied on all nodes at once safely.
                 if ( (iCycleNumber - firstDescent) == (traversalLength - 1))
                 {
-                  //printf("Calling Effect - Time: %lu \n\n", this->mSimState->GetTimeStep());
                   Effect();
                 }
               }
@@ -150,8 +145,6 @@ namespace hemelb
             // Deal with the case of a cycle with a pass back up the tree.
             if (goUp)
             {
-              // Enters here indeed!!! printf("Within the goUp loop, Time: %lu\n\n", this->mSimState->GetTimeStep());
-
               if (iCycleNumber >= firstAscent)
               {
                 unsigned long receiveOverlap, sendOverlap;
@@ -163,36 +156,21 @@ namespace hemelb
 
                 if (base::GetSendParentOverlap(iCycleNumber - firstAscent, &sendOverlap))
                 {
-                  //printf("Rank: %d, Calling PostSendToParent - Time: %lu \n\n", this->mNet->GetCommunicator().Rank(), this->mSimState->GetTimeStep());
                   PostSendToParent(sendOverlap);
-
-                  // IZ: Added Feb 2021
-                  //   to force setting the stability status in mSimState->SetStability((Stability) mDownwardsStability);
-                  Effect();
-                  //
                 }
 
               }
             }
-
-
-            // If this node is the root of the tree and we've just finished the upwards half, it
-            // must act.
-            if (iCycleNumber == (base::GetRoundTripLength() - 1)
-                && this->mNet->GetCommunicator().Rank() == 0)
-            {
-              //  printf("Rank: %d, Calling TopNodeAction - Time: %lu \n\n", this->mNet->GetCommunicator().Rank(), this->mSimState->GetTimeStep());
-              TopNodeAction(); // Called only for rank=0 : sets mDownwardsStability to the value mUpwardsStability
-              // IZ: Added Feb 2021
-              // Effect();
-            }
-
-            /*
-            // Get the values of the stability reported here (actually it didn't pass the stability value to this->mSimState->GetStability() yet):
-            int stability_test = this->mSimState->GetStability();
-            printf("Inside the loop - Time: %lu - Stability reported: %d \n\n", this->mSimState->GetTimeStep(), this->mSimState->GetStability());
-            */
           } // Closes the if (iSimState->GetTimeStep()%1000 == 0) statement
+
+          // If this node is the root of the tree and we've just finished the upwards half, it
+          // must act.
+          if (iCycleNumber == (base::GetRoundTripLength() - 1)
+              && this->mNet->GetCommunicator().Rank() == 0)
+          {
+            TopNodeAction();
+          }
+
         }
 
         /**
@@ -313,14 +291,6 @@ namespace hemelb
         {
 
         }
-
-#ifdef HEMELB_USE_GPU
-        virtual void call_Stability_tester_GPU()
-        {
-
-        }
-#endif
-
     };
   }
 }

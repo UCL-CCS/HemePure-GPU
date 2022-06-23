@@ -181,32 +181,25 @@ namespace hemelb
 				struct hemelb::Iolets Inlet_Edge, Inlet_Inner, InletWall_Edge, InletWall_Inner;
 				struct hemelb::Iolets Outlet_Edge, Outlet_Inner, OutletWall_Edge, OutletWall_Inner;
 
-				// Pointer to Stability flag (type int*)
-				void* d_Stability_GPU;
-				//int* d_Stability_GPU;
-				int h_Stability_GPU;
-
-
 				// Cuda streams
-				cudaStream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
-				cudaStream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
-				cudaStream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
-				cudaStream_t stream_ReceivedDistr, stream_SwapOldAndNew;
-				cudaStream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
-				cudaStream_t stream_Read_Data_GPU_Dens;
-				cudaStream_t stability_check_stream;
+				hipStream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
+				hipStream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
+				hipStream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
+				hipStream_t stream_ReceivedDistr, stream_SwapOldAndNew;
+				hipStream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
+				hipStream_t stream_Read_Data_GPU_Dens;
 
 #endif
 
 #ifdef HEMELB_USE_GPU
 				bool Initialise_GPU(iolets::BoundaryValues* iInletValues, iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits);	// Initialise the GPU - memory allocations
 
+				bool Initialise_kernels_GPU(); // Initialise the kernels' setup
+
 				bool FinaliseGPU();
 				bool Read_DistrFunctions_CPU_to_GPU(int64_t firstIndex, int64_t siteCount);
 
-				bool Read_DistrFunctions_GPU_to_CPU_tot(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache);
-				bool Read_DistrFunctions_GPU_to_CPU_FluidSites();
-
+				bool Read_DistrFunctions_GPU_to_CPU(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache);
 				bool Read_DistrFunctions_GPU_to_CPU_totalSharedFs();
 				bool Read_DistrFunctions_CPU_to_GPU_totalSharedFs();
 
@@ -216,13 +209,15 @@ namespace hemelb
 				std::vector<site_t> identify_Range_iolets_ID(site_t first_index, site_t upper_index,  int* n_local_Iolets, int* n_unique_local_Iolets);
 				void count_Iolet_ID_frequency( std::vector<int> &vect , int Iolet_ID_index, int* frequency_ret);
 
-				void read_WallMom_from_propertyCache(site_t firstIndex, site_t siteCount, const lb::MacroscopicPropertyCache& propertyCache, std::vector<util::Vector3D<double> >& wallMom_Iolet);
+				void read_WallMom_from_propertyCache(site_t firstIndex, site_t siteCount, lb::MacroscopicPropertyCache& propertyCache, std::vector<util::Vector3D<double> >& wallMom_Iolet);
 				bool memCpy_HtD_GPUmem_WallMom(site_t firstIndex, site_t siteCount, std::vector<util::Vector3D<double> >& wallMom_Iolet, void *GPUDataAddr_wallMom);
-
+		  
 				void get_Iolet_BCs(std::string hemeLB_IoletBC_Inlet, std::string hemeLB_IoletBC_Outlet);
-
-				void swap_Pointers_GPU_glb_mem(void **pointer_GPU_glb_left, void **pointer_GPU_gbl_right);
+		  
+		  		void swap_Pointers_GPU_glb_mem(void **pointer_GPU_glb_left, void **pointer_GPU_gbl_right);
+		  
 #endif
+
 //========================================================================
 				//IZ
 
@@ -266,7 +261,7 @@ namespace hemelb
 #ifdef HEMELB_USE_GPU
 					// Added May 2020 - Useful for the GPU version
 					template<typename Collision>
-						void GetWallMom(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount, lb::MacroscopicPropertyCache& propertyCache)
+						void GetWallMom(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount)
 						{
 							collision->template GetWallMom<false> (iFirstIndex, iSiteCount, &mParams, mLatDat, propertyCache);
 						}

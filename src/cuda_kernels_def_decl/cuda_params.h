@@ -5,19 +5,22 @@
 #include <stdint.h> // to use uint64_t below
 #include "units.h"
 
+#include<hip/hip_runtime.h>
+#include<hip/hip_runtime_api.h>
+
 #define local_iolets_MaxSIZE 90 // This is the max array size with the iolet info (Iolet ID and fluid sites range, min and max, i.e. size = 3*local number of iolets). Assume that maximum number of iolets per RANK = local_iolets_MaxSIZE/3, i.e 30 here
 																// Note the distinction between n_unique_local_Iolets and local iolets.
 namespace hemelb
 {
 
-	extern __constant__ site_t _Iolets_Inlet_Edge[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_InletWall_Edge[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_Inlet_Inner[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_InletWall_Inner[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_Outlet_Edge[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_OutletWall_Edge[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_Outlet_Inner[local_iolets_MaxSIZE];
-	extern __constant__ site_t _Iolets_OutletWall_Inner[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_Inlet_Edge[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_InletWall_Edge[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_Inlet_Inner[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_InletWall_Inner[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_Outlet_Edge[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_OutletWall_Edge[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_Outlet_Inner[local_iolets_MaxSIZE];
+	__constant__ site_t _Iolets_OutletWall_Inner[local_iolets_MaxSIZE];
 
 
 	// Struct to hold the info for the Iolets: Iolet ID and fluid sites ranges
@@ -26,27 +29,45 @@ namespace hemelb
 	// 				to be of type Flexible Array Member(FAM), which is of variable length
 	struct Iolets{
 		int n_local_iolets;						// 	Number of local Rank Iolets - NOTE: Some Iolet IDs may repeat, depending on the fluid ID numbering - see the value of unique iolets, (for example n_unique_LocalInlets_mInlet_Edge)
-		site_t Iolets_ID_range[local_iolets_MaxSIZE]; 	//	Iolet ID and fluid sites range: [min_Fluid_Index, max_Fluid_Index], i.e 3 site_t values per iolet
+		site_t Iolets_ID_range[local_iolets_MaxSIZE]; 	//	Iolet ID and fluid sites range: [min_Fluid_Index, max_Fluid_Index], i.e 3 site_t values per iolet 
 	};
 	extern struct Iolets Inlet_Edge, Inlet_Inner, InletWall_Edge, InletWall_Inner;
 	extern struct Iolets Outlet_Edge, Outlet_Inner, OutletWall_Edge, OutletWall_Inner;
 
-	extern __constant__ unsigned int _NUMVECTORS;
-	extern __constant__ double dev_tau;
-	extern __constant__ double dev_minusInvTau;
-	extern __constant__ int _InvDirections_19[19];
-	extern __device__ __constant__ double _EQMWEIGHTS_19[19];
-	extern __constant__ int _CX_19[19];
-	extern __constant__ int _CY_19[19];
-	extern __constant__ int _CZ_19[19];
-	extern __constant__ double _Cs2;
+	__constant__ unsigned int _NUMVECTORS;
+	__constant__ double dev_tau;
+	__constant__ double dev_minusInvTau;
+	__constant__ int _InvDirections_19[19];
+	__constant__ double _EQMWEIGHTS_19[19];
+	__constant__ int _CX_19[19];
+	__constant__ int _CY_19[19];
+	__constant__ int _CZ_19[19];
+	__constant__ double _Cs2;
+	
+	//============= (Paul)
+	void d95901_set_numvectors(const unsigned int numvectors, hipError_t* status);
+	
+	void d95901_set_EQMWEIGHTS_19(const double* eqmweights, size_t size, hipError_t* status);
+	
+	void d95901_set_InvDirections_19(const hemelb::Direction* invdir, size_t size, hipError_t* status);
+	
+	void d95901_set_CX_19(const int* cx, size_t size, hipError_t* status);
+	
+	void d95901_set_CY_19(const int* cy, size_t size, hipError_t* status);
+	
+	void d95901_set_CZ_19(const int* cz, size_t size, hipError_t* status);
+	
+	void d95901_set_dev_tau(const double* devtau, size_t size, hipError_t* status);
+	
+	void d95901_set_dev_minusInvTau(const double* devminusInvTau, size_t size, hipError_t* status);
+	
+	void d95901_set_Cs2(const double* cs2, size_t size, hipError_t* status);
+	
+	//==============
+	
 
-	extern __constant__ int _WriteStep; // Not used
-
-	// Variable for saving MacroVariables to GPU global memory in each of the collision-streaming kernels
-	// Then Function Read_Macrovariables_GPU_to_CPU in void LBM<LatticeType>::EndIteration() will do the DtH mem.copy
-	extern __constant__ int _Send_MacroVars_DtH;
-
+	__constant__ int _WriteStep;
+	__constant__ int _Send_MacroVars_DtH;
 
 
 	inline void check_cuda_errors(const char *filename, const int line_number, int myProc);
@@ -112,12 +133,7 @@ namespace hemelb
 										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
 										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, int time_Step);
 
-	__global__ void GPU_Check_Stability(distribn_t* GMem_dbl_fOld_b,
-																											distribn_t* GMem_dbl_fNew_b,
-																											int* d_Stability_flag,
-																											site_t nArr_dbl,
-																											site_t lower_limit, site_t upper_limit,
-																											int time_Step);
+
 
 //==============================================================================
 /**

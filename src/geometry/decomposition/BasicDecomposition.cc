@@ -21,8 +21,8 @@ namespace hemelb
 			BasicDecomposition::BasicDecomposition(const Geometry& geometry,
 					const lb::lattices::LatticeInfo& latticeInfo,
 					const net::MpiCommunicator& communicator,
-					const std::unordered_map<site_t, std::pair<uint32_t, uint32_t> >& blockInformation,
-					const std::unordered_map<site_t, uint32_t>& blockWeights) :
+					const std::unordered_map<site_t, std::pair<uint16_t, uint16_t> >& blockInformation,
+					const std::unordered_map<site_t, uint16_t>& blockWeights) :
 				geometry(geometry), latticeInfo(latticeInfo), communicator(communicator),
 				blockInformation(blockInformation), blockWeights(blockWeights)
 			{
@@ -879,7 +879,7 @@ namespace hemelb
 					site_t unassignedBlocks,
 					const Geometry& geometry,
 					const proc_t unitCount,
-					const std::unordered_map<site_t, std::pair<uint32_t, uint32_t> >& blockInformation)
+					const std::unordered_map<site_t, std::pair<uint16_t, uint16_t> >& blockInformation)
 			{
 				// Initialise the unit being assigned to, and the approximate number of blocks
 				// required on each unit.
