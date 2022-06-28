@@ -161,22 +161,19 @@ namespace hemelb
 										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
 										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, int time_Step)
 	{
+		
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit_MidFluid;
 
 		if(Ind >= upper_limit_Wall)
 			return;
 
-		//printf("lower_limit_MidFluid: %lld, upper_limit_MidFluid: %lld, lower_limit_Wall: %lld, upper_limit_Wall: %lld \n\n", lower_limit_MidFluid, upper_limit_MidFluid, lower_limit_Wall, upper_limit_Wall);
-
-
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
-		double nn = 0.0;	// density
+		double dev_ff[19];
+		double nn = 0.0;		// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
-
 		double velx, vely, velz;	// Fluid Velocity
 
 		//-----------------------------------------------------------------------------------------------------------
@@ -195,6 +192,8 @@ namespace hemelb
 			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
 		}
 		*/
+		
+#pragma unroll 19
 		for(int direction = 0; direction< _NUMVECTORS; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
@@ -226,18 +225,24 @@ namespace hemelb
 		// c. Calculate equilibrium distr. functions
 
 		double momentumMagnitudeSquared = momentum_x * momentum_x
-													+ momentum_y * momentum_y + momentum_z * momentum_z;
+			+ momentum_y * momentum_y + momentum_z * momentum_z;
 
+		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+
+#pragma unroll 19
 		for (int i = 0; i < _NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)_CX_19[i] * momentum_x
 									+ (double)_CY_19[i] * momentum_y
 									+ (double)_CZ_19[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			double dev_fEq = _EQMWEIGHTS_19[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
-		}
+							+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+			
+			//double ff = dev_ff[i] + (dev_ff[i] - dev_fEq) * dev_minusInvTau;
+			double ff = dev_ff[i] * (1 + dev_minusInvTau) - dev_fEq * dev_minusInvTau;
+		
 		//-----------------------------------------------------------------------------------------------------------
 
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
@@ -248,10 +253,10 @@ namespace hemelb
 		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
-		{
-			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
-		}
+		//for (int i = 0; i < _NUMVECTORS; ++i)
+		//{
+		//	dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
+		//}
 
 
 		// --------------------------------------------------------------------------------
@@ -262,20 +267,20 @@ namespace hemelb
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		//site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
-				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
+		//for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)i * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
 				// Option 1:
 				if(dev_NeighInd == index_wall) // Wall Link
 				{
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[i] * nArr_dbl + Ind]= ff; // Bounce Back - Same fluid ID - Reverse LB_Dir
 				}
 				else{
-					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+					GMem_dbl_fNew_b[dev_NeighInd] = ff; 	// If neigh_d is selected
 				}
 				//printf("Local ID : %llu, Mem. Location: %.llu, LB_dir = %d, Neighbour = %llu \n\n", Ind, local_fluid_site_mem_loc, LB_Dir, dev_NeighInd);
 
@@ -335,6 +340,10 @@ namespace hemelb
 			}
 		}
 		*/
+		
+		
+		
+		
 		//=============================================================================================
 		// Write old density and velocity to memory -
 		if (time_Step%_Send_MacroVars_DtH ==0){
