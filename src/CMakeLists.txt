@@ -21,11 +21,27 @@ option(HEMELB_USE_MPI_CALL "use standard MPI functions when reading blocks" OFF)
 option(HEMELB_USE_MPI_WIN "" OFF)
 option(HEMELB_USE_BIGMPI "use BigMPI to read data from file" OFF)
 option(HEMELB_USE_PARMETIS "use ParMETIS" OFF)
-option(HEMELB_USE_GPU "use GPU accel" ON)
-option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" OFF)
 option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 #option(HEMELB_VALIDATE_GEOMETRY "validate geometry" OFF)
 
+option(HEMELB_USE_GPU "use GPU accel" ON)
+option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" OFF)
+set(HEMELB_GPU_BACKEND CUDA CACHE STRING "GPU backend")
+set(HEMELB_GPU_BACKENDS CUDA HIP_CUDA HIP_ROCM)
+set_property(CACHE HEMELB_GPU_BACKEND PROPERTY STRINGS ${HEMELB_GPU_BACKENDS})
+
+if(HEMELB_GPU_BACKEND STREQUAL "CUDA")
+  set(USE_CUDA "ON")
+elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_ROCM")
+  set(USE_HIP_ROCM "ON")
+  set(GPU_COMPILER "HIP-clang" )
+elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_CUDA")
+  set(USE_HIP_CUDA "ON")
+  set(GPU_COMPILER "HIP-nvcc")
+endif()
+if (NOT CMAKE_CXX_COMPILER MATCHES ".*hipcc$" )
+  set(GPU_COMPILER "HOST-default")
+endif()
 
 set(HEMELB_EXECUTABLE "hemepure_gpu"
 	CACHE STRING "name of executable to produce")
@@ -123,59 +139,154 @@ message('CXX Flags = ' ${CMAKE_CXX_FLAGS})
 
 
 ## ==============================================================================================================================
-## Added 29-10-2019
-# Added for the GPU implementation
+
 if(HEMELB_USE_GPU)
+  add_definitions(-DHEMELB_USE_GPU)
+  add_definitions(-DDEBUG)
+endif()
 
-	add_definitions(-DHEMELB_USE_GPU)
-	add_definitions(-DDEBUG)
+if (USE_CUDA)
 
-	##------------------------------------
-	## If CUDA-aware mpi is enabled
-	if(HEMELB_CUDA_AWARE_MPI)
-		add_definitions(-DHEMELB_CUDA_AWARE_MPI)
-	endif()
-	##------------------------------------
+  # enable_language(CUDA)
 
-	enable_language(CUDA)
+  # if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  #   set(CMAKE_CUDA_ARCHITECTURES 75)
+  # endif()
+  # find_package(CUDAToolkit REQUIRED)
 
-	find_package(CUDA REQUIRED)
-	if(NOT CUDA_FOUND)
-	    message(FATAL_ERROR "CUDA not found.")
-	else()
-	    message("CUDA found.")
-	endif()
+  # set(NVCC_OPTIONS "-gencode=arch=compute_80,code=\"sm_80,compute_80\"")
+  # message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
 
-	## ADDED 25-3-2020
-	include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
-	include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
+  ############################### OLD ###################################
 
-	set(CUDA_PROPAGATE_HOST_FLAGS ON)
+  ##------------------------------------
+  ## If CUDA-aware mpi is enabled
+  if(HEMELB_CUDA_AWARE_MPI)
+	add_definitions(-DHEMELB_CUDA_AWARE_MPI)
+  endif()
+  ##------------------------------------
 
+  enable_language(CUDA)
 
-	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_70")
-	if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-	  message("gnu COMPILER")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptx\
-as-options=-v --disable-warnings")
-	    #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-	    #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
-	elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-	    # using Intel C++
-	    message("intel COMPILER")
-#	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
-#	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+  find_package(CUDA REQUIRED)
+  if(NOT CUDA_FOUND)
+     message(FATAL_ERROR "CUDA not found.")
+  else()
+     message("CUDA found.")
+  endif()
 
-	  #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	  #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+  #ADDED 25-3-2020
+  include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
+  include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
 
+  # set(CUDA_PROPAGATE_HOST_FLAGS ON)
 
-	endif()
-	message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
+  # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_70")
+  # if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+  #   message("gnu COMPILER")
+  #   set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptx\
+  # as-options=-v --disable-warnings")
+  #   #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+  #   set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+  #   #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
+  # elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
+  #   # using Intel C++
+  #   message("intel COMPILER")
+  #   #	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+  #   #	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
 
+  #   #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+  #   #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+  #   set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+  #   set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+
+  # endif()
+  # message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
+
+endif()
+
+if (USE_HIP_ROCM OR USE_HIP_CUDA)
+
+  enable_language(CXX)
+  if(NOT DEFINED HIP_PATH)
+    if(DEFINED ENV{HIP_PATH})
+      set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+    endif()
+  endif()
+  set(CMAKE_MODULE_PATH
+    "${HIP_PATH}/cmake"
+    "${HIP_PATH}/share/cmake/hip"
+    "${HIP_PATH}/hip/cmake"
+    ${CMAKE_MODULE_PATH})
+
+  if(GPU_COMPILER STREQUAL "HIP-nvcc")
+    set( HIP_PLATFORM "nvidia" )
+    set( HIP_COMPILER "nvcc" )
+    set( HIP_RUNTIME "cuda" )
+
+    set( CMAKE_C_COMPILE_OPTIONS_PIC -Xcompiler ${CMAKE_C_COMPILE_OPTIONS_PIC} )
+    set( CMAKE_CXX_COMPILE_OPTIONS_PIC -Xcompiler ${CMAKE_CXX_COMPILE_OPTIONS_PIC} )
+    set( CMAKE_SHARED_LIBRARY_C_FLAGS "-Xlinker ${CMAKE_SHARED_LIBRARY_C_FLAGS}" )
+    set( CMAKE_SHARED_LIBRARY_CXX_FLAGS "-Xlinker ${CMAKE_SHARED_LIBRARY_CXX_FLAGS}" )
+    set( CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-Xlinker -soname," )
+    set( CMAKE_SHARED_LIBRARY_SONAME_CXX_FLAG "-Xlinker -soname," )
+
+    set( CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG "-Xlinker -rpath," )
+    set( CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG "-Xlinker -rpath," )
+    set( CMAKE_EXECUTABLE_RUNTIME_C_FLAG "-Xlinker -rpath," )
+    set( CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG "-Xlinker -rpath," )
+
+    set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY}'" )
+    set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY}'" )
+    set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
+    set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
+  endif()
+
+  if(GPU_COMPILER STREQUAL "HIP-clang")
+    set( HIP_PLATFORM "hcc" )
+    set( HIP_COMPILER "clang" )
+    set( HIP_RUNTIME "rocclr" )
+    set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING "List of specific machine types for library to target" )
+  endif()
+
+  if (USE_HIP_ROCM)
+    find_package(hip REQUIRED)
+    find_package(HIP REQUIRED) # hip_add_library
+  endif()
+
+  if (USE_HIP_CUDA)
+    find_package(CUDA REQUIRED)
+    find_package(HIP REQUIRED)
+    #list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
+    list( APPEND HIP_INCLUDE_DIRS "${HIP_PATH}/include" )
+
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 75)
+    endif()
+    find_package(CUDAToolkit REQUIRED)
+
+    set(NVCC_OPTIONS "-rdc true -gencode=arch=compute_80,code=\"sm_80,compute_80\"")
+    message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
+  endif()
+
+  add_library(hemelb_options INTERFACE)
+  if(GPU_COMPILER STREQUAL "HOST-default")
+    if (USE_HIP_ROCM)
+      target_compile_definitions(hemelb_options INTERFACE __HIP_PLATFORM_HCC__)
+    elseif(USE_HIP_CUDA)
+      target_compile_definitions(hemelb_options INTERFACE __HIP_PLATFORM_NVCC__)
+    endif()
+  endif()
+
+  set(CMAKE_HIP_ARCHITECTURES OFF)
+  message("HIP found")
+  message("   HIP version:      ${HIP_VERSION_STRING}")
+  message("   HIP platform:     ${HIP_PLATFORM}")
+  message("   HIP runtime:      ${HIP_RUNTIME}")
+  message("   HIP compiler:     ${HIP_COMPILER}")
+  message("   HIP Include Path: ${HIP_INCLUDE_DIRS}")
+  message("   HIP Libraries:    ${HIP_LIBRARIES}")
+  message("   GPU compiler:     ${CMAKE_CXX_COMPILER}")
 endif()
 ## ==============================================================================================================================
 
@@ -291,17 +402,55 @@ include_directories("${HEMELB_DEPENDENCIES_INSTALL_PATH}/include")
 ## ==============================================================================================================================
 # HemeLB
 # ------
-set(root_sources SimulationMaster.cu
-	cuda_kernels_def_decl/cuda_params.cu
-	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
-	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
 
-#cuda_add_executable(${HEMELB_EXECUTABLE} main.cu ${root_sources} OPTIONS -x cu)
+if(USE_CUDA)
+  set(cuda_sources SimulationMaster.cu
+    cuda_kernels_def_decl/cuda_params.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
+  add_library(gpu_objs OBJECT ${cuda_sources})
+  set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  # set_source_files_properties(main.cu PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT 1)
+elseif (USE_HIP_ROCM OR USE_HIP_CUDA)
+  set(hip_sources SimulationMaster_hip.cc
+	cuda_kernels_def_decl/cuda_params_hip.cc
+	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc
+	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
+  set_source_files_properties(${hip_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 
-#set_source_files_properties(main.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+  message("HIPCC_OPTIONS ${HIPCC_OPTIONS}")
+  message("NVCC_OPTIONS ${NVCC_OPTIONS}")
+  message("CLANG_OPTIONS ${CLANG_OPTIONS}")
 
-add_executable(${HEMELB_EXECUTABLE} main.cu ${root_sources})
+  hip_add_library(gpu_objs ${hip_sources}
+    HIPCC_OPTIONS "${HIPCC_OPTIONS}"
+    NVCC_OPTIONS "${NVCC_OPTIONS}"
+    CLANG_OPTIONS "${CLANG_OPTIONS}")
 
+  target_link_libraries(gpu_objs PRIVATE $<$<BOOL:${USE_HIP_ROCM}>:hip::device>)
+  #specfem_options)
+
+  # hipcc(with nvcc backend) build has problem for share library visibility,
+  # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
+  if(NOT GPU_COMPILER STREQUAL "HIP-nvcc")
+    set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
+  endif()
+endif()
+
+target_link_libraries(gpu_objs PRIVATE hemelb_options)
+
+add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+
+if(USE_HIP_ROCM OR USE_HIP_CUDA)
+  include_directories(${HIP_INCLUDE_DIRS})
+  if (USE_HIP_ROCM)
+    add_definitions(-D__HIP_PLATFORM_HCC__)
+  elseif(USE_HIP_CUDA)
+    add_definitions(-D__HIP_PLATFORM_NVCC__)
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
+  endif()
+endif()
 
 include_directories(${PROJECT_SOURCE_DIR})
 set(package_subdirs
@@ -324,22 +473,41 @@ endforeach()
 
 add_subdirectory(resources)
 
-set_property(TARGET ${HEMELB_EXECUTABLE}
-	     PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+if (USE_CUDA)
+  set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_STANDARD 11)
+endif()
 
-set_property(TARGET ${HEMELB_EXECUTABLE}
-	     PROPERTY CUDA_STANDARD 11)
+if (USE_HIP_ROCM)
+  set_target_properties(${HEMELB_EXECUTABLE} PROPERTIES LINKER_LANGUAGE HIP)
+endif()
 
-target_link_libraries(
-	${HEMELB_EXECUTABLE}
-	${HEMELB_LIBRARIES}
-	${MPI_LIBRARIES}
-	${DECOMPOSE_LIBRARIES}
-	${TINYXML_LIBRARY}
-	${Boost_LIBRARIES}
-	${CTEMPLATE_LIBRARY}
-	${ZLIB_LIBRARIES}
-	${CUDA_LINK_LIBRARIES_KEYWORD})
+if (USE_HIP_CUDA)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs CUDA::cudart -lstdc++)
+endif()
+
+target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
+  ${HEMELB_LIBRARIES}
+  ${MPI_LIBRARIES}
+  ${DECOMPOSE_LIBRARIES}
+  ${TINYXML_LIBRARY}
+  ${Boost_LIBRARIES}
+  ${CTEMPLATE_LIBRARY}
+  ${ZLIB_LIBRARIES}
+  ${CUDA_LINK_LIBRARIES_KEYWORD})
+
+# add_executable(${HEMELB_EXECUTABLE} main.cu ${cuda_sources})
+# include_directories(${PROJECT_SOURCE_DIR})
+# set(package_subdirs configuration extraction reporting geometry lb net util io log colloids)
+# foreach(subdir ${package_subdirs})
+# 	set(lib "hemelb_${subdir}")
+# 	list(APPEND HEMELB_LIBRARIES ${lib})
+# 	add_subdirectory(${subdir})
+# endforeach()
+# add_subdirectory(resources)
+# set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+# set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_STANDARD 11)
+# target_link_libraries(${HEMELB_EXECUTABLE} ${HEMELB_LIBRARIES} ${MPI_LIBRARIES} ${DECOMPOSE_LIBRARIES} ${TINYXML_LIBRARY} ${Boost_LIBRARIES} ${CTEMPLATE_LIBRARY} ${ZLIB_LIBRARIES} ${CUDA_LINK_LIBRARIES_KEYWORD})
 
 install(TARGETS ${HEMELB_EXECUTABLE} RUNTIME DESTINATION bin)
 list(APPEND RESOURCES resources/report.txt.ctp resources/report.xml.ctp)

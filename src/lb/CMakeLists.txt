@@ -29,3 +29,20 @@ add_library(hemelb_lb
 	MacroscopicPropertyCache.cc
 	SimulationState.cc
 	StabilityTester.cc)
+
+add_custom_command(
+  OUTPUT lb.h
+  OUTPUT lb.hpp
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMAND
+  cp $<$<BOOL:${USE_CUDA}>:lb_cuda.h>
+     $<$<BOOL:${USE_HIP_ROCM}>:lb_hip.h>
+     $<$<BOOL:${USE_HIP_CUDA}>:lb_hip.h>
+     lb.h
+  COMMAND
+  cp $<$<BOOL:${USE_CUDA}>:lb_cuda.hpp>
+     $<$<BOOL:${USE_HIP_ROCM}>:lb_hip.hpp>
+     $<$<BOOL:${USE_HIP_CUDA}>:lb_hip.hpp>
+     lb.hpp)
+add_custom_target(lb_header ALL DEPENDS lb.h lb.hpp)
+add_dependencies(hemelb_lb lb_header)
