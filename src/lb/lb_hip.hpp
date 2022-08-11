@@ -2537,7 +2537,7 @@ template<class LatticeType>
 				//		f. Cs2
 
 				// 2.a. Weight coefficients for the equilibrium distr. functions
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_EQMWEIGHTS_19), LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_EQMWEIGHTS_19(LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (1)\n");
 					initialise_GPU_res = false;
@@ -2548,7 +2548,7 @@ template<class LatticeType>
 
 				// 2.b. Number of vectors: LatticeType::NUMVECTORS
 				static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_NUMVECTORS), &num_Vectors, sizeof(num_Vectors), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_numvectors(LatticeType::NUMVECTORS, &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (2)\n");
 					initialise_GPU_res = false;
@@ -2558,7 +2558,7 @@ template<class LatticeType>
 				}
 
 				// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_InvDirections_19), LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_InvDirections_19(LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (3)\n");
 					initialise_GPU_res = false;
@@ -2568,21 +2568,21 @@ template<class LatticeType>
 				}
 
 				// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CX_19), LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_CX_19(LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (4)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CY_19), LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_CY_19(LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (5)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CZ_19), LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_CZ_19(LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (6)\n");
 					initialise_GPU_res = false;
@@ -2597,7 +2597,7 @@ template<class LatticeType>
 				printf("Relaxation Time = %.5f\n\n", tau);
 				double minus_inv_tau = mParams.GetOmega();	// printf("Minus Inv. Relaxation Time = %.5f\n\n", minus_inv_tau);
 
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::dev_tau), &tau, sizeof(tau), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_dev_tau(&tau, sizeof(tau), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (7)\n");
 					initialise_GPU_res = false;
@@ -2605,7 +2605,7 @@ template<class LatticeType>
 					//return false;
 				}
 
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::dev_minusInvTau), &minus_inv_tau, sizeof(minus_inv_tau), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_dev_minusInvTau(&minus_inv_tau, sizeof(minus_inv_tau), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (8)\n");
 					initialise_GPU_res = false;
@@ -2613,7 +2613,7 @@ template<class LatticeType>
 					//return false;
 				}
 
-				cudaStatus = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_Cs2), &Cs2, sizeof(Cs2), 0, hipMemcpyHostToDevice);
+				hemelb::d95901_set_Cs2(&Cs2, sizeof(Cs2), &cudaStatus);
 				if (cudaStatus != hipSuccess) {
 					fprintf(stderr, "GPU constant memory copy failed (9)\n");
 					initialise_GPU_res = false;

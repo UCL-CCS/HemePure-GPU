@@ -13,7 +13,11 @@
 
 // IZ
 #ifdef HEMELB_USE_GPU
+#if defined(__HIP_PLATFORM_HCC__) || defined(__HIP_PLATFORM_NVCC__)
+#include "cuda_kernels_def_decl/cuda_params_hip.h"
+#else
 #include "cuda_kernels_def_decl/cuda_params.h"
+#endif
 #endif
 // IZ
 

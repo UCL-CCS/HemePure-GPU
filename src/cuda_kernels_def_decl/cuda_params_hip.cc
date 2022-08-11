@@ -324,7 +324,7 @@ VERSIONS v*.b will follow the original sequence
 #include <stdio.h>
 
 #ifdef HEMELB_USE_GPU
-#include "cuda_kernels_def_decl/cuda_params.h"
+#include "cuda_kernels_def_decl/cuda_params_hip.h"
 //#include <thrust/host_vector.h>
 //#include <thrust/device_vector.h>
 //#include <thrust/copy.h>
@@ -355,7 +355,7 @@ namespace hemelb
 
 	__constant__ int _InvDirections_19[19];
 
-	__device__ __constant__ double _EQMWEIGHTS_19[19];
+	__constant__ double _EQMWEIGHTS_19[19];
 
 	__constant__ int _CX_19[19];
 	__constant__ int _CY_19[19];
@@ -363,9 +363,48 @@ namespace hemelb
 
 	__constant__ int _WriteStep = 1000;
 	__constant__ int _Send_MacroVars_DtH = 1000; // Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
+        
 
 
 	//===================================================================================================================
+	//setter for const device memory. Have to be in the same compilation unit due to clang's bug: https://reviews.llvm.org/D95901
+	
+	void d95901_set_numvectors(const unsigned int numvectors, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_NUMVECTORS), &numvectors, sizeof(numvectors), 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_EQMWEIGHTS_19(const double* eqmweights, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_EQMWEIGHTS_19), eqmweights, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_InvDirections_19(const hemelb::Direction* invdir, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_InvDirections_19), invdir, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_CX_19(const int* cx, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CX_19), cx, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_CY_19(const int* cy, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CY_19), cy, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_CZ_19(const int* cz, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_CZ_19), cz, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_dev_tau(const double* devtau, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::dev_tau), devtau, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_dev_minusInvTau(const double* devminusInvTau, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::dev_minusInvTau), devminusInvTau, size, 0, hipMemcpyHostToDevice);
+	}
+	
+	void d95901_set_Cs2(const double* cs2, size_t size, hipError_t* status){
+		*status = hipMemcpyToSymbol(HIP_SYMBOL(hemelb::_Cs2), cs2, size, 0, hipMemcpyHostToDevice);
+	}
+
 
 	/**
 	__global__ GPU kernels

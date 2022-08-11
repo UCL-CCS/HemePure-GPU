@@ -85,6 +85,11 @@ option(HEMELB_SEPARATE_CONCERNS "communicate for each concern separately" OFF)
 # stop warnings on ARCHER
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
+if(USE_HIP_ROCM)
+set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+elseif(USE_HIP_CUDA)
+set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+endif()
 
 # add warnings flags to development build types
 if(HEMELB_USE_ALL_WARNINGS_GNU)
@@ -123,6 +128,10 @@ endif()
 
 if(HEMELB_TRACER_PARTICLES)
 	add_definitions(-DHEMELB_TRACER_PARTICLES)
+endif()
+
+if(USE_HIP_ROCM OR USE_HIP_CUDA)
+  set(HEMELB_USE_SSE3 OFF)
 endif()
 
 if(HEMELB_USE_SSE3)
@@ -169,11 +178,6 @@ if (USE_CUDA)
   enable_language(CUDA)
 
   find_package(CUDA REQUIRED)
-  if(NOT CUDA_FOUND)
-     message(FATAL_ERROR "CUDA not found.")
-  else()
-     message("CUDA found.")
-  endif()
 
   #ADDED 25-3-2020
   include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
@@ -206,7 +210,6 @@ if (USE_CUDA)
 endif()
 
 if (USE_HIP_ROCM OR USE_HIP_CUDA)
-
   enable_language(CXX)
   if(NOT DEFINED HIP_PATH)
     if(DEFINED ENV{HIP_PATH})
@@ -217,7 +220,14 @@ if (USE_HIP_ROCM OR USE_HIP_CUDA)
     "${HIP_PATH}/cmake"
     "${HIP_PATH}/share/cmake/hip"
     "${HIP_PATH}/hip/cmake"
+/software/amd/ROCm-Developer-Tools/hip/gcc-8.4.1/4.5/lib/cmake/hip
     ${CMAKE_MODULE_PATH})
+
+  set(CMAKE_PREFIX_PATH
+/software/amd/ROCm-Developer-Tools/ROCm-Device-Libs/gcc-8.4.1/5.1.3/lib/cmake/
+/software/amd/ROCm-Developer-Tools/ROCm-CompilerSupport/gcc-8.4.1/5.1.3/lib/cmake/
+/software/amd/ROCm-Developer-Tools/ROCR-Runtime/gcc-8.4.1/5.1.3/lib/cmake/
+    ${CMAKE_PREFIX_PATH})
 
   if(GPU_COMPILER STREQUAL "HIP-nvcc")
     set( HIP_PLATFORM "nvidia" )
@@ -246,16 +256,24 @@ if (USE_HIP_ROCM OR USE_HIP_CUDA)
     set( HIP_PLATFORM "hcc" )
     set( HIP_COMPILER "clang" )
     set( HIP_RUNTIME "rocclr" )
-    set( AMDGPU_TARGETS gfx803;gfx900;gfx906;gfx908 CACHE STRING "List of specific machine types for library to target" )
+    set( AMDGPU_TARGETS gfx906;gfx908 CACHE STRING "List of specific machine types for library to target" )
   endif()
 
   if (USE_HIP_ROCM)
     find_package(hip REQUIRED)
     find_package(HIP REQUIRED) # hip_add_library
+    set(HIPCC_OPTIONS "-fgpu-rdc")
   endif()
 
   if (USE_HIP_CUDA)
+    #XXX
+    enable_language(CUDA)
     find_package(CUDA REQUIRED)
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
+    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
+    #XXX
+
+    # find_package(CUDA REQUIRED)
     find_package(HIP REQUIRED)
     #list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
     list( APPEND HIP_INCLUDE_DIRS "${HIP_PATH}/include" )
@@ -403,6 +421,8 @@ include_directories("${HEMELB_DEPENDENCIES_INSTALL_PATH}/include")
 # HemeLB
 # ------
 
+include_directories(${PROJECT_SOURCE_DIR})
+
 if(USE_CUDA)
   set(cuda_sources SimulationMaster.cu
     cuda_kernels_def_decl/cuda_params.cu
@@ -410,7 +430,6 @@ if(USE_CUDA)
     cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
   add_library(gpu_objs OBJECT ${cuda_sources})
   set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  # set_source_files_properties(main.cu PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT 1)
 elseif (USE_HIP_ROCM OR USE_HIP_CUDA)
   set(hip_sources SimulationMaster_hip.cc
 	cuda_kernels_def_decl/cuda_params_hip.cc
@@ -439,7 +458,20 @@ endif()
 
 target_link_libraries(gpu_objs PRIVATE hemelb_options)
 
-add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+
+
+
+if(USE_CUDA OR USE_HIP_CUDA)
+  add_executable(${HEMELB_EXECUTABLE} main.cu $<TARGET_OBJECTS:gpu_objs>)
+elseif(USE_HIP_ROCM)
+  set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+  add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+  set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  #hiprocm
+  target_link_options(${HEMELB_EXECUTABLE} PUBLIC --hip-link -fgpu-rdc)
+  #target_link_options(${HEMELB_EXECUTABLE} PUBLIC ${NVCC_OPTIONS})
+  #target_compile_options(main.cc PUBLIC ${NVCC_OPTIONS})
+endif()
 
 if(USE_HIP_ROCM OR USE_HIP_CUDA)
   include_directories(${HIP_INCLUDE_DIRS})
@@ -452,7 +484,6 @@ if(USE_HIP_ROCM OR USE_HIP_CUDA)
   endif()
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR})
 set(package_subdirs
 	configuration
 	extraction
@@ -480,6 +511,7 @@ endif()
 
 if (USE_HIP_ROCM)
   set_target_properties(${HEMELB_EXECUTABLE} PROPERTIES LINKER_LANGUAGE HIP)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
 endif()
 
 if (USE_HIP_CUDA)
@@ -495,19 +527,6 @@ target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
   ${CTEMPLATE_LIBRARY}
   ${ZLIB_LIBRARIES}
   ${CUDA_LINK_LIBRARIES_KEYWORD})
-
-# add_executable(${HEMELB_EXECUTABLE} main.cu ${cuda_sources})
-# include_directories(${PROJECT_SOURCE_DIR})
-# set(package_subdirs configuration extraction reporting geometry lb net util io log colloids)
-# foreach(subdir ${package_subdirs})
-# 	set(lib "hemelb_${subdir}")
-# 	list(APPEND HEMELB_LIBRARIES ${lib})
-# 	add_subdirectory(${subdir})
-# endforeach()
-# add_subdirectory(resources)
-# set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-# set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_STANDARD 11)
-# target_link_libraries(${HEMELB_EXECUTABLE} ${HEMELB_LIBRARIES} ${MPI_LIBRARIES} ${DECOMPOSE_LIBRARIES} ${TINYXML_LIBRARY} ${Boost_LIBRARIES} ${CTEMPLATE_LIBRARY} ${ZLIB_LIBRARIES} ${CUDA_LINK_LIBRARIES_KEYWORD})
 
 install(TARGETS ${HEMELB_EXECUTABLE} RUNTIME DESTINATION bin)
 list(APPEND RESOURCES resources/report.txt.ctp resources/report.xml.ctp)

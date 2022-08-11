@@ -23,7 +23,7 @@
 
 // IZ
 #ifdef HEMELB_USE_GPU
-#include "cuda_kernels_def_decl/cuda_params.h"
+#include "cuda_kernels_def_decl/cuda_params_hip.h"
 #endif
 // IZ
 
