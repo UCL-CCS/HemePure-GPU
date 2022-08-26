@@ -141,16 +141,7 @@ if(HEMELB_USE_GPU)
 	##------------------------------------
 
 
-        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
-
-	#set(HIP_PATH "/home_nfs/bguibertd/nix/store/5znamhiz6d2qmfqz8n0c7bpn8w9fqkyi-hip-4.3.1")
-	#set(CMAKE_C_COMPILER "/opt/rocm-4.1.1/llvm/bin/clang")
-	#set(CMAKE_C_COMPILER "/home_nfs/bguibertd/nix/store/qzzy4rqsgqhyc328krc613swd7jdpksz-llvm-amdgpu-4.3.1/bin/clang")
-	#set(CMAKE_CXX_COMPILER "/opt/rocm-4.1.1/hip/bin/hipcc")
-	#set(CMAKE_CXX_COMPILER "${HIP_PATH}/bin/hipcc")
-	set(CMAKE_CXX_COMPILER "CC")
-
-	#SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} --hip-link")
+  set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
 	message (${HIP_PATH})
 
   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
@@ -170,13 +161,10 @@ if(HIP_FOUND)
 else()
     message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
 endif()
-include_directories("${HIP_PATH}/include")	
-#include_directories("/usr/include/tirpc")	
-include_directories("${OMPI_HOME}/include")	
-
+#ddinclude_directories("${HIP_PATH}/include")	
 endif()
-## ==============================================================================================================================
 
+## ==============================================================================================================================
 if(HEMELB_USE_VELOCITY_WEIGHTS_FILE)
 	add_definitions(-DHEMELB_USE_VELOCITY_WEIGHTS_FILE)
 endif()
@@ -296,6 +284,9 @@ set(root_sources SimulationMaster.cc
 #set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ )
 
 set_source_files_properties(main.cc ${root_sources} PROPERTIES LANGUAGE HIP)
+set_source_files_properties(main.cc ${root_sources}
+	PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_COMPILER_INCLUDE_DIRS}")
+
 add_executable(${HEMELB_EXECUTABLE} main.cc ${root_sources})
 
 

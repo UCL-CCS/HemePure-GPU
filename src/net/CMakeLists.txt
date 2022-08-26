@@ -30,10 +30,14 @@ set(hemelb_net_hip_sources
 set_source_files_properties(${hemelb_net_hip_sources} 
   PROPERTIES LANGUAGE HIP)
 
+set_source_files_properties(${hemelb_net_hip_sources}
+  PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_COMPILER_INCLUDE_DIRS}")
+
 add_library(hemelb_net
  ${hemelb_net_sources}
  ${hemelb_net_hip_sources}
 )
+target_link_libraries(hemelb_net PUBLIC MPI::MPI_CXX)
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/net/BuildInfo.h.in"
