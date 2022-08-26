@@ -2,8 +2,7 @@
 # the HemeLB team and/or their institutions, as detailed in the
 # file AUTHORS. This software is provided under the terms of the
 # license in the file LICENSE.
-
-add_library(hemelb_net
+set(hemelb_net_sources
 	MpiDataType.cc
 	MpiEnvironment.cc
 	MpiError.cc
@@ -11,8 +10,13 @@ add_library(hemelb_net
 	MpiGroup.cc
 	MpiFile.cc
 	IteratedAction.cc
-	BaseNet.cc
 	IOCommunicator.cc
+  ProcComms.cc
+	phased/StepManager.cc
+)
+
+set(hemelb_net_hip_sources
+	BaseNet.cc
 	mixins/pointpoint/CoalescePointPoint.cc
 	mixins/pointpoint/SeparatedPointPoint.cc
 	mixins/pointpoint/ImmediatePointPoint.cc
@@ -20,8 +24,16 @@ add_library(hemelb_net
 	mixins/gathers/ViaPointPointGathers.cc
 	mixins/alltoall/SeparatedAllToAll.cc
 	mixins/alltoall/ViaPointPointAllToAll.cc
-	mixins/StoringNet.cc ProcComms.cc
-	phased/StepManager.cc)
+	mixins/StoringNet.cc 
+)
+
+set_source_files_properties(${hemelb_net_hip_sources} 
+  PROPERTIES LANGUAGE HIP)
+
+add_library(hemelb_net
+ ${hemelb_net_sources}
+ ${hemelb_net_hip_sources}
+)
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/net/BuildInfo.h.in"

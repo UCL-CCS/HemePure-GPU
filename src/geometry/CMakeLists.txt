@@ -3,23 +3,32 @@
 # file AUTHORS. This software is provided under the terms of the
 # license in the file LICENSE.
 
-add_library(hemelb_geometry
+set(hemelb_geometry_sources
 	Block.cc
+	SiteData.cc
+	SiteDataBare.cc
+	VolumeTraverser.cc
+	decomposition/BasicDecomposition.cc
+	neighbouring/NeighbouringLatticeData.cc
+	neighbouring/RequiredSiteInformation.cc
+)
+
+set(hemelb_geometry_hip_sources
 	BlockTraverser.cc
 	BlockTraverserWithVisitedBlockTracker.cc
 	GeometryReader.cc
 	LatticeData.cc
-	SiteData.cc
-	SiteDataBare.cc
 	SiteTraverser.cc
-	VolumeTraverser.cc
-	decomposition/BasicDecomposition.cc
 	decomposition/OptimisedDecomposition.cc
 	needs/Needs.cc
 	neighbouring/NeighbouringDataManager.cc
-	neighbouring/NeighbouringLatticeData.cc
-	neighbouring/RequiredSiteInformation.cc)
+)
+set_source_files_properties(${hemelb_geometry_hip_sources} PROPERTIES LANGUAGE HIP)
 
+add_library(hemelb_geometry 
+	${hemelb_geometry_sources}
+	${hemelb_geometry_hip_sources}
+)
 configure_file(
 	"${PROJECT_SOURCE_DIR}/geometry/decomposition/DecompositionWeights.h.in"
 	"${PROJECT_BINARY_DIR}/geometry/decomposition/DecompositionWeights.h")

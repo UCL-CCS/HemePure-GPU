@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(HemeLB_GPU)
+enable_language(CXX)
+enable_language(HIP)
 
 #set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -130,7 +132,7 @@ if(HEMELB_USE_GPU)
 
 	add_definitions(-DHEMELB_USE_GPU)
 	# add_definitions(-DDEBUG)
-        add_definitions(-D__HIP_PLATFORM_NVCC__)
+  #      add_definitions(-D__HIP_PLATFORM_AMD__)
 	##------------------------------------
 	## If CUDA-aware mpi is enabled
 	if(HEMELB_CUDA_AWARE_MPI)
@@ -145,7 +147,8 @@ if(HEMELB_USE_GPU)
 	#set(CMAKE_C_COMPILER "/opt/rocm-4.1.1/llvm/bin/clang")
 	#set(CMAKE_C_COMPILER "/home_nfs/bguibertd/nix/store/qzzy4rqsgqhyc328krc613swd7jdpksz-llvm-amdgpu-4.3.1/bin/clang")
 	#set(CMAKE_CXX_COMPILER "/opt/rocm-4.1.1/hip/bin/hipcc")
-	set(CMAKE_CXX_COMPILER "${HIP_PATH}/bin/hipcc")
+	#set(CMAKE_CXX_COMPILER "${HIP_PATH}/bin/hipcc")
+	set(CMAKE_CXX_COMPILER "CC")
 
 	#SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} --hip-link")
 	message (${HIP_PATH})
@@ -292,6 +295,7 @@ set(root_sources SimulationMaster.cc
 
 #set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ )
 
+set_source_files_properties(main.cc ${root_sources} PROPERTIES LANGUAGE HIP)
 add_executable(${HEMELB_EXECUTABLE} main.cc ${root_sources})
 
 

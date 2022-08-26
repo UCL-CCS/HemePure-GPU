@@ -3,16 +3,28 @@
 # file AUTHORS. This software is provided under the terms of the
 # license in the file LICENSE.
 
-add_library(hemelb_extraction
+set(hemelb_extraction_sources
 	GeometrySelector.cc
 	StraightLineGeometrySelector.cc
 	LocalPropertyOutput.cc
 	IterableDataSource.cc
 	PlaneGeometrySelector.cc
-	PropertyActor.cc
 	PropertyWriter.cc
 	InletSelector.cc
 	WholeGeometrySelector.cc
-	LbDataSourceIterator.cc
 	GeometrySurfaceSelector.cc
 	SurfacePointSelector.cc)
+
+set(hemelb_extraction_hip_sources
+	PropertyActor.cc
+	LbDataSourceIterator.cc
+)
+
+set_source_files_properties(${hemelb_extraction_hip_sources}
+	PROPERTIES LANGUAGE HIP)
+
+add_library(hemelb_extraction
+	${hemelb_extraction_sources}
+	${hemelb_extraction_hip_sources}
+)
+
