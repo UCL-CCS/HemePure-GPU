@@ -1,7 +1,10 @@
 # MPI
 # ---
 # does MPI implementation have a const-correct API (supports MPI 3)
-find_package(MPI REQUIRED COMPONENTS MPI::MPI_CXX)
+# New Cmake Style: Just add MPI as an imported target to libraries
+# Using MPI::MPI_CXX
+#
+find_package(MPI COMPONENTS CXX REQUIRED)
 
 set(CMAKE_REQUIRED_FLAGS -Werror)
 set(CMAKE_REQUIRED_DEFINITIONS ${MPI_CXX_COMPILE_FLAGS})

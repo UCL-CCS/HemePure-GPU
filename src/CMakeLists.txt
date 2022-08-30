@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(HemeLB_GPU)
-enable_language(CXX)
-enable_language(HIP)
-
+project(HemeLB_GPU LANGUAGES HIP CXX)
 #set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
@@ -31,10 +28,10 @@ option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 
 set(HEMELB_EXECUTABLE "hemepure_gpu"
 	CACHE STRING "name of executable to produce")
-set(HEMELB_READING_GROUP_SIZE 2
-	CACHE INTEGER "number of cores to use to read geometry file")
-set(HEMELB_READING_GROUP_SPACING 1
-	CACHE INTEGER "spacing between cores to use to read geometry file")
+set(HEMELB_READING_GROUP_SIZE "2"
+	CACHE STRING "number of cores to use to read geometry file")
+set(HEMELB_READING_GROUP_SPACING "1"
+	CACHE STRING "spacing between cores to use to read geometry file")
 set(HEMELB_LOG_LEVEL Info
 	CACHE STRING "log level: 'Critical','Error','Warning','Info','Debug','Trace'")
 set(HEMELB_DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../dep/"
@@ -226,7 +223,6 @@ if(NOT HAVE_XDRUINTXX_T)
 	add_definitions(-Dxdr_uint32_t=xdr_u_int32_t)
 	add_definitions(-Dxdr_uint64_t=xdr_u_int64_t)
 endif()
-
 include(mpi)
 include(dependencies)
 
@@ -320,7 +316,7 @@ set_property(TARGET ${HEMELB_EXECUTABLE}
 target_link_libraries(
 	${HEMELB_EXECUTABLE}
 	${HEMELB_LIBRARIES}
-	${MPI_LIBRARIES}
+	MPI::MPI_CXX
 	${DECOMPOSE_LIBRARIES}
 	${TINYXML_LIBRARY}
 	${Boost_LIBRARIES}
@@ -342,7 +338,7 @@ if(HEMELB_BUILD_TESTS_UNIT)
 	target_link_libraries(unittests_hemelb
 		hemelb_unittests
 		${HEMELB_LIBRARIES}
-		${MPI_LIBRARIES}
+		MPI::MPI_CXX
 		${DECOMPOSE_LIBRARIES}
 		${TINYXML_LIBRARY}
 		${CPPUNIT_LIBRARY}
