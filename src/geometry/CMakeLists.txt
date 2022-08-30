@@ -27,7 +27,7 @@ set_source_files_properties(${hemelb_geometry_hip_sources}
 	PROPERTIES LANGUAGE HIP
 )
 set_source_files_properties(${hemelb_geometry_hip_sources}
-  PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_COMPILER_INCLUDE_DIRS}")
+  PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_INCLUDE_DIRS}")
 
 add_library(hemelb_geometry 
 	${hemelb_geometry_sources}

@@ -35,7 +35,7 @@ set( hemelb_lb_hip_sources
 )
 set_source_files_properties(${hemelb_lb_sources} PROPERTIES LANGUAGE CXX)
 set_source_files_properties(${hemelb_lb_hip_sources} PROPERTIES LANGUAGE HIP)
-set_source_files_properties(${hemelb_lb_hip_sources} PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_COMPILER_INCLUDE_DIRS}")
+set_source_files_properties(${hemelb_lb_hip_sources} PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_INCLUDE_DIRS}")
 
 add_library(hemelb_lb ${hemelb_lb_sources} ${hemelb_lb_hip_sources})
 target_link_libraries(hemelb_lb PUBLIC MPI::MPI_CXX)

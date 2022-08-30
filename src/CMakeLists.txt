@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.23)
 
 project(HemeLB_GPU)
 enable_language(CXX)
@@ -285,7 +285,7 @@ set(root_sources SimulationMaster.cc
 
 set_source_files_properties(main.cc ${root_sources} PROPERTIES LANGUAGE HIP)
 set_source_files_properties(main.cc ${root_sources}
-	PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_COMPILER_INCLUDE_DIRS}")
+	PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_INCLUDE_DIRS}")
 
 add_executable(${HEMELB_EXECUTABLE} main.cc ${root_sources})
 
