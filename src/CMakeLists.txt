@@ -158,7 +158,6 @@ if(HIP_FOUND)
 else()
     message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
 endif()
-#ddinclude_directories("${HIP_PATH}/include")	
 endif()
 
 ## ==============================================================================================================================

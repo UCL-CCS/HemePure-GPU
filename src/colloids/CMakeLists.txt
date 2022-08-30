@@ -2,9 +2,6 @@
 # the HemeLB team and/or their institutions, as detailed in the
 # file AUTHORS. This software is provided under the terms of the
 # license in the file LICENSE.
-find_package(MPI REQUIRED)
-message(STATUS "MPI Dirs are" ${MPI_INCLUDE_DIRS})
-
 set_source_files_properties(BoundaryConditions.cc PROPERTIES LANGUAGE HIP)
 set_source_files_properties(BoundaryConditions.cc PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_INCLUDE_DIRS}")
 add_library(hemelb_colloidsBCs
