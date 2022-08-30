@@ -2,8 +2,12 @@
 ## Compilation/build script for HEMELB
 ## Run from found location
 
-HOST_DOMAIN=`/bin/hostname -d | cut -f1 -d.`
 
+# Set as appropriate
+export SOURCE_DIR=/Path_To_GPU_code
+
+# Set Up modules etc. I have a separate branch for Crusher here
+HOST_DOMAIN=`/bin/hostname -d | cut -f1 -d.`
 if [ "X${HOST_DOMAIN}" == "Xcrusher" ];
 then
 	echo "Building On Crusher."
@@ -40,9 +44,6 @@ else
 	export MPI_CFLAGS=""
 	export MPI_LDFLAGS=""
 fi
-
-# Set as appropriate
-export SOURCE_DIR=/Path_To_GPU_code
 
 ## HEMELB build
 # 1) Dependencies
