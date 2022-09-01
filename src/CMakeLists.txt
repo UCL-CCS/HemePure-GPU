@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.23)
 
-project(HemeLB_GPU)
-
+project(HemeLB_GPU LANGUAGES HIP CXX)
 #set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,10 +28,10 @@ option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 
 set(HEMELB_EXECUTABLE "hemepure_gpu"
 	CACHE STRING "name of executable to produce")
-set(HEMELB_READING_GROUP_SIZE 2
-	CACHE INTEGER "number of cores to use to read geometry file")
-set(HEMELB_READING_GROUP_SPACING 1
-	CACHE INTEGER "spacing between cores to use to read geometry file")
+set(HEMELB_READING_GROUP_SIZE "2"
+	CACHE STRING "number of cores to use to read geometry file")
+set(HEMELB_READING_GROUP_SPACING "1"
+	CACHE STRING "spacing between cores to use to read geometry file")
 set(HEMELB_LOG_LEVEL Info
 	CACHE STRING "log level: 'Critical','Error','Warning','Info','Debug','Trace'")
 set(HEMELB_DEPENDENCIES_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../dep/"
@@ -130,7 +129,7 @@ if(HEMELB_USE_GPU)
 
 	add_definitions(-DHEMELB_USE_GPU)
 	# add_definitions(-DDEBUG)
-        add_definitions(-D__HIP_PLATFORM_NVCC__)
+  #      add_definitions(-D__HIP_PLATFORM_AMD__)
 	##------------------------------------
 	## If CUDA-aware mpi is enabled
 	if(HEMELB_CUDA_AWARE_MPI)
@@ -139,15 +138,7 @@ if(HEMELB_USE_GPU)
 	##------------------------------------
 
 
-        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
-
-	#set(HIP_PATH "/home_nfs/bguibertd/nix/store/5znamhiz6d2qmfqz8n0c7bpn8w9fqkyi-hip-4.3.1")
-	#set(CMAKE_C_COMPILER "/opt/rocm-4.1.1/llvm/bin/clang")
-	#set(CMAKE_C_COMPILER "/home_nfs/bguibertd/nix/store/qzzy4rqsgqhyc328krc613swd7jdpksz-llvm-amdgpu-4.3.1/bin/clang")
-	#set(CMAKE_CXX_COMPILER "/opt/rocm-4.1.1/hip/bin/hipcc")
-	set(CMAKE_CXX_COMPILER "${HIP_PATH}/bin/hipcc")
-
-	#SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} --hip-link")
+  set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
 	message (${HIP_PATH})
 
   set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
@@ -167,13 +158,9 @@ if(HIP_FOUND)
 else()
     message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
 endif()
-include_directories("${HIP_PATH}/include")	
-#include_directories("/usr/include/tirpc")	
-include_directories("${OMPI_HOME}/include")	
-
 endif()
-## ==============================================================================================================================
 
+## ==============================================================================================================================
 if(HEMELB_USE_VELOCITY_WEIGHTS_FILE)
 	add_definitions(-DHEMELB_USE_VELOCITY_WEIGHTS_FILE)
 endif()
@@ -235,7 +222,6 @@ if(NOT HAVE_XDRUINTXX_T)
 	add_definitions(-Dxdr_uint32_t=xdr_u_int32_t)
 	add_definitions(-Dxdr_uint64_t=xdr_u_int64_t)
 endif()
-
 include(mpi)
 include(dependencies)
 
@@ -292,6 +278,10 @@ set(root_sources SimulationMaster.cc
 
 #set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ )
 
+set_source_files_properties(main.cc ${root_sources} PROPERTIES LANGUAGE HIP)
+set_source_files_properties(main.cc ${root_sources}
+	PROPERTIES INCLUDE_DIRECTORIES "${MPI_CXX_INCLUDE_DIRS}")
+
 add_executable(${HEMELB_EXECUTABLE} main.cc ${root_sources})
 
 
@@ -325,7 +315,7 @@ set_property(TARGET ${HEMELB_EXECUTABLE}
 target_link_libraries(
 	${HEMELB_EXECUTABLE}
 	${HEMELB_LIBRARIES}
-	${MPI_LIBRARIES}
+	MPI::MPI_CXX
 	${DECOMPOSE_LIBRARIES}
 	${TINYXML_LIBRARY}
 	${Boost_LIBRARIES}
@@ -347,7 +337,7 @@ if(HEMELB_BUILD_TESTS_UNIT)
 	target_link_libraries(unittests_hemelb
 		hemelb_unittests
 		${HEMELB_LIBRARIES}
-		${MPI_LIBRARIES}
+		MPI::MPI_CXX
 		${DECOMPOSE_LIBRARIES}
 		${TINYXML_LIBRARY}
 		${CPPUNIT_LIBRARY}
