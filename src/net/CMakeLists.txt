@@ -28,20 +28,8 @@ if(USE_HIP_ROCM OR USE_HIP_CUDA)
   set_source_files_properties(${hip_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
   hip_add_library(net_hip_objs ${hip_sources})
   target_link_libraries(net_hip_objs PRIVATE $<$<BOOL:${USE_HIP_ROCM}>:hip::device>)
-  target_link_libraries(net_hip_objs PRIVATE hemelb_options)
   target_link_libraries(hemelb_net net_hip_objs)
 endif()
-
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/BaseNet.h
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  COMMAND
-  cp $<$<BOOL:${USE_CUDA}>:BaseNet_cuda.h>
-     $<$<BOOL:${USE_HIP_ROCM}>:BaseNet_hip.h>
-     $<$<BOOL:${USE_HIP_CUDA}>:BaseNet_hip.h>
-     BaseNet.h)
-add_custom_target(net_header ALL DEPENDS BaseNet.h)
-add_dependencies(hemelb_net net_header)
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/net/BuildInfo.h.in"
