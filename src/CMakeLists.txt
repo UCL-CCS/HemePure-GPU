@@ -220,15 +220,12 @@ if (USE_HIP)
   endif()
 
   if (USE_HIP_CUDA)
-    #XXX
     enable_language(CUDA)
     find_package(CUDA REQUIRED)
     include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
     include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
-    #XXX
 
     find_package(HIP REQUIRED)
-    #list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
     list( APPEND HIP_INCLUDE_DIRS "${HIP_PATH}/include" )
 
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -388,10 +385,6 @@ if(USE_HIP)
 	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
   set_source_files_properties(${hip_sources} main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 
-  # if(USE_HIP_CUDA)
-  #   set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
-  # endif()
-
   message("HIPCC_OPTIONS ${HIPCC_OPTIONS}")
   message("NVCC_OPTIONS ${NVCC_OPTIONS}")
 
@@ -406,11 +399,6 @@ if(USE_HIP)
   # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
   set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 
-  # main.cc is compiled in a separate library to force cmake to use hipcc
-  # we use a dummy.cc file as source file to add_executable()
-  #file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dummy.cc" "")
-  #add_executable(${HEMELB_EXECUTABLE} dummy.cc $<TARGET_OBJECTS:gpu_objs>)
-
   hip_add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
 
   include_directories(${HIP_INCLUDE_DIRS})
@@ -418,8 +406,6 @@ if(USE_HIP)
     add_definitions(-D__HIP_PLATFORM_HCC__)
   elseif(USE_HIP_CUDA)
     add_definitions(-D__HIP_PLATFORM_NVCC__)
-    # include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
-    # include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
   endif()
 endif()
 
@@ -456,8 +442,6 @@ if (USE_HIP)
   if(USE_HIP_CUDA)
     target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC CUDA::cudart -lstdc++)
   endif()
-  # XXX should probably remove this
-  #set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 endif()
 
 target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
