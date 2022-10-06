@@ -236,6 +236,7 @@ if (USE_HIP)
     set(NVCC_OPTIONS -rdc true -gencode=arch=compute_60,code=\"sm_60,compute_60\")
     set(NVCC_OPTIONS ${NVCC_OPTIONS} -gencode=arch=compute_70,code=\"sm_70,compute_70\")
     set(NVCC_OPTIONS ${NVCC_OPTIONS} -gencode=arch=compute_75,code=\"sm_75,compute_75\")
+    set(NVCC_OPTIONS ${NVCC_OPTIONS} -gencode=arch=compute_80,code=\"sm_80,compute_80\")
     message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
   endif()
 
