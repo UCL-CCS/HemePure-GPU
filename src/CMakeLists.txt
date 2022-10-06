@@ -32,14 +32,14 @@ set_property(CACHE HEMELB_GPU_BACKEND PROPERTY STRINGS ${HEMELB_GPU_BACKENDS})
 
 if(HEMELB_GPU_BACKEND STREQUAL "CUDA")
   set(USE_CUDA "ON")
+  set(GPU_COMPILER "HOST-default")
 elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_ROCM")
+  set(USE_HIP "ON")
   set(USE_HIP_ROCM "ON")
   set(GPU_COMPILER "HIP-clang" )
 elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_CUDA")
+  set(USE_HIP "ON")
   set(USE_HIP_CUDA "ON")
-  set(GPU_COMPILER "HIP-nvcc")
-endif()
-if (NOT CMAKE_CXX_COMPILER MATCHES ".*hipcc$" )
   set(GPU_COMPILER "HOST-default")
 endif()
 
@@ -84,12 +84,6 @@ option(HEMELB_SEPARATE_CONCERNS "communicate for each concern separately" OFF)
 
 # stop warnings on ARCHER
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
-if(USE_HIP_ROCM)
-set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-elseif(USE_HIP_CUDA)
-set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-endif()
 
 # add warnings flags to development build types
 if(HEMELB_USE_ALL_WARNINGS_GNU)
@@ -156,18 +150,6 @@ endif()
 
 if (USE_CUDA)
 
-  # enable_language(CUDA)
-
-  # if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  #   set(CMAKE_CUDA_ARCHITECTURES 75)
-  # endif()
-  # find_package(CUDAToolkit REQUIRED)
-
-  # set(NVCC_OPTIONS "-gencode=arch=compute_80,code=\"sm_80,compute_80\"")
-  # message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
-
-  ############################### OLD ###################################
-
   ##------------------------------------
   ## If CUDA-aware mpi is enabled
   if(HEMELB_CUDA_AWARE_MPI)
@@ -183,74 +165,46 @@ if (USE_CUDA)
   include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
   include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
 
-  # set(CUDA_PROPAGATE_HOST_FLAGS ON)
+  set(CUDA_PROPAGATE_HOST_FLAGS ON)
 
-  # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_70")
-  # if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
-  #   message("gnu COMPILER")
-  #   set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptx\
-  # as-options=-v --disable-warnings")
-  #   #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-  #   set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-  #   #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
-  # elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-  #   # using Intel C++
-  #   message("intel COMPILER")
-  #   #	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
-  #   #	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_70")
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+    message("gnu COMPILER")
+    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+    #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+    #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
+  elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
+    # using Intel C++
+    message("intel COMPILER")
+    #	    set(CMAKE_CUDA_FLAGS "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
+    #	    set(CMAKE_CUDA_FLAGS_DEBUG "-D__ICC=1600 -ccbin icpc -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -lineinfo")
 
-  #   #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-  #   #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-  #   set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
-  #   set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+    #  set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+    #  set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
+    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
 
-  # endif()
-  # message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
+  endif()
+  message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
 
 endif()
 
-if (USE_HIP_ROCM OR USE_HIP_CUDA)
-  enable_language(CXX)
+if (USE_HIP)
+  add_definitions(-DHEMELB_USE_HIP)
   if(NOT DEFINED HIP_PATH)
     if(DEFINED ENV{HIP_PATH})
       set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
     endif()
   endif()
+
   set(CMAKE_MODULE_PATH
     "${HIP_PATH}/cmake"
     "${HIP_PATH}/share/cmake/hip"
     "${HIP_PATH}/hip/cmake"
-/software/amd/ROCm-Developer-Tools/hip/gcc-8.4.1/4.5/lib/cmake/hip
+    "${HIP_PATH}/lib/cmake/hip"
+    "${HIP_PATH}/lib/cmake"
     ${CMAKE_MODULE_PATH})
-
-  set(CMAKE_PREFIX_PATH
-/software/amd/ROCm-Developer-Tools/ROCm-Device-Libs/gcc-8.4.1/5.1.3/lib/cmake/
-/software/amd/ROCm-Developer-Tools/ROCm-CompilerSupport/gcc-8.4.1/5.1.3/lib/cmake/
-/software/amd/ROCm-Developer-Tools/ROCR-Runtime/gcc-8.4.1/5.1.3/lib/cmake/
-    ${CMAKE_PREFIX_PATH})
-
-  if(GPU_COMPILER STREQUAL "HIP-nvcc")
-    set( HIP_PLATFORM "nvidia" )
-    set( HIP_COMPILER "nvcc" )
-    set( HIP_RUNTIME "cuda" )
-
-    set( CMAKE_C_COMPILE_OPTIONS_PIC -Xcompiler ${CMAKE_C_COMPILE_OPTIONS_PIC} )
-    set( CMAKE_CXX_COMPILE_OPTIONS_PIC -Xcompiler ${CMAKE_CXX_COMPILE_OPTIONS_PIC} )
-    set( CMAKE_SHARED_LIBRARY_C_FLAGS "-Xlinker ${CMAKE_SHARED_LIBRARY_C_FLAGS}" )
-    set( CMAKE_SHARED_LIBRARY_CXX_FLAGS "-Xlinker ${CMAKE_SHARED_LIBRARY_CXX_FLAGS}" )
-    set( CMAKE_SHARED_LIBRARY_SONAME_C_FLAG "-Xlinker -soname," )
-    set( CMAKE_SHARED_LIBRARY_SONAME_CXX_FLAG "-Xlinker -soname," )
-
-    set( CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG "-Xlinker -rpath," )
-    set( CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG "-Xlinker -rpath," )
-    set( CMAKE_EXECUTABLE_RUNTIME_C_FLAG "-Xlinker -rpath," )
-    set( CMAKE_EXECUTABLE_RUNTIME_CXX_FLAG "-Xlinker -rpath," )
-
-    set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY}'" )
-    set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY}'" )
-    set( CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_C_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
-    set( CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN "-Xcompiler='${CMAKE_CXX_COMPILE_OPTIONS_VISIBILITY_INLINES_HIDDEN}'" )
-  endif()
 
   if(GPU_COMPILER STREQUAL "HIP-clang")
     set( HIP_PLATFORM "hcc" )
@@ -262,7 +216,7 @@ if (USE_HIP_ROCM OR USE_HIP_CUDA)
   if (USE_HIP_ROCM)
     find_package(hip REQUIRED)
     find_package(HIP REQUIRED) # hip_add_library
-    set(HIPCC_OPTIONS "-fgpu-rdc")
+    set(HIPCC_OPTIONS -fgpu-rdc --hip-link -fgpu-rdc)
   endif()
 
   if (USE_HIP_CUDA)
@@ -273,27 +227,17 @@ if (USE_HIP_ROCM OR USE_HIP_CUDA)
     include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
     #XXX
 
-    # find_package(CUDA REQUIRED)
     find_package(HIP REQUIRED)
     #list( APPEND HIP_INCLUDE_DIRS "${HIP_ROOT_DIR}/include" )
     list( APPEND HIP_INCLUDE_DIRS "${HIP_PATH}/include" )
 
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 75)
+      set(CMAKE_CUDA_ARCHITECTURES 70)
     endif()
     find_package(CUDAToolkit REQUIRED)
 
-    set(NVCC_OPTIONS "-rdc true -gencode=arch=compute_80,code=\"sm_80,compute_80\"")
+    set(NVCC_OPTIONS -rdc true -gencode=arch=compute_75,code=\"sm_75,compute_75\")
     message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
-  endif()
-
-  add_library(hemelb_options INTERFACE)
-  if(GPU_COMPILER STREQUAL "HOST-default")
-    if (USE_HIP_ROCM)
-      target_compile_definitions(hemelb_options INTERFACE __HIP_PLATFORM_HCC__)
-    elseif(USE_HIP_CUDA)
-      target_compile_definitions(hemelb_options INTERFACE __HIP_PLATFORM_NVCC__)
-    endif()
   endif()
 
   set(CMAKE_HIP_ARCHITECTURES OFF)
@@ -430,16 +374,24 @@ if(USE_CUDA)
     cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
   add_library(gpu_objs OBJECT ${cuda_sources})
   set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-elseif (USE_HIP_ROCM OR USE_HIP_CUDA)
-  set(hip_sources SimulationMaster_hip.cc
+  set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
+  add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+endif()
+
+if(USE_HIP)
+  set(hip_sources
+    SimulationMaster_hip.cc
 	cuda_kernels_def_decl/cuda_params_hip.cc
 	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc
 	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
-  set_source_files_properties(${hip_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+  set_source_files_properties(${hip_sources} main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+
+  # if(USE_HIP_CUDA)
+  #   set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
+  # endif()
 
   message("HIPCC_OPTIONS ${HIPCC_OPTIONS}")
   message("NVCC_OPTIONS ${NVCC_OPTIONS}")
-  message("CLANG_OPTIONS ${CLANG_OPTIONS}")
 
   hip_add_library(gpu_objs ${hip_sources}
     HIPCC_OPTIONS "${HIPCC_OPTIONS}"
@@ -447,40 +399,25 @@ elseif (USE_HIP_ROCM OR USE_HIP_CUDA)
     CLANG_OPTIONS "${CLANG_OPTIONS}")
 
   target_link_libraries(gpu_objs PRIVATE $<$<BOOL:${USE_HIP_ROCM}>:hip::device>)
-  #specfem_options)
 
   # hipcc(with nvcc backend) build has problem for share library visibility,
   # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
-  if(NOT GPU_COMPILER STREQUAL "HIP-nvcc")
-    set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
-  endif()
-endif()
+  set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 
-target_link_libraries(gpu_objs PRIVATE hemelb_options)
+  # main.cc is compiled in a separate library to force cmake to use hipcc
+  # we use a dummy.cc file as source file to add_executable()
+  #file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dummy.cc" "")
+  #add_executable(${HEMELB_EXECUTABLE} dummy.cc $<TARGET_OBJECTS:gpu_objs>)
 
+  hip_add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
 
-
-
-if(USE_CUDA OR USE_HIP_CUDA)
-  add_executable(${HEMELB_EXECUTABLE} main.cu $<TARGET_OBJECTS:gpu_objs>)
-elseif(USE_HIP_ROCM)
-  set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-  add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
-  set_source_files_properties(main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-  #hiprocm
-  target_link_options(${HEMELB_EXECUTABLE} PUBLIC --hip-link -fgpu-rdc)
-  #target_link_options(${HEMELB_EXECUTABLE} PUBLIC ${NVCC_OPTIONS})
-  #target_compile_options(main.cc PUBLIC ${NVCC_OPTIONS})
-endif()
-
-if(USE_HIP_ROCM OR USE_HIP_CUDA)
   include_directories(${HIP_INCLUDE_DIRS})
   if (USE_HIP_ROCM)
     add_definitions(-D__HIP_PLATFORM_HCC__)
   elseif(USE_HIP_CUDA)
     add_definitions(-D__HIP_PLATFORM_NVCC__)
-    include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
-    include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
+    # include_directories("${CUDA_TOOLKIT_ROOT_DIR}")
+    # include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include/")
   endif()
 endif()
 
@@ -509,13 +446,16 @@ if (USE_CUDA)
   set_property(TARGET ${HEMELB_EXECUTABLE} PROPERTY CUDA_STANDARD 11)
 endif()
 
-if (USE_HIP_ROCM)
-  set_target_properties(${HEMELB_EXECUTABLE} PROPERTIES LINKER_LANGUAGE HIP)
+if (USE_HIP)
+  target_link_options(${HEMELB_EXECUTABLE} PUBLIC
+    $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
+    $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
   target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
-endif()
-
-if (USE_HIP_CUDA)
-  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs CUDA::cudart -lstdc++)
+  if(USE_HIP_CUDA)
+    target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC CUDA::cudart -lstdc++)
+  endif()
+  # XXX should probably remove this
+  #set(CMAKE_CXX_LINK_EXECUTABLE "hipcc <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 endif()
 
 target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
