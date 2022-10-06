@@ -186,7 +186,7 @@ if (USE_CUDA)
     set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
 
   endif()
-  message('Cuda Flags = ' ${CMAKE_CUDA_FLAGS})
+  message(STATUS "CUDA FLAGS: ${CMAKE_CUDA_FLAGS}")
 
 endif()
 
@@ -236,7 +236,9 @@ if (USE_HIP)
     endif()
     find_package(CUDAToolkit REQUIRED)
 
-    set(NVCC_OPTIONS -rdc true -gencode=arch=compute_75,code=\"sm_75,compute_75\")
+    set(NVCC_OPTIONS -rdc true -gencode=arch=compute_60,code=\"sm_60,compute_60\")
+    set(NVCC_OPTIONS ${NVCC_OPTIONS} -gencode=arch=compute_70,code=\"sm_70,compute_70\")
+    set(NVCC_OPTIONS ${NVCC_OPTIONS} -gencode=arch=compute_75,code=\"sm_75,compute_75\")
     message(STATUS "NVCC_OPTIONS: ${NVCC_OPTIONS}")
   endif()
 
