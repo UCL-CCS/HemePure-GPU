@@ -3133,7 +3133,7 @@ template<class LatticeType>
 																									(uint32_t*)GPUDataAddr_uint32_Wall,
 																									nFluid_nodes,
 																									first_Index, (first_Index + site_Count_MidFluid),
-																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
+																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
 				//#####################################################################################################################################################
 
 
@@ -3888,7 +3888,7 @@ template<class LatticeType>
 																									(uint32_t*)GPUDataAddr_uint32_Wall,
 																									nFluid_nodes,
 																									first_Index, (first_Index + site_Count_MidFluid),
-																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
+																									(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
 				//#####################################################################################################################################################
 
 

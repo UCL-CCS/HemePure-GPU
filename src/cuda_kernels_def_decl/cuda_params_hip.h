@@ -92,7 +92,7 @@ namespace hemelb
 										uint32_t* GMem_uint32_Wall_Link,
 										site_t nArr_dbl,
 										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem);
+										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, int time_Step);
 
 
 	//	Kernels for Velocity & Pressure BCs:
