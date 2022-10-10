@@ -202,6 +202,8 @@ if (USE_HIP)
   if(NOT DEFINED HIP_PATH)
     if(DEFINED ENV{HIP_PATH})
       set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+    else()
+      message(FATAL_ERROR "Please set HIP_PATH to your HIP installation.")
     endif()
   endif()
 
@@ -217,7 +219,9 @@ if (USE_HIP)
     set( HIP_PLATFORM "hcc" )
     set( HIP_COMPILER "clang" )
     set( HIP_RUNTIME "rocclr" )
-    set( AMDGPU_TARGETS gfx906;gfx908 CACHE STRING "List of specific machine types for library to target" )
+    #                   mi50   mi100  mi200
+    set( AMDGPU_TARGETS gfx906;gfx908;gfx90a
+      CACHE STRING "List of specific machine types for library to target" )
   endif()
 
   if (USE_HIP_ROCM)
@@ -252,6 +256,7 @@ if (USE_HIP)
 
   set(CMAKE_HIP_ARCHITECTURES OFF)
   message("HIP found")
+  message("   HIP_PATH:         ${HIP_PATH}")
   message("   HIP version:      ${HIP_VERSION_STRING}")
   message("   HIP platform:     ${HIP_PLATFORM}")
   message("   HIP runtime:      ${HIP_RUNTIME}")
