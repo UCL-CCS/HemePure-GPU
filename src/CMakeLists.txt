@@ -156,10 +156,9 @@ if(HEMELB_USE_GPU)
 	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")
 	if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
 	  message("gnu COMPILER")
-	    set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptx\
+	    set(CMAKE_CUDA_FLAGS "-ccbin g++ -gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -lineinfo --ptx\
 as-options=-v --disable-warnings")
-	    #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
-	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --ptxas-options=-v --disable-warnings")
+	    set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ -gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 -gencode arch=compute_60,code=sm_60 -lineinfo --ptxas-options=-v --disable-warnings")
 	    #set(CMAKE_CUDA_FLAGS_DEBUG " -ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo --disable-warnings")
 	elseif( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
 	    # using Intel C++
