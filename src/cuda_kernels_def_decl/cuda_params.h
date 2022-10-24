@@ -66,8 +66,8 @@ namespace hemelb
 	//==============
 	
 
-	__constant__ int _WriteStep;
-	__constant__ int _Send_MacroVars_DtH;
+	__constant__ int _WriteStep=1000;
+	__constant__ int _Send_MacroVars_DtH=1000;
 
 
 	inline void check_cuda_errors(const char *filename, const int line_number, int myProc);
