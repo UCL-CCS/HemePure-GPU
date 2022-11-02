@@ -29,3 +29,12 @@ add_library(hemelb_lb
 	MacroscopicPropertyCache.cc
 	SimulationState.cc
 	StabilityTester.cc)
+target_include_directories(hemelb_lb PUBLIC ${CMAKE_SOURCE_DIR})
+
+if( USE_HIP )
+	set_source_files_properties(iolets/BoundaryComms.cc 
+			iolets/BoundaryValues.cc 
+			IncompressibilityChecker.cc
+			MacroscopicPropertyCache.cc  
+			StabilityTester.cc PROPERTIES LANGUAGE HIP)
+endif()

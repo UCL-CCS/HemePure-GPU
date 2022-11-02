@@ -23,12 +23,24 @@ add_library(hemelb_net
   mixins/StoringNet.cc ProcComms.cc
   phased/StepManager.cc)
 
+target_include_directories(hemelb_net PUBLIC ${CMAKE_SOURCE_DIR})
+
+if(USE_HIP) 
+  set_source_files_properties(mixins/pointpoint/CoalescePointPoint.cc 
+		mixins/pointpoint/SeparatedPointPoint.cc 
+		mixins/pointpoint/ImmediatePointPoint.cc
+	  mixins/gathers/SeparatedGathers.cc
+		mixins/gathers/ViaPointPointGathers.cc
+		mixins/alltoall/SeparatedAllToAll.cc
+	  mixins/alltoall/ViaPointPointAllToAll.cc
+		mixins/StoringNet.cc
+		PROPERTIES LANGUAGE HIP)
+endif()
+
 if(USE_HIP_ROCM OR USE_HIP_CUDA)
   set(hip_sources BaseNet_hip.cc)
-  set_source_files_properties(${hip_sources} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-  hip_add_library(net_hip_objs ${hip_sources})
-  target_link_libraries(net_hip_objs PRIVATE $<$<BOOL:${USE_HIP_ROCM}>:hip::device>)
-  target_link_libraries(hemelb_net net_hip_objs)
+  set_source_files_properties(${hip_sources} PROPERTIES LANGUAGE HIP)
+  target_sources(hemelb_net PRIVATE ${hip_sources})
 endif()
 
 configure_file(

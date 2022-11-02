@@ -7,9 +7,11 @@ add_library(hemelb_colloidsBCs
 	BoundaryConditions.cc)
 target_link_libraries(hemelb_colloidsBCs
 	hemelb_io)
+set_source_files_properties(BoundaryConditions.cc PROPERTIES LANGUAGE HIP)
 
 add_library(hemelb_colloidsForces
 	BodyForces.cc)
+set_source_files_properties(BodyForces.cc PROPERTIES LANGUAGE HIP)
 target_link_libraries(hemelb_colloidsForces
 	hemelb_io)
 
@@ -24,3 +26,11 @@ target_link_libraries(hemelb_colloids
 	hemelb_lb
 	hemelb_colloidsForces
 	hemelb_colloidsBCs)
+
+if( USE_HIP )
+set_source_files_properties(ParticleMpiDatatypes.cc
+	ParticleSet.cc
+	Particle.cc
+	ColloidController.cc  PROPERTIES LANGUAGE HIP)
+endif()
+

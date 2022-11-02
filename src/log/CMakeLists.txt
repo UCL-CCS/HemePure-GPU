@@ -4,3 +4,4 @@
 # license in the file LICENSE.
 
 add_library(hemelb_log Logger.cc ${logger})
+target_include_directories(hemelb_log PUBLIC ${CMAKE_SOURCE_DIR})

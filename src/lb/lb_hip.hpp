@@ -748,7 +748,9 @@ namespace hemelb
 				// Free memory once the mem.copies are Completed
 				if(res_Read_MacroVars){
 					delete[] dens_GPU;
-					delete[] vx_GPU, vy_GPU, vz_GPU;
+					delete[] vx_GPU;
+					delete[] vy_GPU;
+					delete[] vz_GPU;
 				}
 
 				return res_Read_MacroVars;
@@ -2669,8 +2671,8 @@ template<class LatticeType>
 				delete[] Data_int64_Neigh_d;
 				delete[] Data_uint32_WallIntersect;
 				delete[] Data_uint32_IoletIntersect;
-				delete[] h_inletNormal, h_outletNormal;
-
+				delete[] h_inletNormal;
+				delete[] h_outletNormal;
 				return initialise_GPU_res;
 
 			}

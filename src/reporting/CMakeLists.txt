@@ -6,6 +6,7 @@
 add_library(hemelb_reporting
 	Reporter.cc
 	Timers.cc)
+target_include_directories(hemelb_reporting PUBLIC ${CMAKE_SOURCE_DIR})
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/reporting/BuildInfo.h.in"

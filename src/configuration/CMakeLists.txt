@@ -6,3 +6,4 @@
 add_library(hemelb_configuration
 	CommandLine.cc
 	SimConfig.cc)
+target_include_directories(hemelb_configuration PUBLIC ${CMAKE_SOURCE_DIR})
