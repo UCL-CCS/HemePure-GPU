@@ -1267,12 +1267,13 @@ namespace hemelb
 				if(cudaStatus != hipSuccess){ fprintf(stderr, "hipFree failed\n"); return false; }
 
 
-				cudaStatus = hipFree(GPUDataAddr_dbl_fOld_b);
+				/*cudaStatus = hipFree(GPUDataAddr_dbl_fOld_b);
 				if(cudaStatus != hipSuccess){ fprintf(stderr, "hipFree failed\n"); return false; }
 
 				cudaStatus = hipFree(GPUDataAddr_dbl_fNew_b);
 				if(cudaStatus != hipSuccess){ fprintf(stderr, "hipFree failed\n"); return false; }
-
+				*/
+				
 				cudaStatus = hipFree(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat);
 				if(cudaStatus != hipSuccess){ fprintf(stderr, "hipFree failed\n"); return false; }
 
@@ -1458,7 +1459,7 @@ template<class LatticeType>
 				//--------------------------------------------------------------------------------------------------
 				//	b. Arrange by index_LB
 				//		i.e. f0[0 to (nFluid_nodes-1)], f1[0 to (nFluid_nodes-1)], ..., f_(q-1)[0 to (nFluid_nodes-1)]
-				cudaStatus = hipMalloc((void**)&GPUDataAddr_dbl_fOld_b, nArray_Distr * sizeof(distribn_t));
+				/*cudaStatus = hipMalloc((void**)&GPUDataAddr_dbl_fOld_b, nArray_Distr * sizeof(distribn_t));
 				if(cudaStatus != hipSuccess){
 					fprintf(stderr, "GPU memory allocation  (f_old distr.functions) failed\n");
 					initialise_GPU_res = false;
@@ -1491,7 +1492,8 @@ template<class LatticeType>
 					return initialise_GPU_res;
 					//return false;
 				}
-
+				*/
+				
 				// For cuda-aware mpi we need to have access to
 				// Test if I can access the pointer to global memory declared in class LatticeData (GPUDataAddr_dbl_fOld_b_mLatDat)
 				// (geometry::LatticeData* mLatDat;)
