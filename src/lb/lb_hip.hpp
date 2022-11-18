@@ -4597,7 +4597,7 @@ template<class LatticeType>
 				//kernels::HydroVarsBase<LatticeType> hydroVars(geometry::Site<geometry::LatticeData> _site);
 				//kernels::HydroVarsBase<LatticeType> hydroVars;
 				// TODO: Need to use the frequency as specified in the input file (.xml) - What is the parameter???
-				if (mState->GetTimeStep() % 100 == 0)
+				if (mState->GetTimeStep() % 1000 == 0)
 				{
 					// Check whether the hemeLB picks up the macroVariables at the EndIteration step???
 					// Only the data in propertyCache, i.e. propertyCache.densityCache and propertyCache.velocityCache
