@@ -416,7 +416,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_HIP)
-  set(hip_sources SimulationMaster_hip.cc cuda_kernels_def_decl/cuda_params_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
+  set(hip_sources tmpkernel.cu SimulationMaster_hip.cc cuda_kernels_def_decl/cuda_params_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
 
   set_source_files_properties(${hip_sources} main.cc PROPERTIES LANGUAGE HIP)
   set_source_files_properties(${hip_sources} main.cc PROPERTIES COMPILE_FLAGS "-fgpu-rdc")

@@ -67,6 +67,8 @@ SimulationMaster::SimulationMaster(hemelb::configuration::CommandLine & options,
 
 	Initialise();
 
+	// Call Dummy Launcher
+	
 
 	if (IsCurrentProcTheIOProc()) {
 		reporter = new hemelb::reporting::Reporter(

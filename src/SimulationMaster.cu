@@ -394,6 +394,7 @@ void SimulationMaster::OnUnstableSimulation() {
  * Begin the simulation.
  */
 void SimulationMaster::RunSimulation() {
+
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("SIMULATION STARTING");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
 	timings[hemelb::reporting::Timers::simulation].Start();
