@@ -22,6 +22,7 @@ namespace hemelb
           (*filePtr, &buffer[0], buffer.size(), MpiDataType<T>(), stat)
       );
     }
+
     template<typename T>
     void MpiFile::ReadAt(MPI_Offset offset, std::vector<T>& buffer, MPI_Status* stat)
     {

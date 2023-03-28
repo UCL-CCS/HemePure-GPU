@@ -11,3 +11,5 @@ add_library(hemelb_util
 	Vector3DHemeLb.cc
 	Matrix3D.cc
 	Bessel.cc)
+
+target_include_directories(hemelb_util PUBLIC ${CMAKE_SOURCE_DIR})

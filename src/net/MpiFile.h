@@ -49,6 +49,7 @@ namespace hemelb
 
         template<typename T>
         void Read(std::vector<T>& buffer, MPI_Status* stat = MPI_STATUS_IGNORE);
+
         template<typename T>
         void ReadAt(MPI_Offset offset, std::vector<T>& buffer, MPI_Status* stat = MPI_STATUS_IGNORE);
 

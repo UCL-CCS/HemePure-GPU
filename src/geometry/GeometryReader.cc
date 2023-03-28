@@ -25,6 +25,7 @@
 #include "util/utilityFunctions.h"
 #include "constants.h"
 
+
 namespace hemelb
 {
 	namespace geometry
@@ -325,6 +326,7 @@ namespace hemelb
 			// Perform the initial read-in.
 			if (participateInTopology)
 			{
+				
 				// Reopen in the file just between the nodes in the topology decomposition. Read in blocks
 				// local to this node.
 				file = net::MpiFile::Open(computeComms, dataFilePath, MPI_MODE_RDONLY, fileInfo);
@@ -367,11 +369,16 @@ namespace hemelb
 		{
 			std::vector<char> buffer(nBytes);
 			const net::MpiCommunicator& comm = file.GetCommunicator();
+#ifndef HEMELB_USE_MPI_PARALLEL_IO
 			if (comm.Rank() == HEADER_READING_RANK)
 			{
 				file.Read(buffer);
 			}
 			comm.Broadcast(buffer, HEADER_READING_RANK);
+#else
+			file.Read(buffer);
+#endif
+
 			return buffer;
 		}
 
@@ -521,6 +528,7 @@ namespace hemelb
 			sitedata_t offset = 0;
 			sitedata_t chunks = blockCount/maxLength;
 
+			size_t fileOffset = 0;
 			nonEmptyBlocks = 0;
 			while (offset < chunks+1)
 			{
@@ -535,13 +543,18 @@ namespace hemelb
 					last = blockCount;
 				}
 
+#ifndef HEMELB_USE_MPI_PARALLEL_IO
 				if (comm.Rank() == HEADER_READING_RANK)
 				{
 					file.ReadAt(io::formats::geometry::PreambleLength+
 							offset*maxBytes, partialBuffer);
 				}
 				comm.Broadcast(partialBuffer, HEADER_READING_RANK);
-
+#else		
+				// Everyone read it
+				file.ReadAt(io::formats::geometry::PreambleLength+
+							offset*maxBytes, partialBuffer);
+#endif
 				// Create a Xdr translation object to translate from binary
 				hemelb::io::writers::xdr::XdrReader preambleReader =
 					hemelb::io::writers::xdr::XdrMemReader(&partialBuffer[0], (unsigned int) partialBuffer.capacity());
@@ -568,7 +581,11 @@ namespace hemelb
 						if (std::pow(2,32)-1 < uncompressedBytes)
 							throw Exception() << "Too large (uncompressedBytes)!";
 
+#ifdef HEMELB_USE_MPI_PARALLEL_IO
 						// Essential block information
+						blockFileOffsets[block] = fileOffset;
+						fileOffset += bytes;
+#endif
 						blockInformation[block].first  = bytes;
 						blockInformation[block].second = uncompressedBytes;
 
@@ -631,6 +648,10 @@ namespace hemelb
 			unitForEachBlock.clear();
 #endif
 
+#ifndef HEMELB_USE_MPI_PARALLEL_IO
+
+			// If not using MPI Parallel I/O -- but our own read/distribute, we need to decide who needs
+			// what and we need to make sure our reading group settings are correct.
 			if (READING_GROUP_SPACING*(READING_GROUP_SIZE-1) > (computeComms.Size()-1))
 				throw Exception() << "Bad reading core configuration!";
 
@@ -643,31 +664,76 @@ namespace hemelb
 					READING_GROUP_SIZE, computeComms.Size()),
 					READING_GROUP_SPACING,
 					net);
+#endif
 			timings[hemelb::reporting::Timers::readBlocksPrelim].Stop();
 
 			// Set the initial offset to the first block, which will be updated as we progress
 			// through the blocks.
-			MPI_Offset offset = io::formats::geometry::PreambleLength
-				+ GetHeaderLength(geometry.GetBlockCount());
+			MPI_Offset baseOffset = io::formats::geometry::PreambleLength
+        		+ GetHeaderLength(geometry.GetBlockCount());
+
+      		MPI_Offset offset = baseOffset;
 
 			// Iterate over each block... and trim the fat.
 #ifndef HEMELB_USE_PARMETIS
+
+#ifndef HEMELB_USE_MPI_PARALLEL_IO
+			// This piece removes from the blockInformation blocks we don't need on this node
+			// in principle this can speed up lookups in blockInformation later
 			if (!needs.Reader())
 			{
+				// Delete sites from blockInformation if I don't read those blocks
 				for (site_t nextBlockToRead = 0; nextBlockToRead < geometry.GetBlockCount(); ++nextBlockToRead)
 				{
 					if (readBlock.find(nextBlockToRead) == readBlock.end())
 						blockInformation.erase(nextBlockToRead);
+				
 				}
 			}
 			computeComms.Barrier();
 #endif
-			log::Logger::Log<log::Info, log::OnePerCore>(
-					"----> blockInformation.size(): %lu",
-					blockInformation.size());
+
+#endif  // PARMETIS 
 
 			log::Logger::Log<log::Debug, log::OnePerCore>("----> ReadInBlocks() (start)");
 			timings[hemelb::reporting::Timers::readBlocksAll].Start();
+
+#ifdef HEMELB_USE_MPI_PARALLEL_IO	
+			for( const auto nextBlockToRead : readBlock ) {
+
+				// Read Block may contain empty blocks
+				// so we would need to intersect its blocks with block information and the
+				// simplest way to do that is by the filter below.
+				if( blockInformation.find(nextBlockToRead) != blockInformation.end()) {
+
+					MPI_Offset fileOffset = baseOffset + blockFileOffsets[nextBlockToRead];
+					auto nBytes = blockInformation.at(nextBlockToRead).first;
+
+					// Read data
+					std::vector<char> compressedBlockData(nBytes);
+					file.ReadAt(fileOffset, compressedBlockData);
+
+					// Decompress and Parse
+					std::vector<char> blockData = DecompressBlockData(compressedBlockData,
+													blockInformation.at(nextBlockToRead).second);
+
+					io::writers::xdr::XdrMemReader lReader(&blockData.front(), blockData.size());
+					ParseBlock(geometry, nextBlockToRead, lReader);
+
+					// This was done before, but 
+					blockInformation.erase(nextBlockToRead);
+				}
+			}
+
+			// In the regular read, readBlock() and blockInformation would clear
+			readBlock.clear(); 
+			blockFileOffsets.clear();
+#ifndef HEMELB_USE_PARMETIS
+			blockInformation.clear();
+#endif
+
+#else // HEMELB_USE_MPI_PARALLEL_IO
+
 			// Iterate over each block.
 			for (site_t nextBlockToRead = 0; nextBlockToRead < geometry.GetBlockCount(); ++nextBlockToRead)
 			{
@@ -698,6 +764,8 @@ namespace hemelb
 #endif
 				}
 			}
+#endif // HEMELB_USE_MPI_PARALLEL_IO
+
 			timings[hemelb::reporting::Timers::readBlocksAll].Stop();
 			log::Logger::Log<log::Debug, log::OnePerCore>("----> ReadInBlocks() (end)");
 		}

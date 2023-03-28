@@ -19,6 +19,7 @@ option(HEMELB_USE_VELOCITY_WEIGHTS_FILE "use velocity weights file" ON)
 option(HEMELB_USE_GMYPLUS "use GMY+ format" OFF)
 option(HEMELB_USE_MPI_CALL "use standard MPI functions when reading blocks" OFF)
 option(HEMELB_USE_MPI_WIN "" OFF)
+option(HEMELB_USE_MPI_PARALLEL_IO "Use MPI Parallel I/O for reading geometries" OFF)
 option(HEMELB_USE_BIGMPI "use BigMPI to read data from file" OFF)
 option(HEMELB_USE_PARMETIS "use ParMETIS" OFF)
 option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
@@ -199,6 +200,8 @@ endif()
 
 if (USE_HIP)
   add_definitions(-DHEMELB_USE_HIP)
+	enable_language(HIP)
+
   if(NOT DEFINED HIP_PATH)
     if(DEFINED ENV{HIP_PATH})
       set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
@@ -220,14 +223,15 @@ if (USE_HIP)
     set( HIP_COMPILER "clang" )
     set( HIP_RUNTIME "rocclr" )
     #                   mi50   mi100  mi200
-    set( AMDGPU_TARGETS gfx906;gfx908;gfx90a
-      CACHE STRING "List of specific machine types for library to target" )
+		if( NOT AMDGPU_TARGETS )
+      set( AMDGPU_TARGETS gfx906;gfx908;gfx90a
+        CACHE STRING "List of specific machine types for library to target" )
+		endif()
   endif()
 
   if (USE_HIP_ROCM)
     find_package(hip REQUIRED)
     find_package(HIP REQUIRED) # hip_add_library
-    set(HIPCC_OPTIONS -fgpu-rdc --hip-link -fgpu-rdc)
   endif()
 
   if (USE_HIP_CUDA)
@@ -292,6 +296,11 @@ endif()
 
 if(HEMELB_USE_BIGMPI)
 	add_definitions(-DHEMELB_USE_BIGMPI)
+endif()
+
+if(HEMELB_USE_MPI_PARALLEL_IO)
+  message(STATUS "Enabling MPI Parallel I/O for geometry reading")
+  add_definitions(-DHEMELB_USE_MPI_PARALLEL_IO)
 endif()
 
 #if(HEMELB_VALIDATE_GEOMETRY)
@@ -375,56 +384,7 @@ configure_file(
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${HEMELB_DEPENDENCIES_INSTALL_PATH}/include")
 
-
-## ==============================================================================================================================
-# HemeLB
-# ------
-
-include_directories(${PROJECT_SOURCE_DIR})
-
-if(USE_CUDA)
-  set(cuda_sources SimulationMaster.cu
-    cuda_kernels_def_decl/cuda_params.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
-  add_library(gpu_objs OBJECT ${cuda_sources})
-  set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
-  add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
-endif()
-
-if(USE_HIP)
-  set(hip_sources
-    SimulationMaster_hip.cc
-	cuda_kernels_def_decl/cuda_params_hip.cc
-	cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc
-	cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
-  set_source_files_properties(${hip_sources} main.cc PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-
-  message("HIPCC_OPTIONS ${HIPCC_OPTIONS}")
-  message("NVCC_OPTIONS ${NVCC_OPTIONS}")
-
-  hip_add_library(gpu_objs ${hip_sources}
-    HIPCC_OPTIONS "${HIPCC_OPTIONS}"
-    NVCC_OPTIONS "${NVCC_OPTIONS}"
-    CLANG_OPTIONS "${CLANG_OPTIONS}")
-
-  target_link_libraries(gpu_objs PRIVATE $<$<BOOL:${USE_HIP_ROCM}>:hip::device>)
-
-  # hipcc(with nvcc backend) build has problem for share library visibility,
-  # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
-  set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
-
-  hip_add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
-
-  include_directories(${HIP_INCLUDE_DIRS})
-  if (USE_HIP_ROCM)
-    add_definitions(-D__HIP_PLATFORM_HCC__)
-  elseif(USE_HIP_CUDA)
-    add_definitions(-D__HIP_PLATFORM_NVCC__)
-  endif()
-endif()
-
+# Subdirs
 set(package_subdirs
 	configuration
 	extraction
@@ -442,6 +402,42 @@ foreach(subdir ${package_subdirs})
 	list(APPEND HEMELB_LIBRARIES ${lib})
 	add_subdirectory(${subdir})
 endforeach()
+
+
+## ==============================================================================================================================
+# HemeLB
+# ------
+
+include_directories(${PROJECT_SOURCE_DIR})
+
+if(USE_CUDA)
+  set(cuda_sources SimulationMaster.cu
+    cuda_kernels_def_decl/cuda_params.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
+  add_library(gpu_objs ${cuda_sources})
+  set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
+  add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+endif()
+
+if(USE_HIP)
+  set(hip_sources tmpkernel.cu SimulationMaster_hip.cc cuda_kernels_def_decl/cuda_params_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
+
+  set_source_files_properties(${hip_sources} main.cc PROPERTIES LANGUAGE HIP)
+  set_source_files_properties(${hip_sources} main.cc PROPERTIES COMPILE_FLAGS "-fgpu-rdc")
+
+  add_library(gpu_objs ${hip_sources})
+
+  # hipcc(with nvcc backend) build has problem for share library visibility,
+  # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
+  #set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
+
+  add_executable(${HEMELB_EXECUTABLE} main.cc)
+	target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip)
+	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
+endif()
+
 
 add_subdirectory(resources)
 

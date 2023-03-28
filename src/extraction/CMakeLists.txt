@@ -17,3 +17,9 @@ add_library(hemelb_extraction
 	LbDataSourceIterator.cc
 	GeometrySurfaceSelector.cc
 	SurfacePointSelector.cc)
+
+target_include_directories(hemelb_extraction PUBLIC ${CMAKE_SOURCE_DIR})
+if( USE_HIP )
+	set_source_files_properties(PropertyActor.cc LbDataSourceIterator.cc 
+		 PROPERTIES LANGUAGE HIP)
+endif()
