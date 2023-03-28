@@ -26,6 +26,9 @@
 
 #include "net/MpiFile.h"
 
+
+#define HEMELB_MPI_IO 1
+
 namespace hemelb
 {
 	namespace geometry
@@ -195,6 +198,11 @@ namespace hemelb
 				net::MpiCommunicator computeComms;
 				//! True if this rank is participating in the domain decomposition.
 				bool participateInTopology;
+
+#ifdef HEMELB_MPI_IO
+				//! The offset for each block in the file (after preamble and header)
+				std::unordered_map<site_t, size_t> blockFileOffsets;
+#endif
 
 				//! The number of non-empty blocks in the geometry.
 				sitedata_t nonEmptyBlocks;
