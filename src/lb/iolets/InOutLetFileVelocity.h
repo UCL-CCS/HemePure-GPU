@@ -36,12 +36,24 @@ namespace hemelb
           }
 
           LatticeVelocity GetVelocity(const LatticePosition& x, const LatticeTimeStep t) const;
+          LatticeVelocity GetVelocity_prefactor(const LatticePosition& x, const LatticeTimeStep t) const;
           /*LatticeVelocity GetVelocity2(const util::Vector3D<int64_t> globalCoordinates,
                                                                   const LatticeTimeStep t) const;*/
 
           void Initialise(const util::UnitConverter* unitConverter);
 
           bool useWeightsFromFile;
+
+#ifdef HEMELB_USE_GPU
+          inline double* return_VelocityTable(const LatticeTimeStep t)
+          {
+            return &velocityTable[t];
+          }
+
+          void return_index_weight_VelocityTable(const LatticePosition& x, int* index_weightTable, distribn_t* vel_weight); //int* index_weight_VelocityTable
+
+#endif
+
 
         private:
           std::string velocityFilePath;

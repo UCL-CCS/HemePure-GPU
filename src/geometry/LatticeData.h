@@ -661,7 +661,12 @@ void *GPUDataAddr_wallMom_OutletWall_Inner;
 		// Think how to send the data for the wallMom from the host to the device.
 		// and how the function GetWallMom will return the array with the wallMom[3*NUMVECTORS] data at each fluid site involved.
 
-		//std::vector<distribn_t> wallMom_Inlet_Edge;
+
+
+		// TODO:
+		//	1. Remove the first wallmom terms (of type std::vector<util::Vector3D<distribn_t> >)
+		//				once the second approach is finished (single value correction)
+		// 	2. Do I keep the following here or in lb/lb.h
 		std::vector<util::Vector3D<distribn_t> > wallMom_Inlet_Edge;
 		std::vector<util::Vector3D<distribn_t> > wallMom_InletWall_Edge;
 		std::vector<util::Vector3D<distribn_t> > wallMom_Inlet_Inner;
@@ -671,11 +676,25 @@ void *GPUDataAddr_wallMom_OutletWall_Inner;
 		std::vector<util::Vector3D<distribn_t> > wallMom_Outlet_Inner;
 		std::vector<util::Vector3D<distribn_t> > wallMom_OutletWall_Inner;
 
+		// Replace the above with a single correction term instead of 3 components
+		std::vector<distribn_t> wallMom_correction_Inlet_Edge;
+		std::vector<distribn_t> wallMom_correction_InletWall_Edge;
+		std::vector<distribn_t> wallMom_correction_Inlet_Inner;
+		std::vector<distribn_t> wallMom_correction_InletWall_Inner;
+		std::vector<distribn_t> wallMom_correction_Outlet_Edge;
+		std::vector<distribn_t> wallMom_correction_OutletWall_Edge;
+		std::vector<distribn_t> wallMom_correction_Outlet_Inner;
+		std::vector<distribn_t> wallMom_correction_OutletWall_Inner;
+
+
 		//GPU Data Addresses - pointers to GPU global memory
 		void *GPUDataAddr_dbl_fOld_b_mLatDat, *GPUDataAddr_dbl_fNew_b_mLatDat;
 		// Pointer to Stability flag
-		void* d_Stability_GPU_mLatDat;
+		void *d_Stability_GPU_mLatDat;
 		//int h_Stability_GPU_mLatDat;
+
+		// Pointer to velocityTable inlet & outlet - Vel BCs / subtype Case b. File
+		void *GPUDataAddr_Inlet_velocityTable, *GPUDataAddr_Outlet_velocityTable;
 
 #endif
 

@@ -43,6 +43,7 @@ namespace hemelb
 
           virtual LatticeVelocity GetVelocity(const LatticePosition& x, const LatticeTimeStep t) const = 0;
 
+          virtual LatticeVelocity GetVelocity_prefactor(const LatticePosition& x, const LatticeTimeStep t) const = 0;
           //virtual LatticeVelocity GetVelocity2(const util::Vector3D<site_t> globalCoordinates,
           //                                                          const LatticeTimeStep t) const = 0;
 

@@ -14,6 +14,7 @@
 #include "configuration/SimConfig.h"
 #include <cmath>
 #include <algorithm>
+#include <climits>
 
 namespace hemelb
 {
@@ -98,6 +99,10 @@ namespace hemelb
 					PhysicalSpeed vel = util::NumericalFunctions::LinearInterpolate(times, values, point);
 
 					velocityTable[timeStep] = units->ConvertVelocityToLatticeUnits(vel);
+
+					// Debugging - Remove later
+					//printf("velocityTable[timeStep = %d] = %0.4e \n", timeStep, velocityTable[timeStep]);
+
 				}
 			}
 
@@ -237,6 +242,142 @@ namespace hemelb
 
 			}
 
+
+			//
+			// April 2023 - Added IZ
+			// Keep the velocity dependency in case it is needed in the future
+			LatticeVelocity InOutLetFileVelocity::GetVelocity_prefactor(const LatticePosition& x,
+					const LatticeTimeStep t) const
+			{
+
+				if (!useWeightsFromFile)
+				{
+					printf("Entering InOutLetFileVelocity::GetVelocity_prefactor.. Set useWeightsFromFile to true... \n");
+					return normal * 0.0;
+				} else {
+					/* These absolute normal values can still be negative here,
+					 * but are corrected below to become positive. */
+					double abs_normal[3] = {normal.x, normal.y, normal.z};
+
+					// prevent division by 0 errors if the normals are 0.0
+					if (normal.x < 0.0000001) { abs_normal[0] = 0.0000001; }
+					if (normal.y < 0.0000001) { abs_normal[1] = 0.0000001; }
+					if (normal.z < 0.0000001) { abs_normal[2] = 0.0000001; }
+
+					int xyz_directions[3] = { 1, 1, 1 };
+
+					std::vector<int> xyz;
+					xyz.push_back(0);
+					xyz.push_back(0);
+					xyz.push_back(0);
+
+					double xyz_residual[3] = {0.0, 0.0, 0.0};
+					/* The residual values increase by the normal values at every time step. When they hit >1.0, then
+					 * xyz is incremented and a new grid point is attempted.
+					 * In addition, the specific residual value is decreased by 1.0. */
+
+					if (normal.x < 0.0)
+					{
+						xyz_directions[0] = -1;
+						xyz[0] = floor(x.x);
+						abs_normal[0] = -abs_normal[0];
+						// start with a negative residual because we already moved partially in this direction
+						xyz_residual[0] = -(x.x - floor(x.x));
+					} else {
+						xyz[0] = std::ceil(x.x);
+						xyz_residual[0] = -(std::ceil(x.x) - x.x);
+					}
+
+					if (normal.y < 0.0)
+					{
+						xyz_directions[1] = -1;
+						xyz[1] = floor(x.y);
+						abs_normal[1] = -abs_normal[1];
+						xyz_residual[1] = -(x.y - floor(x.y));
+					} else {
+						xyz[1] = std::ceil(x.y);
+						xyz_residual[1] = -(std::ceil(x.y) - x.y);
+					}
+
+					if (normal.z < 0.0)
+					{
+						xyz_directions[2] = -1;
+						xyz[2] = floor(x.z);
+						abs_normal[2] = -abs_normal[2];
+						xyz_residual[2] = -(x.z - floor(x.z));
+					} else {
+						xyz[2] = std::ceil(x.z);
+						xyz_residual[2] = -(std::ceil(x.z) - x.z);
+					}
+
+					LatticeVelocity v_tot = 0;
+					int iterations = 0;
+
+					while (iterations < 3)
+					{
+						if (weights_table.count(xyz) > 0)
+						{
+							// Velocity(t) dependency needed for the wall mom not the prefactor_correction
+							// v_tot = normal * weights_table.at(xyz) * velocityTable[t];
+							v_tot = normal * weights_table.at(xyz);
+							return v_tot;
+						}
+
+						// propagate residuals to the move to the next grid point
+						double xstep = (1.0 - xyz_residual[0]) / abs_normal[0];
+						double ystep = (1.0 - xyz_residual[1]) / abs_normal[1];
+						double zstep = (1.0 - xyz_residual[2]) / abs_normal[2];
+
+						double all_step = 0.0;
+						int xyz_change = 0;
+
+						if(xstep < ystep) {
+							if (xstep < zstep) {
+								all_step = xstep;
+								xyz_change = 0;
+							} else {
+								if (ystep < zstep) {
+									all_step = ystep;
+									xyz_change = 1;
+								} else {
+									all_step = zstep;
+									xyz_change = 2;
+								}
+							}
+						} else {
+							if (ystep < zstep) {
+								all_step = ystep;
+								xyz_change = 1;
+							} else {
+								all_step = zstep;
+								xyz_change = 2;
+							}
+						}
+
+						xyz_residual[0] += abs_normal[0] * all_step;
+						xyz_residual[1] += abs_normal[1] * all_step;
+						xyz_residual[2] += abs_normal[2] * all_step;
+
+						xyz[xyz_change] += xyz_directions[xyz_change];
+
+						xyz_residual[xyz_change] -= 1.0;
+
+						iterations++;
+					}
+
+					/* Lists the sites which should be in the wall, outside of the main inlet.
+					 * If you are unsure, you can increase the log level of this, run HemeLB
+					 * for 1 time step, and plot these points out. */
+					log::Logger::Log<log::Trace, log::OnePerCore>("%f %f %f", x.x, x.y, x.z);
+					return normal * 0.0;
+				}
+
+			}
+
+			//
+
+
+
 			void InOutLetFileVelocity::Initialise(const util::UnitConverter* unitConverter)
 			{
 				log::Logger::Log<log::Warning, log::Singleton>(" --> initialising vInlet");
@@ -281,6 +422,149 @@ namespace hemelb
 					myfile.close();
 				}
 			}
+
+#ifdef HEMELB_USE_GPU
+			/**
+				Function to return the index of the corresponding weight
+					from the std::map container which holds the coordinates and the weights
+
+				Note, std::map is a sorted associative container that contains key-value pairs
+					with unique keys. Keys are sorted by using the comparison function Compare.
+					Hence, the returned index is not necessarily the same index as in the
+					raw original *weights.txt file.
+
+				21 April 2023
+					Addition - Return the Vel weight as well
+			*/
+			void InOutLetFileVelocity::return_index_weight_VelocityTable(const LatticePosition& x, int* index_weightTable, distribn_t* vel_weight)
+			{
+				*index_weightTable = INT_MAX;
+				*vel_weight = 0.0;
+
+				/* These absolute normal values can still be negative here,
+				 * but are corrected below to become positive. */
+				double abs_normal[3] = {normal.x, normal.y, normal.z};
+
+				// prevent division by 0 errors if the normals are 0.0
+				if (normal.x < 0.0000001) { abs_normal[0] = 0.0000001; }
+				if (normal.y < 0.0000001) { abs_normal[1] = 0.0000001; }
+				if (normal.z < 0.0000001) { abs_normal[2] = 0.0000001; }
+
+				int xyz_directions[3] = { 1, 1, 1 };
+
+				std::vector<int> xyz;
+				xyz.push_back(0);
+				xyz.push_back(0);
+				xyz.push_back(0);
+
+				double xyz_residual[3] = {0.0, 0.0, 0.0};
+				/* The residual values increase by the normal values at every time step. When they hit >1.0, then
+				 * xyz is incremented and a new grid point is attempted.
+				 * In addition, the specific residual value is decreased by 1.0. */
+
+				if (normal.x < 0.0)
+				{
+					xyz_directions[0] = -1;
+					xyz[0] = floor(x.x);
+					abs_normal[0] = -abs_normal[0];
+					// start with a negative residual because we already moved partially in this direction
+					xyz_residual[0] = -(x.x - floor(x.x));
+				} else {
+					xyz[0] = std::ceil(x.x);
+					xyz_residual[0] = -(std::ceil(x.x) - x.x);
+				}
+
+				if (normal.y < 0.0)
+				{
+					xyz_directions[1] = -1;
+					xyz[1] = floor(x.y);
+					abs_normal[1] = -abs_normal[1];
+					xyz_residual[1] = -(x.y - floor(x.y));
+				} else {
+					xyz[1] = std::ceil(x.y);
+					xyz_residual[1] = -(std::ceil(x.y) - x.y);
+				}
+
+				if (normal.z < 0.0)
+				{
+					xyz_directions[2] = -1;
+					xyz[2] = floor(x.z);
+					abs_normal[2] = -abs_normal[2];
+					xyz_residual[2] = -(x.z - floor(x.z));
+				} else {
+					xyz[2] = std::ceil(x.z);
+					xyz_residual[2] = -(std::ceil(x.z) - x.z);
+				}
+
+				/*
+				// Print the values in weights_table - Debugging
+				std::map<std::vector<int>, double>::iterator itr;
+				for (itr = weights_table.begin(); itr != weights_table.end(); ++itr) {
+						int current_pos = std::distance(weights_table.begin(),itr);
+						printf("weights_table Coords: (x,y,z)=(%d, %d, %d), Weight: %f, Index: %d \n", itr->first[0], itr->first[1], itr->first[2], itr->second, current_pos);
+	    	} // Ends copying the data in the 2 arrays
+				*/
+
+				// Evaluate the index
+				int iterations = 0;
+		    while (iterations < 3)
+		    {
+		      if (weights_table.count(xyz) > 0)
+		      {
+						//v_tot = normal * weights_table.at(xyz) * velocityTable[t];
+						auto itr = weights_table.find(xyz);
+						int current_pos = std::distance(weights_table.begin(),itr);
+						*index_weightTable = current_pos;
+						*vel_weight = weights_table.at(xyz);
+						//printf("(x,y,z) = (%d, %d, %d) - Found the element with weight: %f and index: %d \n", xyz[0], xyz[1], xyz[2], weights_table.at(xyz), current_pos);
+		      }
+
+		      // propagate residuals to the move to the next grid point
+		      double xstep = (1.0 - xyz_residual[0]) / abs_normal[0];
+		      double ystep = (1.0 - xyz_residual[1]) / abs_normal[1];
+		      double zstep = (1.0 - xyz_residual[2]) / abs_normal[2];
+
+		      double all_step = 0.0;
+		      int xyz_change = 0;
+
+		      if(xstep < ystep) {
+		        if (xstep < zstep) {
+		          all_step = xstep;
+		          xyz_change = 0;
+		        } else {
+		          if (ystep < zstep) {
+		            all_step = ystep;
+		            xyz_change = 1;
+		          } else {
+		            all_step = zstep;
+		            xyz_change = 2;
+		          }
+		        }
+		      } else {
+		        if (ystep < zstep) {
+		          all_step = ystep;
+		          xyz_change = 1;
+		        } else {
+		          all_step = zstep;
+		          xyz_change = 2;
+		        }
+		      }
+
+		      xyz_residual[0] += abs_normal[0] * all_step;
+		      xyz_residual[1] += abs_normal[1] * all_step;
+		      xyz_residual[2] += abs_normal[2] * all_step;
+
+		      xyz[xyz_change] += xyz_directions[xyz_change];
+
+		      xyz_residual[xyz_change] -= 1.0;
+
+		      iterations++;
+		    }
+
+				//*index_weightTable = 0;
+			}
+#endif
+
 
 		}
 	}

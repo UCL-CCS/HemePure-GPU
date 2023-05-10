@@ -84,6 +84,7 @@ namespace hemelb
 							}
 
 #ifdef HEMELB_USE_GPU
+							// Vel BCs - Passing the Wall Momentum (3 values: x,y,z components)
 							template<bool tDoRayTracing>
 								//inline std::vector<util::Vector3D<double> > GetWallMom(const site_t firstIndex,
 								inline void GetWallMom(const site_t firstIndex,
@@ -100,6 +101,63 @@ namespace hemelb
 											latDat,
 											propertyCache);
 								}
+
+								// Vel BCs - Passing the single correction value
+								template<bool tDoRayTracing>
+									inline void GetWallMom_correction(const site_t firstIndex,
+											const site_t siteCount,
+											const LbmParameters* lbmParams,
+											geometry::LatticeData* latDat,
+											lb::MacroscopicPropertyCache& propertyCache)
+									{
+										// The template parameter is required because we're using the CRTP to call a
+										// metaprogrammed method of the implementation class.
+										static_cast<StreamerImpl*> (this)->template DoGetWallMom_correction<tDoRayTracing> (firstIndex,
+												siteCount,
+												lbmParams,
+												latDat,
+												propertyCache);
+									}
+
+									// Vel BCs - Passing Directly the single correction value
+									template<bool tDoRayTracing>
+										//inline std::vector<distribn_t> GetWallMom_correction_Direct(const site_t firstIndex,
+										inline void GetWallMom_correction_Direct(const site_t firstIndex,
+												const site_t siteCount,
+												const LbmParameters* lbmParams,
+												geometry::LatticeData* latDat,
+												lb::MacroscopicPropertyCache& propertyCache,
+												std::vector<double>& wallMom_correction_Iolet)
+										{
+											// The template parameter is required because we're using the CRTP to call a
+											// metaprogrammed method of the implementation class.
+											static_cast<StreamerImpl*> (this)->template DoGetWallMom_correction_Direct<tDoRayTracing> (firstIndex,
+													siteCount,
+													lbmParams,
+													latDat,
+													propertyCache, wallMom_correction_Iolet);
+										}
+
+
+									// Vel BCs - Passing the prefactor (only geometry dependent) associated with the single correction vel momentum correction value
+									template<bool tDoRayTracing>
+											//inline std::vector<distribn_t> GetWallMom_correction_Direct(const site_t firstIndex,
+											inline void GetWallMom_prefactor_correction_Direct(const site_t firstIndex,
+													const site_t siteCount,
+													const LbmParameters* lbmParams,
+													geometry::LatticeData* latDat,
+													lb::MacroscopicPropertyCache& propertyCache,
+													std::vector<double>& wallMom_correction_Iolet)
+											{
+												// The template parameter is required because we're using the CRTP to call a
+												// metaprogrammed method of the implementation class.
+												static_cast<StreamerImpl*> (this)->template DoGetWallMom_prefactor_correction_Direct<tDoRayTracing> (firstIndex,
+														siteCount,
+														lbmParams,
+														latDat,
+														propertyCache, wallMom_correction_Iolet);
+											}
+
 #endif
 
 

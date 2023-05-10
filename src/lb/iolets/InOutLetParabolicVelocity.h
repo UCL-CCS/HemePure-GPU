@@ -22,6 +22,9 @@ namespace hemelb
           InOutLet* Clone() const;
           LatticeVelocity GetVelocity(const LatticePosition& x, const LatticeTimeStep t) const;
 
+          // April 2023 - IZ added
+          LatticeVelocity GetVelocity_prefactor(const LatticePosition& x, const LatticeTimeStep t) const;
+
           const LatticeSpeed& GetMaxSpeed() const
           {
             return maxSpeed;

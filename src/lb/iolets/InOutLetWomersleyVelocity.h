@@ -49,6 +49,8 @@ namespace hemelb
            */
           LatticeVelocity GetVelocity(const LatticePosition& x, const LatticeTimeStep t) const;
 
+          LatticeVelocity GetVelocity_prefactor(const LatticePosition& x, const LatticeTimeStep t) const;
+
           /**
            * Get the amplitude of the zero average pressure gradient sine wave imposed.
            *

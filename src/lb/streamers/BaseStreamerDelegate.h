@@ -89,6 +89,21 @@ namespace hemelb
           {
           }
 
+          inline void Eval_wallMom_correction(const LbmParameters* lbmParams,
+                                 geometry::LatticeData* const latticeData,
+                                 const geometry::Site<geometry::LatticeData>& site,
+                                 kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+                                 const Direction& direction)
+          {
+          }
+
+          inline void Eval_wallMom_prefactor_correction(const LbmParameters* lbmParams,
+                                 geometry::LatticeData* const latticeData,
+                                 const geometry::Site<geometry::LatticeData>& site,
+                                 kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+                                 const Direction& direction)
+          {
+          }
 
           /**
            * Perform any post-step operations for the link from site along direction

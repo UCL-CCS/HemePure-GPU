@@ -21,7 +21,8 @@ namespace hemelb
       tractionCache(simState, latticeData.GetLocalFluidSiteCount()),
       tangentialProjectionTractionCache(simState, latticeData.GetLocalFluidSiteCount()),
       siteCount(latticeData.GetLocalFluidSiteCount()),
-      wallMom_Cache(simState, latticeData.GetLocalFluidSiteCount()*latticeData.GetLatticeInfo().GetNumVectors()) // Change this in the future with a function that will return the max of the IOLETs sites... TODO
+      wallMom_Cache(simState, latticeData.GetLocalFluidSiteCount()*latticeData.GetLatticeInfo().GetNumVectors()), // Change this in the future with a function that will return the max of the IOLETs sites... TODO
+      wallMom_correction_Cache(simState, latticeData.GetLocalFluidSiteCount()*latticeData.GetLatticeInfo().GetNumVectors())
     {
       ResetRequirements();
     }
@@ -31,6 +32,7 @@ namespace hemelb
       densityCache.UnsetRefreshFlag();
       velocityCache.UnsetRefreshFlag();
       wallMom_Cache.UnsetRefreshFlag();
+      wallMom_correction_Cache.UnsetRefreshFlag();
       vonMisesStressCache.UnsetRefreshFlag();
       wallShearStressMagnitudeCache.UnsetRefreshFlag();
       shearRateCache.UnsetRefreshFlag();
