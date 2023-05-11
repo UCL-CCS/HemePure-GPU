@@ -103,16 +103,16 @@ bool deviceFree(void *devPtr)
 	}
 }
 
-size_t deviceGetProperties(int myPiD)
+size_t deviceGetProperties(int myProc)
 {
 	cudaDeviceProp dev_prop;
 
 	// Just obtain the properties of GPU assigned to task 1
 	cudaGetDeviceProperties( &dev_prop, 0);
-	hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD);
+	hemelb::check_cuda_errors(__FILE__, __LINE__, myProc);
 
 	// Rank 1 only reports:
-	if(myPiD==1){
+	if(myProc == 1){
 		std::cout << "===============================================" << "\n";
 		std::cout << "Device properties: " << std::endl;
 		printf("Device name:        %s\n", dev_prop.name);
@@ -127,9 +127,9 @@ size_t deviceGetProperties(int myPiD)
 		std::cout << "Warp Size:  "<< dev_prop.warpSize<< std::endl;
 		std::cout << "===============================================" << "\n\n";
 		fflush(stdout);
-
-		return dev_prop.totalGlobalMem;
-	}
+  }
+	return dev_prop.totalGlobalMem;
+	
 }
 
 int deviceGetCount()
