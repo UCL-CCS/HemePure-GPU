@@ -105,7 +105,7 @@ bool deviceFree(void *devPtr)
 
 size_t deviceGetProperties(int myPiD)
 {
-	cudaDeviceProp_t dev_prop;
+	cudaDeviceProp dev_prop;
 
 	// Just obtain the properties of GPU assigned to task 1
 	cudaGetDeviceProperties( &dev_prop, 0);
