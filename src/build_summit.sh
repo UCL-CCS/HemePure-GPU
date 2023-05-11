@@ -1,4 +1,4 @@
-source ../env.sh
+source ../env_summit.sh
 
 cmake -DHEMELB_GPU_BACKEND=CUDA \
 		 -DCMAKE_CXX_COMPILER=mpicxx \
