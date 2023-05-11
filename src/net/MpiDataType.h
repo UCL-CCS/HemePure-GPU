@@ -8,6 +8,7 @@
 #define HEMELB_NET_MPIDATATYPE_H
 
 #include <mpi.h>
+#include <cstddef>
 #if HEMELB_HAVE_CSTDINT
 # include <cstdint>
 #else
@@ -140,7 +141,7 @@ namespace hemelb
     template<>
     MPI_Datatype MpiDataTypeTraits<int64_t>::RegisterMpiDataType();
     template<>
-    MPI_Datatype MpiDataTypeTraits<size_t>::RegisterMpiDataType();
+    MPI_Datatype MpiDataTypeTraits<std::size_t>::RegisterMpiDataType();
     template<>
     MPI_Datatype MpiDataTypeTraits<signed char>::RegisterMpiDataType();
     template<>
