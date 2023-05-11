@@ -20,4 +20,4 @@ cmake -DHEMELB_GPU_BACKEND=CUDA \
 		 -DHEMELB_USE_SSE3="OFF" \
 		..
 
-#cmake --build . -j 16  -v
+cmake --build . -j 16  -v
