@@ -17,4 +17,4 @@ cmake -DHEMELB_GPU_BACKEND=HIP_ROCM \
      -DHEMELB_WALL_BOUNDARY="SIMPLEBOUNCEBACK" \
 		..
 
-#cmake --build . -j 16  -v
+cmake --build . -j 16  -v
