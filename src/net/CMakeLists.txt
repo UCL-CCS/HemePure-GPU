@@ -38,7 +38,7 @@ if(USE_HIP)
 endif()
 
 if(USE_HIP_ROCM OR USE_HIP_CUDA)
-  set(hip_sources BaseNet_hip.cc)
+  set(hip_sources BaseNet.cc)
   set_source_files_properties(${hip_sources} PROPERTIES LANGUAGE HIP)
   target_sources(hemelb_net PRIVATE ${hip_sources})
 endif()

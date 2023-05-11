@@ -24,8 +24,6 @@
 // IZ
 #ifdef HEMELB_USE_GPU
 #include "cuda_kernels_def_decl/cuda_params.h"
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #endif
 // IZ
 
@@ -373,14 +371,14 @@ namespace hemelb
 				// Pointer to pinned memory
 				distribn_t *Data_H2D_memcpy_totalSharedFs, *Data_D2H_memcpy_totalSharedFs;
 
-				// Cuda streams
-				cudaStream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
-				cudaStream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
-				cudaStream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
-				cudaStream_t stream_ReceivedDistr, stream_SwapOldAndNew;
-				cudaStream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
-				cudaStream_t stream_Read_Data_GPU_Dens;
-				cudaStream_t stability_check_stream;
+				// Defice Streams
+				Stream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
+				Stream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
+				Stream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
+				Stream_t stream_ReceivedDistr, stream_SwapOldAndNew;
+				Stream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
+				Stream_t stream_Read_Data_GPU_Dens;
+				Stream_t stability_check_stream;
 
 #endif
 
@@ -409,7 +407,7 @@ namespace hemelb
 
 				bool memCpy_HtD_GPUmem_WallMom(site_t firstIndex, site_t siteCount, std::vector<util::Vector3D<double> >& wallMom_Iolet, void *GPUDataAddr_wallMom);
 				bool memCpy_HtD_GPUmem_WallMom_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom);
-				bool memCpy_HtD_GPUmem_WallMom_correction_cudaStream(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom, cudaStream_t ptrStream);
+				bool memCpy_HtD_GPUmem_WallMom_correction_cudaStream(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom, Stream_t ptrStream);
 
 				//IZ - April 2023
 				bool memCpy_HtD_GPUmem_WallMom_prefactor_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_prefactor_Iolet, void *GPUDataAddr_wallMom_prefactor);

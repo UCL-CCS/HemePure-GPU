@@ -314,8 +314,8 @@ void SimulationMaster::Initialise() {
 
 /**
 Function to:
-a. Check if there are CUDA capable devices
-b. Call hipSetDevice (assign a GPU device to the current rank depending on how many are available on the node)
+a. Check if there are GPU  devices
+b. attach to GPU device (assign a GPU device to the current rank depending on how many are available on the node)
 */
 void SimulationMaster::check_GPU_capabilities()
 {
@@ -397,7 +397,7 @@ void SimulationMaster::Finalise() {
 	timings.Reduce();
 
 #ifdef HEMELB_USE_GPU
-	// Calls hipFree to delete the dynamically allocated memory on the GPU and hipStreamDestroy to delete the hip streams
+	// Calls deviceFree to delete the dynamically allocated memory on the GPU and deviceStreamDestroy to delete the GPU streams
 	// IOProc (RANK=0) does not allocate memory
 	if (!IsCurrentProcTheIOProc()) {
 		latticeBoltzmannModel->FinaliseGPU();

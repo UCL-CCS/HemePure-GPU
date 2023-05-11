@@ -412,6 +412,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 if(USE_CUDA)
   set(cuda_sources SimulationMaster.cu
+		cuda_kernels_def_decl/cuda/deviceAPI_cuda.cc
     cuda_kernels_def_decl/cuda_params.cu
     cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
     cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
@@ -422,8 +423,13 @@ if(USE_CUDA)
 endif()
 
 if(USE_HIP)
-  set(hip_sources tmpkernel.cu SimulationMaster_hip.cc cuda_kernels_def_decl/cuda_params_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_Iolets_hip.cc cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets_hip.cc)
-
+  set(hip_sources SimulationMaster.cu 
+		cuda_kernels_def_decl/hip/tmpkernel.cc
+    cuda_kernels_def_decl/hip/deviceAPI_hip.cc
+    cuda_kernels_def_decl/cuda_params.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
+    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu
+  )
   set_source_files_properties(${hip_sources} main.cc PROPERTIES LANGUAGE HIP)
   set_source_files_properties(${hip_sources} main.cc PROPERTIES COMPILE_FLAGS "-fgpu-rdc")
 

@@ -4,6 +4,7 @@
 
 #include <stdint.h> // to use uint64_t below
 #include "units.h"
+#include "cuda_kernels_def_decl/deviceAPI.h"
 
 #define local_iolets_MaxSIZE 90 // This is the max array size with the iolet info (Iolet ID and fluid sites range, min and max, i.e. size = 3*local number of iolets). Assume that maximum number of iolets per RANK = local_iolets_MaxSIZE/3, i.e 30 here
 																// Note the distinction between n_unique_local_Iolets and local iolets.
@@ -259,7 +260,7 @@ __device__ __forceinline__ void _determine_Iolet_ID(int num_local_Iolets, site_t
 //==============================================================================
 
 	/* Device function to evaluate second moment of a distr. function
-	/* Despite its name, this method does not compute the whole pi tensor (i.e. momentum flux tensor). What it does is
+	   Despite its name, this method does not compute the whole pi tensor (i.e. momentum flux tensor). What it does is
 							 * computing the second moment of a distribution function. If this distribution happens to be f_eq, the resulting
 							 * tensor will be the equilibrium part of pi. However, if the distribution function is f_neq, the result WON'T be
 							 * the non equilibrium part of pi. In order to get it, you will have to multiply by (1 - timestep/2*tau)
