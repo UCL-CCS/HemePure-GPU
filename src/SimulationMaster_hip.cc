@@ -24,10 +24,6 @@
 #include "net/MpiCommunicator.h"
 
 
-#ifdef HEMELB_USE_GPU
-//#include "cuda_kernels_def_decl/initialise_GPU.h"
-#include <hip/hip_runtime.h>
-#endif
 
 #include <map>
 #include <limits>
@@ -67,8 +63,6 @@ SimulationMaster::SimulationMaster(hemelb::configuration::CommandLine & options,
 
 	Initialise();
 
-	// Call Dummy Launcher
-	
 
 	if (IsCurrentProcTheIOProc()) {
 		reporter = new hemelb::reporting::Reporter(
@@ -310,7 +304,8 @@ void SimulationMaster::Initialise() {
 	stepManager->RegisterCommsForAllPhases(*netConcern);
 
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
-	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
 }
 
 
@@ -329,8 +324,7 @@ void SimulationMaster::check_GPU_capabilities()
 
 	int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t
 
-	int dev_count=0;
-	hipGetDeviceCount( &dev_count);
+	int dev_count=deviceGetCount();
 	// This function call returns 0 if there are no CUDA capable devices.
 	if (dev_count == 0)
 	{
@@ -343,31 +337,16 @@ void SimulationMaster::check_GPU_capabilities()
 	}
 
 
-	// Set the current GPU device
-	hipError_t cudaStatus;
-	int device;
+	// Set the current GPU device	
 	if(dev_count>1 && localRank!=0){
-		cudaStatus = hipSetDevice((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate
-		if (cudaStatus != hipSuccess) {
+		bool status = deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
+		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
-			//return false;
-		}
+		}	
 	}
-
-	hipGetDevice(&device);
-	hipDeviceProp_t deviceProp;
-	hipGetDeviceProperties(&deviceProp, device);
-	// std::printf("Using device %d: %s - Assigned to Proc# %i \n\n", device, deviceProp.name, localRank);
-	// if(localRank==0) printf("Using GPU device: %s \n\n", deviceProp.name);
-
-	/*
-	hipError_t cudaerr = hipDeviceSynchronize();
-	if (cudaerr != hipSuccess)
-	  printf("kernel launch failed with error \"%s\".\n",
-		 hipGetErrorString(cudaerr));
-	*/
 }
+	
 #endif
 // =============================================================================================
 
@@ -418,7 +397,7 @@ void SimulationMaster::Finalise() {
 	timings.Reduce();
 
 #ifdef HEMELB_USE_GPU
-	// Calls hipFree to delete the dynamically allocated memory on the GPU and hipStreamDestroy to delete the cuda streams
+	// Calls hipFree to delete the dynamically allocated memory on the GPU and hipStreamDestroy to delete the hip streams
 	// IOProc (RANK=0) does not allocate memory
 	if (!IsCurrentProcTheIOProc()) {
 		latticeBoltzmannModel->FinaliseGPU();
@@ -459,7 +438,7 @@ void SimulationMaster::DoTimeStep() {
 
 	// Check the stability of the code
 	if (simulationState->GetStability() == hemelb::lb::Unstable) {
-		printf("Rank: %d, Unstable simulation!!! Need to Abort \n", communicationNet.Rank());
+		printf("Time: %d - Rank: %d, Unstable simulation!!! Need to Abort \n", simulationState->GetTimeStep(), communicationNet.Rank());
 		OnUnstableSimulation();
 	}
 
@@ -513,6 +492,8 @@ void SimulationMaster::Abort() {
 
 void SimulationMaster::LogStabilityReport() {
 
+//
+// Remove this part later - Leads to Segmentation fault - incompressibilityChecker->AreDensitiesAvailable()
 /*
 	printf("Rank: %d, Time: %07i, IncompressibilityCheck Value :%d & Densities are available: %d \n\n", communicationNet.Rank(), simulationState->GetTimeStep(),monitoringConfig->doIncompressibilityCheck, incompressibilityChecker->AreDensitiesAvailable() );
 	printf("time step %07i :: tau: %.6f, max_relative_press_diff: %.3f, Ma: %.3f, max_vel_phys: %e \n",
@@ -522,6 +503,7 @@ void SimulationMaster::LogStabilityReport() {
 			incompressibilityChecker->GetGlobalLargestVelocityMagnitude()/ hemelb::Cs,
 			unitConverter->ConvertVelocityToPhysicalUnits(incompressibilityChecker->GetGlobalLargestVelocityMagnitude()));
 */
+//
 
 	if (monitoringConfig->doIncompressibilityCheck
 			&& incompressibilityChecker->AreDensitiesAvailable()) {
