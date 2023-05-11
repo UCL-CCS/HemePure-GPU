@@ -14,12 +14,27 @@
 #include "geometry/neighbouring/NeighbouringLatticeData.h"
 #include "util/utilityFunctions.h"
 
+#ifdef HEMELB_USE_GPU
+/* Set the pointers to null so we don't do any accidental freeing at the end */
+#define GPU_INITIALIZERS     , GPUDataAddr_dbl_fOld_b_mLatDat(nullptr),\
+							 GPUDataAddr_dbl_fNew_b_mLatDat(nullptr),\
+							 d_Stability_GPU_mLatDat(nullptr), \
+							 GPUDataAddr_Inlet_velocityTable(nullptr),\
+							 GPUDataAddr_Outlet_velocityTable(nullptr)
+		
+#else
+
+/* No GPU use */
+#define GPU_INITIALIZERS 
+
+#endif
+
 namespace hemelb
 {
 	namespace geometry
 	{
 		LatticeData::LatticeData(const lb::lattices::LatticeInfo& latticeInfo, const net::IOCommunicator& comms_) :
-			latticeInfo(latticeInfo), neighbouringData(new neighbouring::NeighbouringLatticeData(latticeInfo)), comms(comms_)
+			latticeInfo(latticeInfo), neighbouringData(new neighbouring::NeighbouringLatticeData(latticeInfo)), comms(comms_) GPU_INITIALIZERS
 		{
 		}
 
@@ -29,7 +44,7 @@ namespace hemelb
 		}
 
 		LatticeData::LatticeData(const lb::lattices::LatticeInfo& latticeInfo, const Geometry& readResult, const net::IOCommunicator& comms_) :
-			latticeInfo(latticeInfo), neighbouringData(new neighbouring::NeighbouringLatticeData(latticeInfo)), comms(comms_)
+			latticeInfo(latticeInfo), neighbouringData(new neighbouring::NeighbouringLatticeData(latticeInfo)), comms(comms_) GPU_INITIALIZERS
 		{
 			SetBasicDetails(readResult.GetBlockDimensions(),
 					readResult.GetBlockSize());

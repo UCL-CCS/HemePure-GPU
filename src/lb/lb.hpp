@@ -2720,7 +2720,6 @@ namespace hemelb
 		template<class LatticeType>
 			bool LBM<LatticeType>::FinaliseGPU()
 			{
-		
 				bool finalise_GPU_res = true;
 
 				std::string hemeIoletBC_Inlet, hemeIoletBC_Outlet;
@@ -2827,8 +2826,10 @@ namespace hemelb
 				//----------------------------------------------------------------------
 				// Vel BCs related
 				if(mLatDat->GPUDataAddr_Inlet_velocityTable){
+					const hemelb::net::Net& rank_Com = *mNet;
+					int myPiD = rank_Com.Rank();
 					status = deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
-					if(!status){ fprintf(stderr, "deviceFree Velocity Table failed\n"); finalise_GPU_res=false; }
+					if(!status){ fprintf(stderr, "Rank: %d deviceFree Velocity Table failed ptr=%xu  file: %s, line %s\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
 				}
 
 				// Prefactor Wall Momemtum Correction

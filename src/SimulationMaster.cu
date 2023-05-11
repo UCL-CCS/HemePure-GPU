@@ -333,7 +333,7 @@ void SimulationMaster::check_GPU_capabilities()
 		Abort();	//add an abort function here if no CUDA capable devices are detected
 	}
 	else {
-		if(localRank==0) std::printf("Rank %d: Detected %d CUDA Capable device(s)\n", localRank, dev_count);
+		if(localRank==0) std::printf("Rank %d: Detected %d GPU device(s)\n", localRank, dev_count);
 	}
 
 
