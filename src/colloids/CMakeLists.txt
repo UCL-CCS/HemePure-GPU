@@ -7,11 +7,17 @@ add_library(hemelb_colloidsBCs
 	BoundaryConditions.cc)
 target_link_libraries(hemelb_colloidsBCs
 	hemelb_io)
+
+if( USE_HIP ) 
 set_source_files_properties(BoundaryConditions.cc PROPERTIES LANGUAGE HIP)
+endif()
 
 add_library(hemelb_colloidsForces
 	BodyForces.cc)
+
+if(USE_HIP)
 set_source_files_properties(BodyForces.cc PROPERTIES LANGUAGE HIP)
+endif()
 target_link_libraries(hemelb_colloidsForces
 	hemelb_io)
 

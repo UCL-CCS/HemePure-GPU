@@ -42,6 +42,14 @@ namespace hemelb
         return normal * -velocityMagnitude;
       }
 
+      // April 2023 - IZ
+      LatticeVelocity InOutLetWomersleyVelocity::GetVelocity_prefactor(const LatticePosition& x,
+                                                             const LatticeTimeStep t) const
+      {
+        return normal * 0.0;
+      }
+      //
+
       const LatticePressureGradient& InOutLetWomersleyVelocity::GetPressureGradientAmplitude() const
       {
         return pressureGradientAmplitude;

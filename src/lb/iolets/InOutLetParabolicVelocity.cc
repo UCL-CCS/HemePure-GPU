@@ -54,6 +54,16 @@ namespace hemelb
         // Brackets to ensure that the scalar multiplies are done before vector * scalar.
         return normal * (max * (1. - rSq));
       }
+
+      // April 2023 - IZ
+      LatticeVelocity InOutLetParabolicVelocity::GetVelocity_prefactor(const LatticePosition& x,
+                                                             const LatticeTimeStep t) const
+      {
+        //printf("Entering GetVelocity_prefactor function in InOutlet Parabolic Velocity \n\n");=
+        return normal * 0.0;
+      }
+      //
+
     }
   }
 }

@@ -1644,7 +1644,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[19]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1656,6 +1656,7 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
 		for(int direction = 0; direction< _NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -1683,16 +1684,18 @@ namespace hemelb
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
-
+#pragma unroll 19
 		for (int i = 0; i < _NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)_CX_19[i] * momentum_x
 									+ (double)_CY_19[i] * momentum_y
 									+ (double)_CZ_19[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
-							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+			double dev_fEq = _EQMWEIGHTS_19[i]
+													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
+																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+		 	dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 		}
 		//-----------------------------------------------------------------------------------------------------------
 
@@ -1703,15 +1706,14 @@ namespace hemelb
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
 		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
-
+		/*
 		// Evolution equation for the fi's here
 		for (int i = 0; i < _NUMVECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
 		}
-		//__syncthreads(); // Check if needed!
-
+		*/
 
 		// --------------------------------------------------------------------------------
 		// Streaming Step:
@@ -1790,6 +1792,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
+#pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
@@ -1912,7 +1915,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[19]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1924,6 +1927,7 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
 		for(int direction = 0; direction< _NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -1952,15 +1956,18 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
+#pragma unroll 19
 		for (int i = 0; i < _NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)_CX_19[i] * momentum_x
 									+ (double)_CY_19[i] * momentum_y
 									+ (double)_CZ_19[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
-							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+		  double dev_fEq = _EQMWEIGHTS_19[i]
+													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
+																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+			dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 		}
 		//-----------------------------------------------------------------------------------------------------------
 
@@ -1972,14 +1979,13 @@ namespace hemelb
 		// Single Relaxation Time approximation (LBGK)
 		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
 
-		// Evolution equation for the fi's here
+		/*// Evolution equation for the fi's here
 		for (int i = 0; i < _NUMVECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
 		}
-		//__syncthreads(); // Check if needed!
-
+		*/
 
 		// --------------------------------------------------------------------------------
 		// Streaming Step:
@@ -1997,45 +2003,50 @@ namespace hemelb
 		// a.1. Iolet-Fluid links info:
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
+		//--------------------------------------------------------------------------
 		// a.2-3. Read the ghost density and the iolet (inlet/outlet) Normal (vector)
 		distribn_t ghost_dens; // = 0.0; //new distribn_t[nInlets];	// c. The ghost density
 		float inletNormal_x, inletNormal_y, inletNormal_z;
 
 		// Read the Iolet info (iolet ids and fluid sites range) from GMem_Iolets_info
 		//	extern __shared__ int s[];
-		site_t *Iolet_info = new site_t[3*num_local_Iolets];
-		for (int index = 0; index< (3*num_local_Iolets); index++)
-		{
-			Iolet_info[index] = GMem_Iolets_info[index];
-		}
+		// TODO: Consider using shared memory in the future as this info is read from all the threads
 
-		// printf("Number of iolets: %d \n\n", nIolets); // THis is the total number of iolets (whole geometry - NOT the local RANK iolets!!!)
-		// How do I distinguish which inlet ID do I have ??? Need to think about this... Done!!!
-		// Need to pass this info based on the site Index (from the initialisation process. With given site ranges -> int boundaryId = site.GetIoletId();)
+		// Identify the local iolet ID
+		//  		There are 2 possible ways:
+		// 			1. Using the information from GPU global mem (GMem_Iolets_info)
+		//			2. Using struct Iolets containing the info (when number of iolets less than 30)
 
-		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = Iolet_info[0]; //Iolets_info.Iolets_ID_range[0];// IdInlet = iolets_ID_range[0];
+			// Approach 1 - from GPU global mem (GMem_Iolets_info)
+			IdInlet = GMem_Iolets_info[0];
+			// Approach 2 - from struct array
+			// IdInlet = Iolets_info.Iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
 			// iolets_ID_range Array:
 			//	a. Size: num_local_Iolets * 3
+			//	Contains the following (in the order below)
 			// 	b. Iolet ID, Range of fluid IDs: [lower_limit, upper_limit)
-			// TODO: Replace this: _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind, &IdInlet); // _determine_Iolet_ID(num_local_Iolets, iolets_ID_range, Ind, &IdInlet);
-			_determine_Iolet_ID(num_local_Iolets, Iolet_info, Ind, &IdInlet);
+
+			// Approach 1 - from GPU global mem (GMem_Iolets_info)
+			_determine_Iolet_ID(num_local_Iolets, GMem_Iolets_info, Ind, &IdInlet);
+
+			// Approach 2 - from struct array
+			// _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind, &IdInlet);
 		}
 
-		// Testing:
+		// Debugging:
 		if(IdInlet==INT32_MAX)
 		{
-			printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! \n\n", Ind, IdInlet);
+			printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort... \n\n", Ind, IdInlet);
 		}
-	/*		else{
+		/*else{
 			printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
-		}
-	*/
+		}*/
+		//--------------------------------------------------------------------------
 
 		ghost_dens = GMem_ghostDensity[IdInlet];
 		inletNormal_x = GMem_inletNormal[3*IdInlet];
@@ -2067,6 +2078,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
+#pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
@@ -2147,7 +2159,6 @@ namespace hemelb
 			GMem_dbl_MacroVars[3ULL*nArr_dbl + Ind] = velz;
 		}
 
-		delete[] Iolet_info;
 	} // Ends the kernel GPU_Collide Type 6: Outlets-Wall - PreReceive
 	//==========================================================================================
 
@@ -2315,10 +2326,15 @@ namespace hemelb
 				//=============================================================================================================
 				// c. Load the WallMom info - Note: We follow Method b for the data layout
 				site_t siteCount = upper_limit-lower_limit;
+				site_t shifted_Fluid_Ind = Ind - lower_limit;
 				//site_t nArr_wallMom = siteCount * (_NUMVECTORS-1); // Number of elements of type distribn_t(double)
 
+				/*
+				//-----------------------
+				// Approach 1: Wall momentum passed to the GPU global memory (3 components: x,y,z)
+				// Need to evaluate the correction term on the GPU (maybe this can be avoided - see approach 2)
 				distribn_t WallMom_x, WallMom_y, WallMom_z;
-				site_t shifted_Fluid_Ind = Ind - lower_limit;
+
 				WallMom_x = GMem_dbl_WallMom[(unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
 				WallMom_y = GMem_dbl_WallMom[1ULL*nArr_wallMom + (unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
 				WallMom_z = GMem_dbl_WallMom[2ULL*nArr_wallMom + (unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
@@ -2333,6 +2349,18 @@ namespace hemelb
 
 				distribn_t correction = 2. * _EQMWEIGHTS_19[LB_Dir]
 				                * (WallMom_x * _CX_19[LB_Dir] + WallMom_y * _CY_19[LB_Dir] + WallMom_z * _CZ_19[LB_Dir]) / _Cs2;
+				//-----------------------
+				*/
+
+				//-----------------------
+				// Approach 2
+			 	// July 2022 - Single value correction term (wall momentum) passed to the GPU global memory
+			 	distribn_t correction = GMem_dbl_WallMom[(unsigned long long)(LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
+
+			 // TODO: Pass the boolean variable: CollisionType::CKernel::LatticeType::IsLatticeCompressible()
+			 // Remember that the wall mom. does not include the correction (multiplication by local density) If Compressible:
+			 correction *= nn;
+			 //-----------------------
 
 				int unstreamed_dir = _InvDirections_19[LB_Dir];
 

@@ -24,9 +24,6 @@
 #include "net/MpiCommunicator.h"
 
 
-#ifdef HEMELB_USE_GPU
-//#include "cuda_kernels_def_decl/initialise_GPU.h"
-#endif
 
 #include <map>
 #include <limits>
@@ -307,7 +304,8 @@ void SimulationMaster::Initialise() {
 	stepManager->RegisterCommsForAllPhases(*netConcern);
 
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
-	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
 }
 
 
@@ -316,8 +314,8 @@ void SimulationMaster::Initialise() {
 
 /**
 Function to:
-a. Check if there are CUDA capable devices
-b. Call cudaSetDevice (assign a GPU device to the current rank depending on how many are available on the node)
+a. Check if there are GPU  devices
+b. attach to GPU device (assign a GPU device to the current rank depending on how many are available on the node)
 */
 void SimulationMaster::check_GPU_capabilities()
 {
@@ -326,8 +324,7 @@ void SimulationMaster::check_GPU_capabilities()
 
 	int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t
 
-	int dev_count=0;
-	cudaGetDeviceCount( &dev_count);
+	int dev_count=deviceGetCount();
 	// This function call returns 0 if there are no CUDA capable devices.
 	if (dev_count == 0)
 	{
@@ -336,35 +333,20 @@ void SimulationMaster::check_GPU_capabilities()
 		Abort();	//add an abort function here if no CUDA capable devices are detected
 	}
 	else {
-		if(localRank==0) std::printf("Rank %d: Detected %d CUDA Capable device(s)\n", localRank, dev_count);
+		if(localRank==0) std::printf("Rank %d: Detected %d GPU device(s)\n", localRank, dev_count);
 	}
 
 
-	// Set the current GPU device
-	cudaError_t cudaStatus;
-	int device;
+	// Set the current GPU device	
 	if(dev_count>1 && localRank!=0){
-		cudaStatus = cudaSetDevice((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate
-		if (cudaStatus != cudaSuccess) {
+		bool status = deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
+		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
-			//return false;
-		}
+		}	
 	}
-
-	cudaGetDevice(&device);
-	cudaDeviceProp deviceProp;
-	cudaGetDeviceProperties(&deviceProp, device);
-	// std::printf("Using device %d: %s - Assigned to Proc# %i \n\n", device, deviceProp.name, localRank);
-	// if(localRank==0) printf("Using GPU device: %s \n\n", deviceProp.name);
-
-	/*
-	cudaError_t cudaerr = cudaDeviceSynchronize();
-	if (cudaerr != cudaSuccess)
-	  printf("kernel launch failed with error \"%s\".\n",
-		 cudaGetErrorString(cudaerr));
-	*/
 }
+	
 #endif
 // =============================================================================================
 
@@ -394,7 +376,6 @@ void SimulationMaster::OnUnstableSimulation() {
  * Begin the simulation.
  */
 void SimulationMaster::RunSimulation() {
-
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("SIMULATION STARTING");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
 	timings[hemelb::reporting::Timers::simulation].Start();
@@ -416,7 +397,7 @@ void SimulationMaster::Finalise() {
 	timings.Reduce();
 
 #ifdef HEMELB_USE_GPU
-	// Calls cudaFree to delete the dynamically allocated memory on the GPU and cudaStreamDestroy to delete the cuda streams
+	// Calls deviceFree to delete the dynamically allocated memory on the GPU and deviceStreamDestroy to delete the GPU streams
 	// IOProc (RANK=0) does not allocate memory
 	if (!IsCurrentProcTheIOProc()) {
 		latticeBoltzmannModel->FinaliseGPU();
@@ -457,7 +438,7 @@ void SimulationMaster::DoTimeStep() {
 
 	// Check the stability of the code
 	if (simulationState->GetStability() == hemelb::lb::Unstable) {
-		printf("Rank: %d, Unstable simulation!!! Need to Abort \n", communicationNet.Rank());
+		printf("Time: %d - Rank: %d, Unstable simulation!!! Need to Abort \n", simulationState->GetTimeStep(), communicationNet.Rank());
 		OnUnstableSimulation();
 	}
 
@@ -511,6 +492,8 @@ void SimulationMaster::Abort() {
 
 void SimulationMaster::LogStabilityReport() {
 
+//
+// Remove this part later - Leads to Segmentation fault - incompressibilityChecker->AreDensitiesAvailable()
 /*
 	printf("Rank: %d, Time: %07i, IncompressibilityCheck Value :%d & Densities are available: %d \n\n", communicationNet.Rank(), simulationState->GetTimeStep(),monitoringConfig->doIncompressibilityCheck, incompressibilityChecker->AreDensitiesAvailable() );
 	printf("time step %07i :: tau: %.6f, max_relative_press_diff: %.3f, Ma: %.3f, max_vel_phys: %e \n",
@@ -520,6 +503,7 @@ void SimulationMaster::LogStabilityReport() {
 			incompressibilityChecker->GetGlobalLargestVelocityMagnitude()/ hemelb::Cs,
 			unitConverter->ConvertVelocityToPhysicalUnits(incompressibilityChecker->GetGlobalLargestVelocityMagnitude()));
 */
+//
 
 	if (monitoringConfig->doIncompressibilityCheck
 			&& incompressibilityChecker->AreDensitiesAvailable()) {

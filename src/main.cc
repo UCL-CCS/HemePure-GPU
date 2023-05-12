@@ -11,7 +11,6 @@
 
 #include "net/MpiCommunicator.h"
 
-extern void dummyLauncher();
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +35,6 @@ int main(int argc, char *argv[])
       SimulationMaster master = SimulationMaster(options, hemelbCommunicator);
 
 	  // ..and run it.
-			dummyLauncher();
       master.RunSimulation();
 
     }

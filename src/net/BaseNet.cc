@@ -18,7 +18,7 @@
 #include "util/utilityFunctions.h"
 #include "util/Vector3D.h"
 #include "net/IOCommunicator.h"
-
+#include "cuda_kernels_def_decl/deviceAPI.h"
 
 namespace hemelb
 {
@@ -61,36 +61,33 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
-        //printf("Synchronisation point for cuda stream from BaseNet and rank # %d \n\n", myPiD);
+        deviceStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
 
-    // Create the cuda stream
+    // Create the device stream
     bool BaseNet::Create_stream_memCpy_GPU_CPU_domainEdge_new2()
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
-        //printf("Created cuda stream from BaseNet and rank # %d \n\n", myPiD);
+        deviceStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
 
-    // Destroy the cuda stream
+    // Destroy the device stream
     bool BaseNet::Destroy_stream_memCpy_GPU_CPU_domainEdge_new2()
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        cudaStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
-        //printf("Destroyed cuda stream from BaseNet and rank # %d \n\n", myPiD);
+        deviceStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
 
-    // Get the cuda stream - private member
-    cudaStream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
+    // Get the device stream - private member
+    Stream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
     {
       return stream_memCpy_GPU_CPU_domainEdge_new2;
     }

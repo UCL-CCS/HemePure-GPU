@@ -8,6 +8,7 @@
 #define HEMELB_NET_MPIDATATYPE_H
 
 #include <mpi.h>
+#include <cstddef>
 #if HEMELB_HAVE_CSTDINT
 # include <cstdint>
 #else

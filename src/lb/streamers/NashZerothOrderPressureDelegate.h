@@ -80,6 +80,28 @@ namespace hemelb
 					}
 					//--------------------------------------------------------------------
 
+					//--------------------------------------------------------------------
+					inline void Eval_wallMom_correction(const LbmParameters* lbmParams,
+							geometry::LatticeData* const latticeData,
+							const geometry::Site<geometry::LatticeData>& site,
+							kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+								 const Direction& direction, double* wallMom_correction_tobepassed)
+					{
+					  printf("Entering branch in NashZerothOrderPressure from LADDIOLET \n\n");
+					}
+					//--------------------------------------------------------------------
+
+					//--------------------------------------------------------------------
+					inline void Eval_wallMom_prefactor_correction(const LbmParameters* lbmParams,
+							geometry::LatticeData* const latticeData,
+							const geometry::Site<geometry::LatticeData>& site,
+							kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
+								 const Direction& direction, double* wallMom_correction_tobepassed)
+					{
+						printf("Entering branch in NashZerothOrderPressure from LADDIOLET... Check the CMake file for the BCs options \n\n");
+					}
+					//--------------------------------------------------------------------
+
 
 				protected:
 					CollisionType& collider;

@@ -89,6 +89,9 @@ namespace hemelb
          */
         util::RefreshableCache<util::Vector3D<distribn_t> > wallMom_Cache;
         std::vector<util::Vector3D<distribn_t> > wallMom_Cache_Vect3D;
+
+        // Need to check this - TODO
+        util::RefreshableCache<distribn_t> wallMom_correction_Cache;
 #endif
 
       private:

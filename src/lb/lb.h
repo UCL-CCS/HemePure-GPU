@@ -23,11 +23,7 @@
 
 // IZ
 #ifdef HEMELB_USE_GPU
-#ifdef HEMELB_USE_HIP
-#include "cuda_kernels_def_decl/cuda_params_hip.h"
-#else
 #include "cuda_kernels_def_decl/cuda_params.h"
-#endif
 #endif
 // IZ
 
@@ -122,7 +118,20 @@ namespace hemelb
 				void *GPUDataAddr_int64_Neigh_c;
 				void *GPUDataAddr_int64_Neigh_d;
 
-				// Iolets Info: Used for the case of Pressure BCs (NASHZEROTHORDERPRESSUREIOLET)
+				//--------------------------------------------------
+				// Vel. BCs case - Transfer everything on the GPU and compute the wall momentum correction on the GPU
+				void **GPUDataAddr_pp_Inlet_weightsTable_coord; // Pointer to pointers
+				void *GPUDataAddr_p_Inlet_weightsTable_coord; // void *GPUDataAddr_p_Inlet_weightsTable_coord;
+
+				void **CPU_DataAddr_pp_Inlet_weightsTable_coord; // Holds the address of the pointers to the GPU global memory (pinned memory - allocated with cudaMallocHost, so that it can be accessed by the device directly)
+				void *GPUDataAddr_p_Inlet_weightsTable_coord_x, *GPUDataAddr_p_Inlet_weightsTable_coord_y, *GPUDataAddr_p_Inlet_weightsTable_coord_z;
+
+
+				void **GPUDataAddr_pp_Inlet_weightsTable_wei;	// Pointer to pointers
+				distribn_t *GPUDataAddr_p_Inlet_weightsTable_wei;
+				//--------------------------------------------------
+
+				// Iolets Info: Used for the case of Pressure BCs (NASHZEROTHORDERPRESSUREIOLET) - Vel BCs as well
 				void *GPUDataAddr_Inlet_Edge, *GPUDataAddr_Outlet_Edge, *GPUDataAddr_InletWall_Edge, *GPUDataAddr_OutletWall_Edge;
 				void *GPUDataAddr_Inlet_Inner, *GPUDataAddr_Outlet_Inner, *GPUDataAddr_InletWall_Inner, *GPUDataAddr_OutletWall_Inner;
 
@@ -136,6 +145,53 @@ namespace hemelb
 				void *GPUDataAddr_wallMom_Outlet_Inner;
 				void *GPUDataAddr_wallMom_OutletWall_Inner;
 
+				//---------------------------------------------------
+				// Case of Velocity BCs - Subtype: Case b. File
+				distribn_t *Data_dbl_Inlet_velocityTable, *Data_dbl_Outlet_velocityTable;
+				int *arr_elementsInEachInlet;
+
+				//------------------------------------------------------------------
+				// BUG in the approach below - Remnove what is below as soos as the following
+				//		approach work:
+				//---------------------
+				// Approach with the bug: Remove what is below later
+				// Array with the index in the weights table to obtain the weight (arranged based on the fluid index)
+				/*
+				int *index_weightTable_Inlet_Edge;
+				int *index_weightTable_InletWall_Edge;
+				int *index_weightTable_Inlet_Inner;
+				int *index_weightTable_InletWall_Inner;
+				*/
+				std::vector<int64_t> index_weightTable_Inlet_Edge;
+				std::vector<int64_t> index_weightTable_InletWall_Edge;
+				std::vector<int64_t> index_weightTable_InletWall_Inner;
+				std::vector<int64_t> index_weightTable_Inlet_Inner;
+
+				// Corresponding GPU Data Addresses for the indices
+				void *GPUDataAddr_index_weightTable_Inlet_Edge;
+				void *GPUDataAddr_index_weightTable_InletWall_Edge;
+				void *GPUDataAddr_index_weightTable_Inlet_Inner;
+				void *GPUDataAddr_index_weightTable_InletWall_Inner;
+				//---------------------
+
+				// New Approah: Save ONLY the Vel. Weight directly to the GPU global memory BASED ON FLUID INDEX
+				// 							Not the index and not the whole vel Weights Table
+				std::vector<distribn_t> weightTable_Inlet_Edge;
+				std::vector<distribn_t> weightTable_InletWall_Edge;
+				std::vector<distribn_t> weightTable_InletWall_Inner;
+				std::vector<distribn_t> weightTable_Inlet_Inner;
+
+				// Corresponding GPU Data Addresses for the VEL WEIGHTS
+				void *GPUDataAddr_weightTable_Inlet_Edge;
+				void *GPUDataAddr_weightTable_InletWall_Edge;
+				void *GPUDataAddr_weightTable_Inlet_Inner;
+				void *GPUDataAddr_weightTable_InletWall_Inner;
+
+				//------------------------------------------------------------------
+				//---------------------------------------------------
+				//std::vector<int> arr_elementsInEachInlet;
+				//thrust::host_vector<int> arr_elementsInEachInlet(1);
+
 				// And the corresponding host vectors related to the above
 				std::vector<util::Vector3D<double> > wallMom_Inlet_Edge;
 				std::vector<util::Vector3D<double> > wallMom_InletWall_Edge;
@@ -145,6 +201,127 @@ namespace hemelb
 				std::vector<util::Vector3D<double> > wallMom_OutletWall_Edge;
 				std::vector<util::Vector3D<double> > wallMom_Outlet_Inner;
 				std::vector<util::Vector3D<double> > wallMom_OutletWall_Inner;
+
+				//----------------------------------------------------------------------
+				// Work in progress 9 March 2022 - Done!!!
+				// Instead of using wall momentum - just pass the correction term (one value instead of 3)
+				// correction (or wall Momentum) associated with Velocity BCs (LADDIOLET) - GPU global memory related
+				// Still too slow
+				void *GPUDataAddr_wallMom_correction_Inlet_Edge;
+				void *GPUDataAddr_wallMom_correction_InletWall_Edge;
+				void *GPUDataAddr_wallMom_correction_Inlet_Inner;
+				void *GPUDataAddr_wallMom_correction_InletWall_Inner;
+				void *GPUDataAddr_wallMom_correction_Outlet_Edge;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Edge;
+				void *GPUDataAddr_wallMom_correction_Outlet_Inner;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Inner;
+
+				// And the corresponding host vectors related to the above
+				// Replace the above with a single correction term instead of 3 components
+				std::vector<distribn_t> wallMom_correction_Inlet_Edge;
+				std::vector<distribn_t> wallMom_correction_InletWall_Edge;
+				std::vector<distribn_t> wallMom_correction_Inlet_Inner;
+				std::vector<distribn_t> wallMom_correction_InletWall_Inner;
+				std::vector<distribn_t> wallMom_correction_Outlet_Edge;
+				std::vector<distribn_t> wallMom_correction_OutletWall_Edge;
+				std::vector<distribn_t> wallMom_correction_Outlet_Inner;
+				std::vector<distribn_t> wallMom_correction_OutletWall_Inner;
+				//----------------------------------------------------------------------
+
+				//----------------------------------------------------------------------
+				// Work in progress July 2022 - Done!!!
+				// Instead of passing the correction term to the Cache and then reading back
+				// Directly Get the correction wall Momentum associated with Velocity BCs (LADDIOLET) - GPU global memory related
+				void *GPUDataAddr_wallMom_correction_Inlet_Edge_Direct;
+				void *GPUDataAddr_wallMom_correction_InletWall_Edge_Direct;
+				void *GPUDataAddr_wallMom_correction_Inlet_Inner_Direct;
+				void *GPUDataAddr_wallMom_correction_InletWall_Inner_Direct;
+				void *GPUDataAddr_wallMom_correction_Outlet_Edge_Direct;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Edge_Direct;
+				void *GPUDataAddr_wallMom_correction_Outlet_Inner_Direct;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Inner_Direct;
+
+				// And the corresponding host vectors related to the above
+				// Replace the above with a single correction term instead of 3 components
+				std::vector<distribn_t> wallMom_correction_Inlet_Edge_Direct;
+				std::vector<distribn_t> wallMom_correction_InletWall_Edge_Direct;
+				std::vector<distribn_t> wallMom_correction_Inlet_Inner_Direct;
+				std::vector<distribn_t> wallMom_correction_InletWall_Inner_Direct;
+				std::vector<distribn_t> wallMom_correction_Outlet_Edge_Direct;
+				std::vector<distribn_t> wallMom_correction_OutletWall_Edge_Direct;
+				std::vector<distribn_t> wallMom_correction_Outlet_Inner_Direct;
+				std::vector<distribn_t> wallMom_correction_OutletWall_Inner_Direct;
+
+				std::vector<distribn_t> wallMom_correction_ColType_Domain_Direct;
+				//----------------------------------------------------------------------
+
+				//----------------------------------------------------------------------
+				// Work in progress April 2023 - TODO!!!
+				// 	Instead of passing the wall momentum correction terms to the GPU at each time-step
+				// 	Directly pass this prefactor at initialisation to the GPU and
+				//		evaluate the wall momentum correction terms on the GPUs
+				// 	Related to wall Momentum - Velocity BCs (LADDIOLET) - GPU global memory related
+				void *GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge;
+				void *GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge;
+				void *GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner;
+				void *GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner;
+				void *GPUDataAddr_wallMom_prefactor_correction_Outlet_Edge;
+				void *GPUDataAddr_wallMom_prefactor_correction_OutletWall_Edge;
+				void *GPUDataAddr_wallMom_prefactor_correction_Outlet_Inner;
+				void *GPUDataAddr_wallMom_prefactor_correction_OutletWall_Inner;
+
+				// And the corresponding host vectors related to the above
+				// Replace the above with a single correction term instead of 3 components
+				std::vector<distribn_t> wallMom_prefactor_correction_Inlet_Edge;
+				std::vector<distribn_t> wallMom_prefactor_correction_InletWall_Edge;
+				std::vector<distribn_t> wallMom_prefactor_correction_Inlet_Inner;
+				std::vector<distribn_t> wallMom_prefactor_correction_InletWall_Inner;
+				std::vector<distribn_t> wallMom_prefactor_correction_Outlet_Edge;
+				std::vector<distribn_t> wallMom_prefactor_correction_OutletWall_Edge;
+				std::vector<distribn_t> wallMom_prefactor_correction_Outlet_Inner;
+				std::vector<distribn_t> wallMom_prefactor_correction_OutletWall_Inner;
+
+				std::vector<distribn_t> wallMom_prefactor_correction_ColType_Domain;
+				//----------------------------------------------------------------------
+
+				//----------------------------------------------------------------------
+				// Work in progress Oct 2022 - Done!!!
+				// Send the iolets coords and the fluid index (fluid index, x_coord, y_coord, z_coord)
+				// to the GPU global memory (type site_t which is int64_t)
+				void *GPUDataAddr_Coords_Inlet_Edge;
+				void *GPUDataAddr_Coords_InletWall_Edge;
+				void *GPUDataAddr_Coords_Inlet_Inner;
+				void *GPUDataAddr_Coords_InletWall_Inner;
+				void *GPUDataAddr_Coords_Outlet_Edge;
+				void *GPUDataAddr_Coords_OutletWall_Edge;
+				void *GPUDataAddr_Coords_Outlet_Inner;
+				void *GPUDataAddr_Coords_OutletWall_Inner;
+
+				void *GPUDataAddr_inlets_position;
+				void *GPUDataAddr_outlets_position;
+
+				void *GPUDataAddr_inlets_radius;
+				void *GPUDataAddr_outlets_radius;
+				//----------------------------------------------------------------------
+
+				//----------------------------------------------------------------------
+				// Wall Shear Stress Magnitude - Type refers to collision types
+				void *GPUDataAddr_WallShearStressMagn_Edge_Type2;
+				void *GPUDataAddr_WallShearStressMagn_Edge_Type5;
+				void *GPUDataAddr_WallShearStressMagn_Edge_Type6;
+				void *GPUDataAddr_WallShearStressMagn_Inner_Type2;
+				void *GPUDataAddr_WallShearStressMagn_Inner_Type5;
+				void *GPUDataAddr_WallShearStressMagn_Inner_Type6;
+
+				// Wall normal vector
+				void *GPUDataAddr_WallNormal_Edge_Type2;
+				void *GPUDataAddr_WallNormal_Edge_Type5;
+				void *GPUDataAddr_WallNormal_Edge_Type6;
+				void *GPUDataAddr_WallNormal_Inner_Type2;
+				void *GPUDataAddr_WallNormal_Inner_Type5;
+				void *GPUDataAddr_WallNormal_Inner_Type6;
+				//----------------------------------------------------------------------
+
 
 				// Need to distinguish: (a) n_LocalInlets... Vs  (b) n_unique_LocalInlets... :
 				// 		(a) is the one needed for the array with the Range of fluid sites for each iolet
@@ -191,30 +368,24 @@ namespace hemelb
 				int h_Stability_GPU;
 
 
-				// Cuda streams
-#ifdef HEMELB_USE_HIP
-				hipStream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
-				hipStream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
-				hipStream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
-				hipStream_t stream_ReceivedDistr, stream_SwapOldAndNew;
-				hipStream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
-				hipStream_t stream_Read_Data_GPU_Dens;
-				hipStream_t stability_check_stream;
-#else
-				cudaStream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
-				cudaStream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
-				cudaStream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
-				cudaStream_t stream_ReceivedDistr, stream_SwapOldAndNew;
-				cudaStream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
-				cudaStream_t stream_Read_Data_GPU_Dens;
-				cudaStream_t stability_check_stream;
-#endif
+				// Pointer to pinned memory
+				distribn_t *Data_H2D_memcpy_totalSharedFs, *Data_D2H_memcpy_totalSharedFs;
+
+				// Defice Streams
+				Stream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
+				Stream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
+				Stream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
+				Stream_t stream_ReceivedDistr, stream_SwapOldAndNew;
+				Stream_t stream_memCpy_CPU_GPU_domainEdge, stream_memCpy_GPU_CPU_domainEdge;
+				Stream_t stream_Read_Data_GPU_Dens;
+				Stream_t stability_check_stream;
+
 #endif
 
 #ifdef HEMELB_USE_GPU
 				bool Initialise_GPU(iolets::BoundaryValues* iInletValues, iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits);	// Initialise the GPU - memory allocations
 
-				bool Initialise_kernels_GPU(); // Initialise the kernels' setup
+				bool initialise_GPU_WallShearStressMagn(iolets::BoundaryValues* iInletValues, iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits);	// Initialise the GPU - memory allocations
 
 				bool FinaliseGPU();
 				bool Read_DistrFunctions_CPU_to_GPU(int64_t firstIndex, int64_t siteCount);
@@ -232,11 +403,34 @@ namespace hemelb
 				void count_Iolet_ID_frequency( std::vector<int> &vect , int Iolet_ID_index, int* frequency_ret);
 
 				void read_WallMom_from_propertyCache(site_t firstIndex, site_t siteCount, const lb::MacroscopicPropertyCache& propertyCache, std::vector<util::Vector3D<double> >& wallMom_Iolet);
+				void read_WallMom_correction_from_propertyCache(site_t firstIndex, site_t siteCount, const lb::MacroscopicPropertyCache& propertyCache, std::vector<double>& wallMom_correction_Iolet);
+
 				bool memCpy_HtD_GPUmem_WallMom(site_t firstIndex, site_t siteCount, std::vector<util::Vector3D<double> >& wallMom_Iolet, void *GPUDataAddr_wallMom);
+				bool memCpy_HtD_GPUmem_WallMom_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom);
+				bool memCpy_HtD_GPUmem_WallMom_correction_cudaStream(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom, Stream_t ptrStream);
+
+				//IZ - April 2023
+				bool memCpy_HtD_GPUmem_WallMom_prefactor_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_prefactor_Iolet, void *GPUDataAddr_wallMom_prefactor);
+
+				bool memCpy_HtD_GPUmem_Coords_Iolets(site_t firstIndex, site_t siteCount, void *GPUDataAddr_Coords_iolets);
 
 				void get_Iolet_BCs(std::string hemeLB_IoletBC_Inlet, std::string hemeLB_IoletBC_Outlet);
 
 				void swap_Pointers_GPU_glb_mem(void **pointer_GPU_glb_left, void **pointer_GPU_gbl_right);
+
+				// Added December 2022 - Apply Boundary Conditions (GPU)
+				void apply_Vel_BCs_File_GetWallMom_correction();
+
+				// Added April 2023 - Vel BCs case
+				void apply_Vel_BCs_File_GetWallMom_correction_ApprPref();
+				void apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIoletIDsearch();
+				void apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIoletIDsearch_PreSend();
+				void apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIoletIDsearch_PreReceive();
+
+				// Debugging Vel BCs case
+				bool compare_CPU_GPU_WallMom_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom);
+
+
 #endif
 //========================================================================
 				//IZ
@@ -285,6 +479,30 @@ namespace hemelb
 						{
 							collision->template GetWallMom<false> (iFirstIndex, iSiteCount, &mParams, mLatDat, propertyCache);
 						}
+
+					// Added March 2022 - Vel BCs case -Instead of wall momentum get the correction term
+					template<typename Collision>
+						void GetWallMom_correction(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount, lb::MacroscopicPropertyCache& propertyCache)
+						{
+							collision->template GetWallMom_correction<false> (iFirstIndex, iSiteCount, &mParams, mLatDat, propertyCache);
+						}
+
+					// Added July 2022 - Vel BCs case -Pass the single wall momentum correction term directly to the GPU
+					template<typename Collision>
+						//std::vector<distribn_t> GetWallMom_correction_Direct(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount, lb::MacroscopicPropertyCache& propertyCache)
+						void GetWallMom_correction_Direct(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount, lb::MacroscopicPropertyCache& propertyCache, std::vector<double>& wallMom_correction_Iolet)
+						{
+							collision->template GetWallMom_correction_Direct<false> (iFirstIndex, iSiteCount, &mParams, mLatDat, propertyCache, wallMom_correction_Iolet);
+						}
+
+					// Added April 2023 - Vel BCs case
+					//	Pass the prefactor (time-independent and geometry only dependent) associated with the single wall momentum correction term directly to the GPU at initialisation
+						template<typename Collision>
+							void GetWallMom_prefactor_correction_Direct(Collision* collision, const site_t iFirstIndex, const site_t iSiteCount, lb::MacroscopicPropertyCache& propertyCache, std::vector<double>& wallMom_prefactor_correction_Iolet)
+							{
+								collision->template GetWallMom_prefactor_correction_Direct<false> (iFirstIndex, iSiteCount, &mParams, mLatDat, propertyCache, wallMom_prefactor_correction_Iolet);
+							}
+
 #endif
 
 				unsigned int inletCount;

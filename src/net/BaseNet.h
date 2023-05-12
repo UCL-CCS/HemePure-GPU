@@ -17,11 +17,7 @@
 #include "net/MpiCommunicator.h"
 
 #ifdef HEMELB_USE_GPU
-#ifdef HEMELB_USE_HIP
-#include "hip/hip_runtime.h"
-#else
-#include "cuda_runtime.h"
-#endif
+#include "cuda_kernels_def_decl/deviceAPI.h"
 #endif
 
 namespace hemelb
@@ -70,18 +66,9 @@ namespace hemelb
         bool Synchronise_memCpy_GPU_CPU_domainEdge();
         bool Create_stream_memCpy_GPU_CPU_domainEdge_new2();
         bool Destroy_stream_memCpy_GPU_CPU_domainEdge_new2();
-#ifdef HEMELB_USE_HIP
-        hipStream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
-#else
-        cudaStream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
-#endif
-
+        Stream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
         // Added 17 March 2020
-#ifdef HEMELB_USE_HIP
-        hipStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
-#else
-        cudaStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
-#endif
+        Stream_t stream_memCpy_GPU_CPU_domainEdge_new2;
 #endif
 
       protected:
@@ -130,15 +117,6 @@ namespace hemelb
          */
         std::vector<std::vector<int> > displacementsBuffer;
         std::vector<std::vector<int> > countsBuffer;
-
-        /*
-        // Added 17 March
-#ifdef HEMELB_USE_HIP
-        hipStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
-#else
-        cudaStream_t stream_memCpy_GPU_CPU_domainEdge_new2;
-#endif
-        */
     };
   }
 }
