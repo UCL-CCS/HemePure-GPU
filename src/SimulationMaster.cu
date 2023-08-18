@@ -324,7 +324,7 @@ void SimulationMaster::check_GPU_capabilities()
 
 	int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t
 
-	int dev_count=deviceGetCount();
+	int dev_count=hemelb::GPU::deviceGetCount();
 	// This function call returns 0 if there are no CUDA capable devices.
 	if (dev_count == 0)
 	{
@@ -339,7 +339,7 @@ void SimulationMaster::check_GPU_capabilities()
 
 	// Set the current GPU device	
 	if(dev_count>1 && localRank!=0){
-		bool status = deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
+		bool status = hemelb::GPU::deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
 		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();

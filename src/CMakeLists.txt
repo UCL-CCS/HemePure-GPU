@@ -424,7 +424,6 @@ endif()
 
 if(USE_HIP)
   set(hip_sources SimulationMaster.cu 
-		cuda_kernels_def_decl/hip/tmpkernel.cc
     cuda_kernels_def_decl/hip/deviceAPI_hip.cc
     cuda_kernels_def_decl/cuda_params.cu
     cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu

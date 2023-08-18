@@ -5,6 +5,7 @@
 #include <stdint.h> // to use uint64_t below
 #include "units.h"
 #include "cuda_kernels_def_decl/deviceAPI.h"
+#include "cuda_kernels_def_decl/deviceLaunch.h"
 
 #define local_iolets_MaxSIZE 90 // This is the max array size with the iolet info (Iolet ID and fluid sites range, min and max, i.e. size = 3*local number of iolets). Assume that maximum number of iolets per RANK = local_iolets_MaxSIZE/3, i.e 30 here
 																// Note the distinction between n_unique_local_Iolets and local iolets.

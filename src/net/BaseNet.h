@@ -66,9 +66,9 @@ namespace hemelb
         bool Synchronise_memCpy_GPU_CPU_domainEdge();
         bool Create_stream_memCpy_GPU_CPU_domainEdge_new2();
         bool Destroy_stream_memCpy_GPU_CPU_domainEdge_new2();
-        Stream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
+        GPU::Stream_t Get_stream_memCpy_GPU_CPU_domainEdge_new2();
         // Added 17 March 2020
-        Stream_t stream_memCpy_GPU_CPU_domainEdge_new2;
+        GPU::Stream_t stream_memCpy_GPU_CPU_domainEdge_new2;
 #endif
 
       protected:

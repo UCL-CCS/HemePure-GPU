@@ -173,7 +173,7 @@ namespace hemelb
 				a. Read the received distr. functions at the RECEIVING rank (host)
 						after completing the colision-streaming at the domain edges
 						and
-				b. Send these populations to the GPU: host-to-device memcopy.
+				b. Send these populations to the GPU: host-to-GPU::device memcopy.
 				Comments:
 				1.	SENDING rank sends the fNew distr. functions in totalSharedFs
 						RECEIVING rank places these values in fOld (in totalSharedFs): Note that shift +1 at the end of the array
@@ -230,13 +230,13 @@ namespace hemelb
 
 
 				// Method 1: Using pageable memory (on the host)
-				//status = deviceMemcpyAsync(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[nFluid_nodes * LatticeType::NUMVECTORS +1]), &(Data_dbl_fOld_Tr[0]), MemSz, memcpyHostToDevice, stream_memCpy_CPU_GPU_domainEdge);
+				//status = GPU::deviceMemcpyAsync(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[nFluid_nodes * LatticeType::NUMVECTORS +1]), &(Data_dbl_fOld_Tr[0]), MemSz, GPU::memcpyHostToDevice, stream_memCpy_CPU_GPU_domainEdge);
 				// This works as well:
 				// Sept 2020 - Switch to Unified Memory (from GPUDataAddr_dbl_fOld_b to mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)
-				bool status = deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS +1]), mLatDat->GetFOld(mLatDat->neighbouringProcs[0].FirstSharedDistribution), MemSz, memcpyHostToDevice, stream_ReceivedDistr); // stream_memCpy_CPU_GPU_domainEdge);
+				bool status = GPU::deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS +1]), mLatDat->GetFOld(mLatDat->neighbouringProcs[0].FirstSharedDistribution), MemSz, GPU::memcpyHostToDevice, stream_ReceivedDistr); // stream_memCpy_CPU_GPU_domainEdge);
 
-				//cudaStatus = deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[nFluid_nodes * LatticeType::NUMVECTORS +1]), &(Data_dbl_fOld_Tr[0]), MemSz, memcpyHostToDevice);
-				if (!status) fprintf(stderr, "GPU memory copy host-to-device failed ... Rank = %d, Time = %d \n", myPiD, mState->GetTimeStep());
+				//cudaStatus = GPU::deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[nFluid_nodes * LatticeType::NUMVECTORS +1]), &(Data_dbl_fOld_Tr[0]), MemSz, GPU::memcpyHostToDevice);
+				if (!status) fprintf(stderr, "GPU memory copy host-to-GPU::device failed ... Rank = %d, Time = %d \n", myPiD, mState->GetTimeStep());
 
 
 				/*
@@ -248,9 +248,9 @@ namespace hemelb
 				 	Data_H2D_memcpy_totalSharedFs[i] = f_old[i];
 			 	}
 
-				cudaStatus = deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS +1]),
-																			&Data_H2D_memcpy_totalSharedFs[0], MemSz, memcpyHostToDevice, stream_ReceivedDistr); // stream_memCpy_CPU_GPU_domainEdge);
-				if (!status) fprintf(stderr, "GPU memory copy (using Pinned Memory) host-to-device failed... \
+				cudaStatus = GPU::deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS +1]),
+																			&Data_H2D_memcpy_totalSharedFs[0], MemSz, GPU::memcpyHostToDevice, stream_ReceivedDistr); // stream_memCpy_CPU_GPU_domainEdge);
+				if (!status) fprintf(stderr, "GPU memory copy (using Pinned Memory) host-to-GPU::device failed... \
 																								Trasnfering %.2fGB on Rank %d, Time = %d \n", (double)MemSz/1073741824.0, myPiD, mState->GetTimeStep());
 				*/
 
@@ -297,7 +297,7 @@ namespace hemelb
 
 				// Send the data from host (Data_dbl_fOld_Tr) to the Device GPU global memory
 				// Memory copy from host (Data_dbl_fOld) to Device (GPUDataAddr_dbl_fOld)
-				// cudaStatus = deviceMemcpy(GPUDataAddr_dbl_fOld, Data_dbl_fOld, nArray_oldDistr * sizeof(distribn_t), memcpyHostToDevice);
+				// cudaStatus = GPU::deviceMemcpy(GPUDataAddr_dbl_fOld, Data_dbl_fOld, nArray_oldDistr * sizeof(distribn_t), GPU::memcpyHostToDevice);
 				// if(!status){ fprintf(stderr, "GPU memory transfer Host To Device failed - \n"); return false; }
 
 				// Send iteratively the f_0, f_1, f_2, ..., f_(q-1) to the corresponding GPU mem. address
@@ -305,8 +305,8 @@ namespace hemelb
 
 				for (int LB_ind=0; LB_ind < LatticeType::NUMVECTORS; LB_ind++)
 				{
-					bool status = deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[(LB_ind*nFluid_nodes)+firstIndex]), 
-												&(Data_dbl_fOld_Tr[LB_ind * siteCount]), MemSz, memcpyHostToDevice);
+					bool status = GPU::deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[(LB_ind*nFluid_nodes)+firstIndex]), 
+												&(Data_dbl_fOld_Tr[LB_ind * siteCount]), MemSz, GPU::memcpyHostToDevice);
 					if (!status) fprintf(stderr, "GPU memory copy failed (%d)\n", LB_ind);
 				}
 
@@ -320,13 +320,13 @@ namespace hemelb
 			// Function for reading:
 			//	a. the Distribution Functions post-collision, fNew, in totalSharedFs
 			// 				that will be send to the neighbouring ranks
-			// 		from the GPU and copying to the CPU (device-to-host mem. copy - Asynchronous)
+			// 		from the GPU and copying to the CPU (GPU::device-to-host mem. copy - Asynchronous)
 
 			//
-			// If we use deviceMemcpy: Remember that from the host perspective the mem copy is synchronous, i.e. blocking
+			// If we use GPU::deviceMemcpy: Remember that from the host perspective the mem copy is synchronous, i.e. blocking
 			// so the host will wait the data transfer to complete and then proceed to the next function call
 
-			// Switched to deviceMemcpyAsync(): non-blocking on the host,
+			// Switched to GPU::deviceMemcpyAsync(): non-blocking on the host,
 			//		so control returns to the host thread immediately after the transfer is issued.
 			// 	cuda stream: mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2()
 			//=================================================================================================
@@ -358,13 +358,13 @@ namespace hemelb
 
 				// Get the cuda stream created in BaseNet using the class member function Get_stream_memCpy_GPU_CPU_domainEdge_new2():
 				hemelb::net::Net& mNet_cuda_stream = *mNet;
-				cudaStatus = deviceMemcpyAsync(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
-				//cudaStatus = deviceMemcpyAsync(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, memcpyDeviceToHost, stream_memCpy_GPU_CPU_domainEdge);
+				cudaStatus = GPU::deviceMemcpyAsync(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, GPU::memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
+				//cudaStatus = GPU::deviceMemcpyAsync(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, GPU::memcpyDeviceToHost, stream_memCpy_GPU_CPU_domainEdge);
 
-				//cudaStatus = deviceMemcpy(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpy(&(fNew_GPU_totalSharedFs[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, GPU::memcpyDeviceToHost);
 
 				if(!status){
-					const char * eStr = deviceGetErrorString();
+					const char * eStr = GPU::deviceGetErrorString();
 					printf("GPU memory transfer for ReadGPU_distr totalSharedFs failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					delete[] fNew_GPU_totalSharedFs;
 					return false;
@@ -403,15 +403,15 @@ namespace hemelb
 
 
 				// Method 1: Using pageable memory (on the host)
-				//cudaStatus = deviceMemcpyAsync( mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
+				//cudaStatus = GPU::deviceMemcpyAsync( mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[nFluid_nodes * LatticeType::NUMVECTORS]), MemSz, GPU::memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
 				// Sept 2020 - Switching to cuda-aware mpi makes the D2H mem.copy not necessary. Also switching to Using Unified Memory
 				// Does the following make sense though: case of NO cuda-aware mpi (in which case have to call D2H memcpy) and Unified Memory???
-				bool status = deviceMemcpyAsync( mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS),
+				bool status = GPU::deviceMemcpyAsync( mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS),
 																			&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS]),
-																			MemSz, memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
+																			MemSz, GPU::memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
 
 				if(!status){
-					const char * eStr = deviceGetErrorString();
+					const char * eStr = GPU::deviceGetErrorString();
 					printf("GPU memory transfer for ReadGPU_distr totalSharedFs failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -421,18 +421,18 @@ namespace hemelb
 				//mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS) = Data_D2H_memcpy_totalSharedFs;
 				// Data_D2H_memcpy_totalSharedFs = mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS);
 
-				cudaStatus = deviceMemcpyAsync( &Data_D2H_memcpy_totalSharedFs[0],
+				cudaStatus = GPU::deviceMemcpyAsync( &Data_D2H_memcpy_totalSharedFs[0],
 																			&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[nFluid_nodes * LatticeType::NUMVECTORS]),
-																			MemSz, memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
+																			MemSz, GPU::memcpyDeviceToHost, mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2() );
 
 				if(!status){
-					const char * eStr = deviceGetErrorString() ;
+					const char * eStr = GPU::deviceGetErrorString() ;
 					printf("GPU memory transfer for ReadGPU_distr totalSharedFs failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
 
 				// Wait the mem copy to complete
-				deviceStreamSynchronize(mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2());
+				GPU::deviceStreamSynchronize(mNet_cuda_stream.Get_stream_memCpy_GPU_CPU_domainEdge_new2());
 
 				distribn_t *f_new = mLatDat->GetFNew(nFluid_nodes * LatticeType::NUMVECTORS);
 				for (site_t i = 0; i < 1 + totSharedFs; ++i){
@@ -486,7 +486,7 @@ namespace hemelb
 
 				// Allocate memory on the GPU (global memory)
 				site_t MemSz = nArr_Coords_iolets *  sizeof(int64_t); 	// site_t (int64_t) Check that will remain like this in the future
-				bool status = deviceMalloc((void**)&GPUDataAddr_Coords_iolets, MemSz);
+				bool status = GPU::deviceMalloc((void**)&GPUDataAddr_Coords_iolets, MemSz);
 
 				if(!status){
 					fprintf(stderr, "GPU memory allocation - Coords for Iolets - failed...\n");
@@ -524,10 +524,10 @@ namespace hemelb
 			 }
 
 			 // Perform a HtD memcpy (from Data_int64_Coords_iolets to GPUDataAddr_Coords_iolets)
-			 status = deviceMemcpy(GPUDataAddr_Coords_iolets,
-				 												Data_int64_Coords_iolets, MemSz, memcpyHostToDevice);
+			 status = GPU::deviceMemcpy(GPUDataAddr_Coords_iolets,
+				 												Data_int64_Coords_iolets, MemSz, GPU::memcpyHostToDevice);
 			 if(! status ){
-		     const char * eStr = deviceGetErrorString();
+		     const char * eStr = GPU::deviceGetErrorString();
 		     printf("GPU memory copy for IOLETS coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 				 memCpy_function_output = false;
 		   }
@@ -535,7 +535,7 @@ namespace hemelb
 			 delete[] Data_int64_Coords_iolets;
 		   //======================================================================
 		   /*if(!status){
-		     const char * eStr = deviceGetErrorString();
+		     const char * eStr = GPU::deviceGetErrorString();
 		     printf("GPU memory copy for IOLETS coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 		     return false;
 		   }
@@ -592,11 +592,11 @@ namespace hemelb
 					}
 				}
 				// Memory copy from host (Data_dbl_WallMom) to Device (e.g. GPUDataAddr_wallMom_Inlet_Edge)
-				bool status = deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, 3*nArr_wallMom * sizeof(distribn_t), memcpyHostToDevice);
+				bool status = GPU::deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, 3*nArr_wallMom * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 				//======================================================================
 				if(!status){
-					const char * eStr = deviceGetErrorString();
+					const char * eStr = GPU::deviceGetErrorString();
 					printf("GPU memory allocation for wallMom failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -649,11 +649,11 @@ namespace hemelb
 					}
 				}
 				// Memory copy from host (Data_dbl_WallMom) to Device (e.g. GPUDataAddr_wallMom_Inlet_Edge)
-				bool status = deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), memcpyHostToDevice);
+				bool status = GPU::deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 				//======================================================================
 				if(!status){
-					const char * eStr = deviceGetErrorString();
+					const char * eStr = GPU::deviceGetErrorString();
 					printf("GPU memory allocation for wallMom correction term failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -706,14 +706,14 @@ namespace hemelb
 					}
 				}
 				// Memory copy from host (Data_dbl_WallMom) to Device (e.g. GPUDataAddr_wallMom_Inlet_Edge)
-				// cudaStatus = deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), memcpyHostToDevice);
+				// cudaStatus = GPU::deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 				//======================================================================
 				// GPU results
-				bool status  = deviceMemcpy(Data_dbl_WallMom_GPU, GPUDataAddr_wallMom, nArr_wallMom * sizeof(distribn_t), memcpyDeviceToHost);
+				bool status  = GPU::deviceMemcpy(Data_dbl_WallMom_GPU, GPUDataAddr_wallMom, nArr_wallMom * sizeof(distribn_t), GPU::memcpyDeviceToHost);
 
 				if(!status){
-					const char * eStr = deviceGetErrorString ();
+					const char * eStr = GPU::deviceGetErrorString ();
 					printf("GPU memory allocation for wallMom correction term failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -748,7 +748,7 @@ namespace hemelb
 			// 		TODO: change to Asynchronous memcpy.
 			//=================================================================================================
 			template<class LatticeType>
-			bool LBM<LatticeType>::memCpy_HtD_GPUmem_WallMom_correction_cudaStream(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_correction_Iolet, void *GPUDataAddr_wallMom, Stream_t ptrStream)
+			bool LBM<LatticeType>::memCpy_HtD_GPUmem_WallMom_correction_cudaStream(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_correction_Iolet, void *GPUDataAddr_wallMom, GPU::Stream_t ptrStream)
 			{
 			
 
@@ -783,14 +783,14 @@ namespace hemelb
 					}
 				}
 				// Memory copy from host (Data_dbl_WallMom) to Device (e.g. GPUDataAddr_wallMom_Inlet_Edge)
-				// cudaStatus = deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), memcpyHostToDevice);
-				bool status = deviceMemcpyAsync(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), memcpyHostToDevice, ptrStream);
+				// cudaStatus = GPU::deviceMemcpy(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), GPU::memcpyHostToDevice);
+				bool status = GPU::deviceMemcpyAsync(GPUDataAddr_wallMom, Data_dbl_WallMom, nArr_wallMom * sizeof(distribn_t), GPU::memcpyHostToDevice, ptrStream);
 
 
 				delete[] Data_dbl_WallMom;
 				//======================================================================
 				if(!status){
-					const char * eStr = deviceGetErrorString ();
+					const char * eStr = GPU::deviceGetErrorString ();
 					printf("GPU memory allocation for wallMom correction term failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -844,12 +844,12 @@ namespace hemelb
 					}
 				}
 				// Memory copy from host (Data_dbl_WallMom_prefactor) to Device (e.g. GPUDataAddr_wallMom_prefactor_Inlet_Edge)
-				bool status =  deviceMemcpy(GPUDataAddr_wallMom_prefactor, Data_dbl_WallMom_prefactor, nArr_wallMom_prefactor * sizeof(distribn_t), memcpyHostToDevice);
+				bool status =  GPU::deviceMemcpy(GPUDataAddr_wallMom_prefactor, Data_dbl_WallMom_prefactor, nArr_wallMom_prefactor * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 				delete[] Data_dbl_WallMom_prefactor;
 				//======================================================================
 				if(!status){
-					const char * eStr = deviceGetErrorString ();
+					const char * eStr = GPU::deviceGetErrorString ();
 					printf("GPU memory allocation for wallMom prefactor correction term failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					return false;
 				}
@@ -956,7 +956,7 @@ namespace hemelb
 			// Function for reading the macroVariables:
 			//	a. Density [nFluid nodes]
 			//	b. Velocity[nFluid nodes*3]
-			// from the GPU and copying to the CPU (device-to-host mem. copy - Asynchronous: stream stream_Read_Data_GPU_Dens)
+			// from the GPU and copying to the CPU (GPU::device-to-host mem. copy - Asynchronous: stream stream_Read_Data_GPU_Dens)
 			//
 			// When data needs to be saved to the disk on the CPU
 			//
@@ -993,9 +993,9 @@ namespace hemelb
 
 			  unsigned long long MemSz = siteCount*sizeof(distribn_t);
 
-			  //cudaStatus = deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), MemSz, memcpyDeviceToHost);
-			  bool status = deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), 
-			  					MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+			  //cudaStatus = GPU::deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), MemSz, GPU::memcpyDeviceToHost);
+			  bool status = GPU::deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), 
+			  					MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 			  if(!status){
 			    printf("GPU memory transfer for density failed\n");
@@ -1016,9 +1016,9 @@ namespace hemelb
 					//return false;
 				}
 
-			  status = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz, 
-			  				memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-			  //cudaStatus = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+			  status = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz, 
+			  				GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+			  //cudaStatus = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 			  if(!status){
 			    printf("GPU memory transfer Vel(1) failed\n");
 			    delete[] vx_GPU;
@@ -1027,9 +1027,9 @@ namespace hemelb
 			    //return false;
 			  }
 
-			  status = deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes + firstIndex]), MemSz, 
-			  		memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-			  //cudaStatus = deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+			  status = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes + firstIndex]), MemSz, 
+			  		GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+			  //cudaStatus = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 			  if(!status){
 			    printf("GPU memory transfer Vel(2) failed\n");
 			    delete[] vy_GPU;
@@ -1038,9 +1038,9 @@ namespace hemelb
 			    //return false;
 			  }
 
-			  status = deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes + firstIndex]), 
-			  	MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-			  //cudaStatus = deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+			  status = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes + firstIndex]), 
+			  	MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+			  //cudaStatus = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 			  if(!status){
 			    printf("GPU memory transfer Vel(3) failed\n");
 			    delete[] vz_GPU;
@@ -1051,7 +1051,7 @@ namespace hemelb
 			  //--------------------------------------------------------------------------
 			  //hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // Check for last cuda error: Remember that it is in DEBUG flag
 
-				deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
+				GPU::deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
 				//
 			  // Read only the density, velocity and fNew[] that needs to be passed to the CPU at the updated sites: The ones that had been updated in the GPU collision kernel
 			  for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
@@ -1100,7 +1100,7 @@ namespace hemelb
 							b. Density [nFluid nodes]
 							c. Velocity[nFluid nodes*3]
 				 		ONLY FOR THE FLUID NODES at the current rank (WITHOUT the f's in totalSharedFs)
-						from the GPU and copying to the CPU (device-to-host mem. copy - Synchronous)
+						from the GPU and copying to the CPU (GPU::device-to-host mem. copy - Synchronous)
 
 
 				//	b.	When data needs to be saved to the disk on the CPU
@@ -1134,10 +1134,10 @@ namespace hemelb
 				/* else{ std::printf("Memory allocation for ReadGPU_distr successful from Proc# %i \n\n", myPiD); } */
 				if(!fNew_GPU_b){ std::cout << "Memory allocation error - ReadGPU_distr" << std::endl; return false;}
 
-				//cudaStatus = deviceMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost, stream_Read_distr_Data_GPU);
-				bool status = deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, GPU::memcpyDeviceToHost, stream_Read_distr_Data_GPU);
+				bool status = GPU::deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, GPU::memcpyDeviceToHost);
 				if(!status){
-					const char * eStr = deviceGetErrorString();
+					const char * eStr = GPU::deviceGetErrorString();
 					printf("GPU memory transfer for ReadGPU_distr failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					delete[] fNew_GPU_b;
 					return false;
@@ -1249,7 +1249,7 @@ namespace hemelb
 			//	a. the Distribution Functions post-collision, fNew,
 			//	b. Density [nFluid nodes]
 			//	c. Velocity[nFluid nodes*3]
-			// from the GPU and copying to the CPU (device-to-host mem. copy - Synchronous)
+			// from the GPU and copying to the CPU (GPU::device-to-host mem. copy - Synchronous)
 			//
 			//	Total (Read_DistrFunctions_GPU_to_CPU_tot) refers to the fact that these distr. functions include the totalSharedFs as well
 			//
@@ -1288,10 +1288,10 @@ namespace hemelb
 				/* else{ std::printf("Memory allocation for ReadGPU_distr successful from Proc# %i \n\n", myPiD); } */
 				if(!fNew_GPU_b){ std::cout << "Memory allocation error - ReadGPU_distr" << std::endl; return false;}
 
-				//cudaStatus = deviceMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost, stream_Read_distr_Data_GPU);
-				bool status = deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, GPU::memcpyDeviceToHost, stream_Read_distr_Data_GPU);
+				bool status = GPU::deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, GPU::memcpyDeviceToHost);
 				if(!status){
-					const char * eStr = deviceGetErrorString ();
+					const char * eStr = GPU::deviceGetErrorString ();
 					printf("GPU memory transfer for ReadGPU_distr failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 					delete[] fNew_GPU_b;
 					return false;
@@ -1306,8 +1306,8 @@ namespace hemelb
 
 				unsigned long long MemSz = nFluid_nodes*sizeof(distribn_t);
 
-				status = deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[0]), MemSz, memcpyDeviceToHost);
-				//cudaStatus = deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[0]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+				status = GPU::deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[0]), MemSz, GPU::memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[0]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 				if(!status){
 					printf("GPU memory transfer for density failed\n");
@@ -1322,24 +1322,24 @@ namespace hemelb
 
 				if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){ printf("Memory allocation failure"); return false;}
 
-				status = deviceMemcpy(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost);
-				//cudaStatus = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+				status = GPU::deviceMemcpy(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 				if(!status){
 					printf("GPU memory transfer Vel(1) failed\n");
 					delete[] vx_GPU;
 					return false;
 				}
 
-				status = deviceMemcpy(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost);
-				//cudaStatus = deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+				status = GPU::deviceMemcpy(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 				if(!status){
 					printf("GPU memory transfer Vel(2) failed\n");
 					delete[] vy_GPU;
 					return false;
 				}
 
-				status = deviceMemcpy(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost);
-				//cudaStatus = deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
+				status = GPU::deviceMemcpy(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost);
+				//cudaStatus = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
 				if(!status){
 					printf("GPU memory transfer Vel(2) failed\n");
 					delete[] vz_GPU;
@@ -1610,7 +1610,7 @@ namespace hemelb
 				GPUDataAddr_Coords_iolets = GPUDataAddr_Coords_Inlet_Edge;
 				start_Fluid_ID_givenColStreamType = start_Index_Inlet_Edge;
 				site_Count_givenColStreamType = site_Count_Inlet_Edge;
-				//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
+				//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
 
 				if(n_LocalInlets != 0){
 
@@ -1678,7 +1678,7 @@ namespace hemelb
 				GPUDataAddr_Coords_iolets = GPUDataAddr_Coords_InletWall_Edge;
 				start_Fluid_ID_givenColStreamType = start_Index_InletWall_Edge;
 				site_Count_givenColStreamType = site_Count_InletWall_Edge;
-				// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
+				// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
 
 				if(n_LocalInlets != 0){
 
@@ -1751,7 +1751,7 @@ namespace hemelb
 				GPUDataAddr_Coords_iolets = GPUDataAddr_Coords_Inlet_Inner;
 				start_Fluid_ID_givenColStreamType = start_Index_Inlet_Inner;
 				site_Count_givenColStreamType = site_Count_Inlet_Inner;
-				//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
+				//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
 
 				if(n_LocalInlets != 0){
 
@@ -1818,7 +1818,7 @@ namespace hemelb
 				GPUDataAddr_Coords_iolets = GPUDataAddr_Coords_InletWall_Inner;
 				start_Fluid_ID_givenColStreamType = start_Index_InletWall_Inner;
 				site_Count_givenColStreamType = site_Count_InletWall_Inner;
-				// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
+				// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
 
 				if(n_LocalInlets != 0){
 
@@ -1977,7 +1977,7 @@ namespace hemelb
 							n_LocalInlets = n_LocalInlets_mInlet_Edge;
 							start_Fluid_ID_givenColStreamType = start_Index_Inlet_Edge;
 							site_Count_givenColStreamType = site_Count_Inlet_Edge;
-							//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
+							//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
 
 							//
 							/*GPUDataAddr_wallMom_prefactor_correction = GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge;
@@ -2023,7 +2023,7 @@ namespace hemelb
 							n_LocalInlets = n_LocalInlets_mInletWall_Edge;
 							start_Fluid_ID_givenColStreamType = start_Index_InletWall_Edge;
 							site_Count_givenColStreamType = site_Count_InletWall_Edge;
-							// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
+							// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
 
 							//
 							/*GPUDataAddr_wallMom_prefactor_correction = GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge;
@@ -2073,7 +2073,7 @@ namespace hemelb
 							n_LocalInlets = n_LocalInlets_mInlet;
 							start_Fluid_ID_givenColStreamType = start_Index_Inlet_Inner;
 							site_Count_givenColStreamType = site_Count_Inlet_Inner;
-							//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
+							//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
 
 							//
 							/*GPUDataAddr_wallMom_prefactor_correction = GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner;
@@ -2117,7 +2117,7 @@ namespace hemelb
 							n_LocalInlets = n_LocalInlets_mInletWall;
 							start_Fluid_ID_givenColStreamType = start_Index_InletWall_Inner;
 							site_Count_givenColStreamType = site_Count_InletWall_Inner;
-							// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
+							// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
 
 							//
 							/*GPUDataAddr_wallMom_prefactor_correction = GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner;
@@ -2213,7 +2213,7 @@ namespace hemelb
 										n_LocalInlets = n_LocalInlets_mInlet_Edge;
 										start_Fluid_ID_givenColStreamType = start_Index_Inlet_Edge;
 										site_Count_givenColStreamType = site_Count_Inlet_Edge;
-										//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
+										//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
 										Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 										Iolet_ID_AssocRange_Iolets_vect = Iolets_Inlet_Edge;
 
@@ -2262,7 +2262,7 @@ namespace hemelb
 										n_LocalInlets = n_LocalInlets_mInletWall_Edge;
 										start_Fluid_ID_givenColStreamType = start_Index_InletWall_Edge;
 										site_Count_givenColStreamType = site_Count_InletWall_Edge;
-										// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
+										// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
 										Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 										Iolet_ID_AssocRange_Iolets_vect = Iolets_InletWall_Edge;
 
@@ -2360,7 +2360,7 @@ namespace hemelb
 										n_LocalInlets = n_LocalInlets_mInlet;
 										start_Fluid_ID_givenColStreamType = start_Index_Inlet_Inner;
 										site_Count_givenColStreamType = site_Count_Inlet_Inner;
-										//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
+										//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
 										Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 										Iolet_ID_AssocRange_Iolets_vect = Iolets_Inlet_Inner;
 
@@ -2411,7 +2411,7 @@ namespace hemelb
 										n_LocalInlets = n_LocalInlets_mInletWall;
 										start_Fluid_ID_givenColStreamType = start_Index_InletWall_Inner;
 										site_Count_givenColStreamType = site_Count_InletWall_Inner;
-										// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
+										// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
 										Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 										Iolet_ID_AssocRange_Iolets_vect = Iolets_InletWall_Inner;
 
@@ -2515,7 +2515,7 @@ namespace hemelb
 				n_LocalInlets = n_LocalInlets_mInlet_Edge;
 				start_Fluid_ID_givenColStreamType = start_Index_Inlet_Edge;
 				site_Count_givenColStreamType = site_Count_Inlet_Edge;
-				//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
+				//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_3;
 				Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 				Iolet_ID_AssocRange_Iolets_vect = Iolets_Inlet_Edge;
 
@@ -2564,7 +2564,7 @@ namespace hemelb
 				n_LocalInlets = n_LocalInlets_mInletWall_Edge;
 				start_Fluid_ID_givenColStreamType = start_Index_InletWall_Edge;
 				site_Count_givenColStreamType = site_Count_InletWall_Edge;
-				// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
+				// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreSend_5;
 				Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 				Iolet_ID_AssocRange_Iolets_vect = Iolets_InletWall_Edge;
 
@@ -2619,7 +2619,7 @@ namespace hemelb
 				n_LocalInlets = n_LocalInlets_mInlet;
 				start_Fluid_ID_givenColStreamType = start_Index_Inlet_Inner;
 				site_Count_givenColStreamType = site_Count_Inlet_Inner;
-				//cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
+				//cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_3;
 				Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 				Iolet_ID_AssocRange_Iolets_vect = Iolets_Inlet_Inner;
 
@@ -2670,7 +2670,7 @@ namespace hemelb
 				n_LocalInlets = n_LocalInlets_mInletWall;
 				start_Fluid_ID_givenColStreamType = start_Index_InletWall_Inner;
 				site_Count_givenColStreamType = site_Count_InletWall_Inner;
-				// cudaStream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
+				// cudaGPU::Stream_t Collide_Stream_givenColStreamType = Collide_Stream_PreRec_5;
 				Iolet_ID_AssocRange_Iolets_vect.resize(3*n_LocalInlets);
 				Iolet_ID_AssocRange_Iolets_vect = Iolets_InletWall_Inner;
 
@@ -2726,30 +2726,30 @@ namespace hemelb
 				get_Iolet_BCs(hemeIoletBC_Inlet, hemeIoletBC_Outlet);
 
 				// Cuda Streams
-				deviceStreamDestroy(Collide_Stream_PreSend_1);
-				deviceStreamDestroy(Collide_Stream_PreSend_2);
-				deviceStreamDestroy(Collide_Stream_PreSend_3);
-				deviceStreamDestroy(Collide_Stream_PreSend_4);
-				deviceStreamDestroy(Collide_Stream_PreSend_5);
-				deviceStreamDestroy(Collide_Stream_PreSend_6);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_1);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_2);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_3);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_4);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_5);
+				GPU::deviceStreamDestroy(Collide_Stream_PreSend_6);
 
-				deviceStreamDestroy(Collide_Stream_PreRec_1);
-				deviceStreamDestroy(Collide_Stream_PreRec_2);
-				deviceStreamDestroy(Collide_Stream_PreRec_3);
-				deviceStreamDestroy(Collide_Stream_PreRec_4);
-				deviceStreamDestroy(Collide_Stream_PreRec_5);
-				deviceStreamDestroy(Collide_Stream_PreRec_6);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_1);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_2);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_3);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_4);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_5);
+				GPU::deviceStreamDestroy(Collide_Stream_PreRec_6);
 				//	cudaStreamDestroy(stream_Read_distr_Data_GPU);
 
-				deviceStreamDestroy(stream_Read_Data_GPU_Dens);
+				GPU::deviceStreamDestroy(stream_Read_Data_GPU_Dens);
 
-				deviceStreamDestroy(stream_ghost_dens_inlet);
-				deviceStreamDestroy(stream_ghost_dens_outlet);
-				deviceStreamDestroy(stream_ReceivedDistr);
-				deviceStreamDestroy(stream_SwapOldAndNew);
-				deviceStreamDestroy(stream_memCpy_CPU_GPU_domainEdge);
+				GPU::deviceStreamDestroy(stream_ghost_dens_inlet);
+				GPU::deviceStreamDestroy(stream_ghost_dens_outlet);
+				GPU::deviceStreamDestroy(stream_ReceivedDistr);
+				GPU::deviceStreamDestroy(stream_SwapOldAndNew);
+				GPU::deviceStreamDestroy(stream_memCpy_CPU_GPU_domainEdge);
 
-				deviceStreamDestroy(stability_check_stream);
+				GPU::deviceStreamDestroy(stability_check_stream);
 
 				// Destroy the cuda stream created for the asynch. MemCopy DtH at the domain edges: created a stream in net::BaseNet object
 				hemelb::net::Net& mNet_cuda_stream = *mNet;	// Access the mNet object
@@ -2761,25 +2761,25 @@ namespace hemelb
 
 				// Free GPU memory
 				/*
-				cudaStatus = deviceFree(GPUDataAddr_dbl_fOld);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
+				cudaStatus = GPU::deviceFree(GPUDataAddr_dbl_fOld);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); return false; }
 
-				cudaStatus = deviceFree(GPUDataAddr_dbl_fNew);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
+				cudaStatus = GPU::deviceFree(GPUDataAddr_dbl_fNew);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); return false; }
 				*/
 
-				bool status =  deviceFree(GPUDataAddr_dbl_MacroVars);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				bool status =  GPU::deviceFree(GPUDataAddr_dbl_MacroVars);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				/*cudaStatus = deviceFree(GPUDataAddr_int64_Neigh);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
+				/*cudaStatus = GPU::deviceFree(GPUDataAddr_int64_Neigh);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); return false; }
 				*/
 
-				status = deviceFree(GPUDataAddr_uint32_Wall);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(GPUDataAddr_uint32_Wall);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				status = deviceFree(GPUDataAddr_uint32_Iolet);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(GPUDataAddr_uint32_Iolet);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
 				//----------------------------------------------------------------------
 				// Iolets Info:
@@ -2788,38 +2788,38 @@ namespace hemelb
 
 				/* // Fail to free the following - check using cudaPointerGetAttributes
 				if(GPUDataAddr_Inlet_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_Inlet_Edge);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (1) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_Inlet_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (1) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_InletWall_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_InletWall_Edge);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (2) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_InletWall_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (2) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_Outlet_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_Outlet_Edge);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (3) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_Outlet_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (3) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_OutletWall_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_OutletWall_Edge);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (4) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_OutletWall_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (4) failed\n"); finalise_GPU_res=false; }
 				}
 
 				// Inner domain Iolets' info
 				if(GPUDataAddr_Inlet_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_Inlet_Inner);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (5) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_Inlet_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (5) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_InletWall_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_InletWall_Inner);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (6) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_InletWall_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (6) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_Outlet_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_Outlet_Inner);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (7) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_Outlet_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (7) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_OutletWall_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_OutletWall_Inner);
-					if(!status){ fprintf(stderr, "deviceFree Iolets info (8) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_OutletWall_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree Iolets info (8) failed\n"); finalise_GPU_res=false; }
 				}
 				*/
 
@@ -2828,8 +2828,8 @@ namespace hemelb
 				if(mLatDat->GPUDataAddr_Inlet_velocityTable){
 					const hemelb::net::Net& rank_Com = *mNet;
 					int myPiD = rank_Com.Rank();
-					status = deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
-					if(!status){ fprintf(stderr, "Rank: %d deviceFree Velocity Table failed ptr=%xu  file: %s, line %s\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
+					status = GPU::deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
+					if(!status){ fprintf(stderr, "Rank: %d GPU::deviceFree Velocity Table failed ptr=%xu  file: %s, line %s\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
 				}
 
 				// Prefactor Wall Momemtum Correction
@@ -2845,79 +2845,79 @@ namespace hemelb
 
 				/* // Fail to free the following - check using cudaPointerGetAttributes
 				if(GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (1) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree prefactor wall momentum correction (1) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (2) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree prefactor wall momentum correction (2) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (3) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree prefactor wall momentum correction (3) failed\n"); finalise_GPU_res=false; }
 				}
 				if(GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (4) failed\n"); finalise_GPU_res=false; }
+					cudaStatus = GPU::deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree prefactor wall momentum correction (4) failed\n"); finalise_GPU_res=false; }
 				}
 
 				*/
 				//----------------------------------------------------------------------
 				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
-					status = deviceFree(d_ghostDensity);
-					if(!status){ fprintf(stderr, "deviceFree ghost Density inlet failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(d_ghostDensity);
+					if(!status){ fprintf(stderr, "GPU::deviceFree ghost Density inlet failed\n"); finalise_GPU_res=false; }
 				}
 
 				if (hemeIoletBC_Inlet == "LADDIOLET"){
 					if(GPUDataAddr_wallMom_correction_Inlet_Edge){
-						status = deviceFree(GPUDataAddr_wallMom_correction_Inlet_Edge);
-						if(!status){ fprintf(stderr, "deviceFree wall mom correction (1) inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Inlet_Edge);
+						if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (1) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_wallMom_correction_InletWall_Edge){
-						status  = deviceFree(GPUDataAddr_wallMom_correction_InletWall_Edge);
-						if(!status){ fprintf(stderr, "deviceFree wall mom correction (2) inlet  failed\n"); finalise_GPU_res=false; }
+						status  = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Edge);
+						if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (2) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_wallMom_correction_Inlet_Inner){
-						status = deviceFree(GPUDataAddr_wallMom_correction_Inlet_Inner);
-						if(!status){ fprintf(stderr, "deviceFree wall mom correction (3) inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Inlet_Inner);
+						if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (3) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_wallMom_correction_InletWall_Inner){
-						status = deviceFree(GPUDataAddr_wallMom_correction_InletWall_Inner);
-						if(!status){ fprintf(stderr, "deviceFree wall mom correction (4) inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Inner);
+						if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					// Only valid for the Vel Bcs Case: b. File
 					if(GPUDataAddr_pp_Inlet_weightsTable_coord){
-						status = deviceFree(GPUDataAddr_pp_Inlet_weightsTable_coord);
-						if(!status){ fprintf(stderr, "deviceFree pointer to pointers Coordinates in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_pp_Inlet_weightsTable_coord);
+						if(!status){ fprintf(stderr, "GPU::deviceFree pointer to pointers Coordinates in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_p_Inlet_weightsTable_wei){
-						status = deviceFree(GPUDataAddr_p_Inlet_weightsTable_wei);
-						if(!status){ fprintf(stderr, "deviceFree pointer to pointers weights in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_p_Inlet_weightsTable_wei);
+						if(!status){ fprintf(stderr, "GPU::deviceFree pointer to pointers weights in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					// Key value indices - Read these values from GPU Global mem instead of searching for the weight based on the key (xyz)
 					if(GPUDataAddr_index_weightTable_Inlet_Edge){
-						status = deviceFree(GPUDataAddr_index_weightTable_Inlet_Edge);
-						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_index_weightTable_Inlet_Edge);
+						if(!status){ fprintf(stderr, "GPU::deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_index_weightTable_InletWall_Edge){
-						status = deviceFree(GPUDataAddr_index_weightTable_InletWall_Edge);
-						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_index_weightTable_InletWall_Edge);
+						if(!status){ fprintf(stderr, "GPU::deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					if(GPUDataAddr_index_weightTable_Inlet_Inner){
-						status = deviceFree(GPUDataAddr_index_weightTable_Inlet_Inner);
-						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_index_weightTable_Inlet_Inner);
+						if(!status){ fprintf(stderr, "GPU::deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 					if(GPUDataAddr_index_weightTable_InletWall_Inner){
-						status = deviceFree(GPUDataAddr_index_weightTable_InletWall_Inner);
-						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
+						status = GPU::deviceFree(GPUDataAddr_index_weightTable_InletWall_Inner);
+						if(!status){ fprintf(stderr, "GPU::deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 				} // Closes the if (hemeIoletBC_Inlet == "LADDIOLET")
@@ -2937,8 +2937,8 @@ namespace hemelb
 
 
 				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
-					status = deviceFree(d_ghostDensity_out);
-					if(!status){ fprintf(stderr, "deviceFree ghost density outlet failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(d_ghostDensity_out);
+					if(!status){ fprintf(stderr, "GPU::deviceFree ghost density outlet failed\n"); finalise_GPU_res=false; }
 				}
 
 				if (hemeIoletBC_Outlet == "LADDIOLET"){
@@ -2948,44 +2948,44 @@ namespace hemelb
 					void *GPUDataAddr_wallMom_correction_Outlet_Inner;
 					void *GPUDataAddr_wallMom_correction_OutletWall_Inner;
 					*/
-					status = deviceFree(GPUDataAddr_wallMom_correction_Outlet_Edge);
-					if(!status){ fprintf(stderr, "deviceFree wall mom correction (1) outlet  failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Outlet_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (1) outlet  failed\n"); finalise_GPU_res=false; }
 
-					status = deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Edge);
-					if(!status){ fprintf(stderr, "deviceFree wall mom correction (2) outlet  failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Edge);
+					if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (2) outlet  failed\n"); finalise_GPU_res=false; }
 
-					status = deviceFree(GPUDataAddr_wallMom_correction_Outlet_Inner);
-					if(!status){ fprintf(stderr, "deviceFree wall mom correction (3) outlet  failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Outlet_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (3) outlet  failed\n"); finalise_GPU_res=false; }
 
-					status = deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Inner);
-					if(!status){ fprintf(stderr, "deviceFree wall mom correction (4) outlet  failed\n"); finalise_GPU_res=false; }
+					status = GPU::deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Inner);
+					if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4) outlet  failed\n"); finalise_GPU_res=false; }
 				}
 
 				//----------------------------------------------------------------------
 
-				status = deviceFree(d_inletNormal);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(d_inletNormal);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				status = deviceFree(d_outletNormal);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(d_outletNormal);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				status = deviceFree(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				status = deviceFree(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
-				status = deviceFree(GPUDataAddr_int64_Neigh_d);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
+				status = GPU::deviceFree(GPUDataAddr_int64_Neigh_d);
+				if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
 
 				/*
 				// Free up pinned Memory
-				status = deviceFreeHost(Data_D2H_memcpy_totalSharedFs);
-				if(!status){ fprintf(stderr, "deviceFreeHost Data_D2H_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
+				status = GPU::deviceFreeHost(Data_D2H_memcpy_totalSharedFs);
+				if(!status){ fprintf(stderr, "GPU::deviceFreeHost Data_D2H_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
 
-				status = deviceFreeHost(Data_H2D_memcpy_totalSharedFs);
-				if(!status){ fprintf(stderr, "deviceFreeHost Data_H2D_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
+				status = GPU::deviceFreeHost(Data_H2D_memcpy_totalSharedFs);
+				if(!status){ fprintf(stderr, "GPU::deviceFreeHost Data_H2D_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
 				*/
 
 
@@ -3002,7 +3002,7 @@ namespace hemelb
 					void *GPUDataAddr_wallMom_OutletWall_Inner;
 				*/
 
-				//printf("deviceFree - Delete dynamically allocated memory on the GPU.\n\n");
+				//printf("GPU::deviceFree - Delete dynamically allocated memory on the GPU.\n\n");
 
 				return finalise_GPU_res;
 			}
@@ -3039,7 +3039,7 @@ template<class LatticeType>
 				
 
 				// a. Available GPU mem.
-				size_t avail_GPU_mem = deviceGetProperties(myPiD);
+				size_t avail_GPU_mem = GPU::deviceGetProperties(myPiD);
 
 				// b. Rough estimate of the GPU Memory requested:
 				// Total number of fluid sites and totSharedFs
@@ -3091,7 +3091,7 @@ template<class LatticeType>
 				// Number of elements (type double / distribn_t)
 				// uint64_t nArray_MacroVars = nFluid_nodes; // uint64_t (unsigned long long int)
 
-				bool status = deviceMalloc((void**)&GPUDataAddr_dbl_MacroVars, TotalMem_dbl_MacroVars);
+				bool status = GPU::deviceMalloc((void**)&GPUDataAddr_dbl_MacroVars, TotalMem_dbl_MacroVars);
 				if(!status){
 					fprintf(stderr, "GPU memory allocation MacroVariables failed\n");
 					initialise_GPU_res = false;
@@ -3160,15 +3160,15 @@ template<class LatticeType>
 				// Access the pointer to global memory declared in class LatticeData (GPUDataAddr_dbl_fOld_b_mLatDat)
 				// (geometry::LatticeData* mLatDat;)
 				// Memory copy from host (Data_dbl_fOld_b) to Device (mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)
-				// cudaStatus = deviceMallocManaged((void**)&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat), nArray_Distr * sizeof(distribn_t));
-				status = deviceMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat), nArray_Distr * sizeof(distribn_t));
+				// cudaStatus = GPU::deviceMallocManaged((void**)&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat), nArray_Distr * sizeof(distribn_t));
+				status = GPU::deviceMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat), nArray_Distr * sizeof(distribn_t));
 				if(!status) {
 					fprintf(stderr, "Device Malloc Failed\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 				}
-				status = deviceMemcpy(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-																	Data_dbl_fOld_b, nArray_Distr * sizeof(distribn_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+																	Data_dbl_fOld_b, nArray_Distr * sizeof(distribn_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device failed\n");
 					initialise_GPU_res = false;
@@ -3176,8 +3176,8 @@ template<class LatticeType>
 					//return false;
 				}
 
-				//cudaStatus = deviceMallocManaged((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
-				status = deviceMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
+				//cudaStatus = GPU::deviceMallocManaged((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
+				status = GPU::deviceMalloc((void**)&(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat), nArray_Distr * sizeof(distribn_t));
 				
 				if(!status) {
 					fprintf(stderr, "Device Malloc2 Failed\n");
@@ -3185,8 +3185,8 @@ template<class LatticeType>
 					return initialise_GPU_res;
 				}
 
-				status = deviceMemcpy(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
-																	Data_dbl_fNew_b, nArray_Distr * sizeof(distribn_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+																	Data_dbl_fNew_b, nArray_Distr * sizeof(distribn_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device failed\n");
 					initialise_GPU_res = false;
@@ -3267,7 +3267,7 @@ template<class LatticeType>
 				// ------------------------------------------------------------------------
 				//	d. Arrange by index_LB, i.e. neigh_0[0 to (nFluid_nodes-1)], neigh_1[0 to (nFluid_nodes-1)], ..., neigh_(q-1)[0 to (nFluid_nodes-1)]
 				//	 		But refer to ACTUAL address in Global memory (method b) for the FLUID ID index - TO BE USED ONLY when in PreReceive() - streaming in the simulation domain!!!
-				status = deviceMalloc((void**)&GPUDataAddr_int64_Neigh_d, nArray_Neigh * sizeof(site_t));
+				status = GPU::deviceMalloc((void**)&GPUDataAddr_int64_Neigh_d, nArray_Neigh * sizeof(site_t));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation for Neigh.(d) failed\n");
 					initialise_GPU_res = false;
@@ -3276,7 +3276,7 @@ template<class LatticeType>
 				}
 
 				// Memory copy from host (Data_int64_Neigh_b) to Device (GPUDataAddr_int64_Neigh_b)
-				status = deviceMemcpy(GPUDataAddr_int64_Neigh_d, Data_int64_Neigh_d, nArray_Neigh * sizeof(site_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(GPUDataAddr_int64_Neigh_d, Data_int64_Neigh_d, nArray_Neigh * sizeof(site_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for Neigh.(d) failed\n");
 					initialise_GPU_res = false;
@@ -3345,7 +3345,7 @@ template<class LatticeType>
 				// Ends the loop for Filling the array Data_uint32_WallIntersect
 
 				// Alocate memory on the GPU
-				status = deviceMalloc((void**)&GPUDataAddr_uint32_Wall, nFluid_nodes * sizeof(uint32_t));
+				status = GPU::deviceMalloc((void**)&GPUDataAddr_uint32_Wall, nFluid_nodes * sizeof(uint32_t));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation for Wall-Fluid Intersection failed\n");
 					initialise_GPU_res = false;
@@ -3354,7 +3354,7 @@ template<class LatticeType>
 				}
 
 				// Memory copy from host (Data_uint32_WallIntersect) to Device (GPUDataAddr_uint32_Wall)
-				status = deviceMemcpy(GPUDataAddr_uint32_Wall, Data_uint32_WallIntersect, nFluid_nodes * sizeof(uint32_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(GPUDataAddr_uint32_Wall, Data_uint32_WallIntersect, nFluid_nodes * sizeof(uint32_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for Wall-Fluid Intersection failed\n");
 					initialise_GPU_res = false;
@@ -3439,7 +3439,7 @@ template<class LatticeType>
 				// Ends the loop for Filling the array Data_uint32_IoletIntersect
 
 				// Alocate memory on the GPU
-				status = deviceMalloc((void**)&GPUDataAddr_uint32_Iolet, nFluid_nodes * sizeof(uint32_t));
+				status = GPU::deviceMalloc((void**)&GPUDataAddr_uint32_Iolet, nFluid_nodes * sizeof(uint32_t));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation for Iolet-Fluid Intersection failed\n");
 					initialise_GPU_res = false;
@@ -3448,7 +3448,7 @@ template<class LatticeType>
 				}
 
 				// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-				status = deviceMemcpy(GPUDataAddr_uint32_Iolet, Data_uint32_IoletIntersect, nFluid_nodes * sizeof(uint32_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(GPUDataAddr_uint32_Iolet, Data_uint32_IoletIntersect, nFluid_nodes * sizeof(uint32_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for Iolet failed\n");
 					initialise_GPU_res = false;
@@ -3557,7 +3557,7 @@ template<class LatticeType>
 					std::cout << "\n\n"; */
 					//
 					site_t MemSz = 3 * n_LocalInlets_mInlet_Edge *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_Inlet_Edge, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_Inlet_Edge, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Inlet Edge failed...\n");
 						initialise_GPU_res = false;
@@ -3565,7 +3565,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_Inlet_Edge, &Iolets_Inlet_Edge[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_Inlet_Edge, &Iolets_Inlet_Edge[0], MemSz, GPU::memcpyHostToDevice);
 					if( !status ){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Edge failed... \n");
 						initialise_GPU_res = false;
@@ -3597,7 +3597,7 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 
 					site_t MemSz = 3 * n_LocalInlets_mInletWall_Edge *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_InletWall_Edge, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_InletWall_Edge, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Edge failed...\n");
 						initialise_GPU_res = false;
@@ -3605,7 +3605,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_InletWall_Edge, &Iolets_InletWall_Edge[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_InletWall_Edge, &Iolets_InletWall_Edge[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Edge failed... \n");
 						initialise_GPU_res = false;
@@ -3650,7 +3650,7 @@ template<class LatticeType>
 					//
 
 					site_t MemSz = 3 * n_LocalInlets_mInlet *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_Inlet_Inner, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_Inlet_Inner, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Inlet Inner failed...\n");
 						initialise_GPU_res = false;
@@ -3658,7 +3658,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_Inlet_Inner, &Iolets_Inlet_Inner[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_Inlet_Inner, &Iolets_Inlet_Inner[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Inner failed\n");
 						initialise_GPU_res = false;
@@ -3669,10 +3669,10 @@ template<class LatticeType>
 					// Debugging
 					/*// GPU results
 					site_t* Data_Iolets_Inlet_Inner_GPU = new site_t[3 * n_LocalInlets_mInlet];
-					status = deviceMemcpy(Data_Iolets_Inlet_Inner_GPU, GPUDataAddr_Inlet_Inner, MemSz, memcpyDeviceToHost);
+					status = GPU::deviceMemcpy(Data_Iolets_Inlet_Inner_GPU, GPUDataAddr_Inlet_Inner, MemSz, GPU::memcpyDeviceToHost);
 
 					if(!status){
-						const char * eStr = deviceGetErrorString();
+						const char * eStr = GPU::deviceGetErrorString();
 						printf("GPU memory copy D2H for Data_Iolets_Inlet_Inner_GPU failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
 						initialise_GPU_res = false; return initialise_GPU_res;
 					}
@@ -3701,7 +3701,7 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 
 					site_t MemSz = 3 * n_LocalInlets_mInletWall *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_InletWall_Inner, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_InletWall_Inner, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Inlet Wall Inner failed...\n");
 						initialise_GPU_res = false;
@@ -3709,7 +3709,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_InletWall_Inner, &Iolets_InletWall_Inner[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_InletWall_Inner, &Iolets_InletWall_Inner[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Inlet Wall Inner failed... \n");
 						initialise_GPU_res = false;
@@ -3754,7 +3754,7 @@ template<class LatticeType>
 						std::cout << ' ' << Iolets_Outlet_Edge[3*index];
 					std::cout << "\n\n";*/
 					site_t MemSz = 3 * n_LocalOutlets_mOutlet_Edge *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_Outlet_Edge, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_Outlet_Edge, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Outlet Edge failed...\n");
 						initialise_GPU_res = false;
@@ -3762,7 +3762,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_Outlet_Edge, &Iolets_Outlet_Edge[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_Outlet_Edge, &Iolets_Outlet_Edge[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Edge failed... \n");
 						initialise_GPU_res = false;
@@ -3786,7 +3786,7 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutletWall_Edge *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_OutletWall_Edge, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_OutletWall_Edge, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Edge failed...\n");
 						initialise_GPU_res = false;
@@ -3794,7 +3794,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_OutletWall_Edge, &Iolets_OutletWall_Edge[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_OutletWall_Edge, &Iolets_OutletWall_Edge[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Edge failed... \n");
 						initialise_GPU_res = false;
@@ -3834,7 +3834,7 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutlet *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_Outlet_Inner, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_Outlet_Inner, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Outlet Inner failed...\n");
 						initialise_GPU_res = false;
@@ -3842,7 +3842,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_Outlet_Inner, &Iolets_Outlet_Inner[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_Outlet_Inner, &Iolets_Outlet_Inner[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Inner failed... \n");
 						initialise_GPU_res = false;
@@ -3866,7 +3866,7 @@ template<class LatticeType>
 					std::cout << "\n\n";*/
 
 					site_t MemSz = 3 * n_LocalOutlets_mOutletWall *  sizeof(site_t);
-					status = deviceMalloc((void**)&GPUDataAddr_OutletWall_Inner, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_OutletWall_Inner, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Iolet: Outlet Wall Inner failed...\n");
 						initialise_GPU_res = false;
@@ -3874,7 +3874,7 @@ template<class LatticeType>
 					}
 
 					// Memory copy from host (Data_uint32_IoletIntersect) to Device (GPUDataAddr_uint32_Iolet)
-					status = deviceMemcpy(GPUDataAddr_OutletWall_Inner, &Iolets_OutletWall_Inner[0], MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_OutletWall_Inner, &Iolets_OutletWall_Inner[0], MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer Host To Device for Iolet: Outlet Wall Inner failed... \n");
 						initialise_GPU_res = false;
@@ -3948,7 +3948,7 @@ template<class LatticeType>
 				//----------------------------------------------------------------------
 				// ***** Pressure BCs ***** Option: "NASHZEROTHORDERPRESSUREIOLET" - CMake file
 				// 	Set the Ghost Density if Inlet/Outlet BCs is set to NashZerothOrderPressure
-				// 	Just allocate the memory as the ghostDensity can change as a function of time. MemCopies(host-to-device) before the gpu inlet/outlet collision kernels
+				// 	Just allocate the memory as the ghostDensity can change as a function of time. MemCopies(host-to-GPU::device) before the gpu inlet/outlet collision kernels
 				//----------------------------------------------------------------------
 
 				/** New - Oct 2022:
@@ -3976,7 +3976,7 @@ template<class LatticeType>
 					if(site_Count_Inlet_Edge!=0){
 						// Correction term
 						MemSz = site_Count_Inlet_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - Inlet Edge failed\n");
 							initialise_GPU_res = false;
@@ -3988,7 +3988,7 @@ template<class LatticeType>
 					if(site_Count_InletWall_Edge!=0){
 						// Correction term
 						MemSz = site_Count_InletWall_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - InletWall Edge failed\n");
 							initialise_GPU_res = false;
@@ -4000,7 +4000,7 @@ template<class LatticeType>
 					if(site_Count_Inlet_Inner!=0){
 						// Correction term
 						MemSz = site_Count_Inlet_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - Inlet Inner failed\n");
 							initialise_GPU_res = false;
@@ -4012,7 +4012,7 @@ template<class LatticeType>
 					if(site_Count_InletWall_Inner!=0){
 						// Correction term
 						MemSz = site_Count_InletWall_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - InletWall Inner failed\n");
 							initialise_GPU_res = false;
@@ -4026,7 +4026,7 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU for the case of Inlet Pressure BCs
 					// Ghost Density Inlet
-					status = deviceMalloc((void**)&d_ghostDensity, n_Inlets * sizeof(distribn_t));
+					status = GPU::deviceMalloc((void**)&d_ghostDensity, n_Inlets * sizeof(distribn_t));
 					if(!status){
 						fprintf(stderr, "GPU memory allocation ghostDensity - Inlets failed\n");
 						initialise_GPU_res = false;
@@ -4045,7 +4045,7 @@ template<class LatticeType>
 					if(site_Count_Outlet_Edge!=0){
 						// Correction term
 						MemSz = site_Count_Outlet_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - Outlet Edge failed\n");
 							initialise_GPU_res = false;
@@ -4057,7 +4057,7 @@ template<class LatticeType>
 					if(site_Count_OutletWall_Edge!=0){
 						// Correction term
 						MemSz = site_Count_OutletWall_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - OutletWall Edge failed\n");
 							initialise_GPU_res = false;
@@ -4069,7 +4069,7 @@ template<class LatticeType>
 					if(site_Count_Outlet_Inner!=0){
 						// Correction term
 						MemSz = site_Count_Outlet_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - Outlet Inner failed\n");
 							initialise_GPU_res = false;
@@ -4081,7 +4081,7 @@ template<class LatticeType>
 					if(site_Count_OutletWall_Inner!=0){
 						// Correction term
 						MemSz = site_Count_OutletWall_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom - OutletWall Inner failed\n");
 							initialise_GPU_res = false;
@@ -4095,7 +4095,7 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU for the case of Outlet Pressure BCs
 					// Ghost Density Outlet
-					status = deviceMalloc((void**)&d_ghostDensity_out, n_Outlets * sizeof(distribn_t));
+					status = GPU::deviceMalloc((void**)&d_ghostDensity_out, n_Outlets * sizeof(distribn_t));
 					if(!status){
 						fprintf(stderr, "GPU memory allocation ghostDensity - Outlets failed\n");
 						initialise_GPU_res = false;
@@ -4116,14 +4116,14 @@ template<class LatticeType>
 					//std::cout << "Cout: ioletNormal.x : " <<  h_inletNormal[i] << " - ioletNormal.y : " <<  h_inletNormal[i+1] << " - ioletNormal.z : " <<  h_inletNormal[i+2] << std::endl;
 				}
 
-				status = deviceMalloc((void**)&d_inletNormal, 3*n_Inlets * sizeof(float));
+				status = GPU::deviceMalloc((void**)&d_inletNormal, 3*n_Inlets * sizeof(float));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation inletNormal failed\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 				}
 				// Memory copy from host (h_inletNormal) to Device (d_inletNormal)
-				status = deviceMemcpy(d_inletNormal, h_inletNormal, 3*n_Inlets * sizeof(float), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(d_inletNormal, h_inletNormal, 3*n_Inlets * sizeof(float), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer (inletNormal) Host To Device failed\n");
 					initialise_GPU_res = false;
@@ -4140,14 +4140,14 @@ template<class LatticeType>
 					//std::cout << "Cout: ioletNormal.x : " <<  h_outletNormal[3*i] << " - ioletNormal.y : " <<  h_outletNormal[3*i+1] << " - ioletNormal.z : " <<  h_outletNormal[3*i+2] << std::endl;
 				}
 
-				status = deviceMalloc((void**)&d_outletNormal, 3*n_Outlets * sizeof(float));
+				status = GPU::deviceMalloc((void**)&d_outletNormal, 3*n_Outlets * sizeof(float));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation outletNormal failed\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res; //return false;
 				}
 				// Memory copy from host (h_outletNormal) to Device (d_outletNormal)
-				status = deviceMemcpy(d_outletNormal, h_outletNormal, 3*n_Outlets * sizeof(float), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(d_outletNormal, h_outletNormal, 3*n_Outlets * sizeof(float), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer (outletNormal) Host To Device failed\n");
 					initialise_GPU_res = false;
@@ -4285,15 +4285,15 @@ template<class LatticeType>
 							}
 						}
 
-						status = deviceMalloc((void**)&(mLatDat->GPUDataAddr_Inlet_velocityTable),  TotalMem_Inlet_velocityTable);
+						status = GPU::deviceMalloc((void**)&(mLatDat->GPUDataAddr_Inlet_velocityTable),  TotalMem_Inlet_velocityTable);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation for Velocity Table failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res;
 						}
 
 						// Memory copy from host (Data_dbl_Inlet_velocityTable) to Device (GPUDataAddr_Inlet_velocityTable)
-						status = deviceMemcpy(mLatDat->GPUDataAddr_Inlet_velocityTable,
-																		Data_dbl_Inlet_velocityTable,  TotalMem_Inlet_velocityTable, memcpyHostToDevice);
+						status = GPU::deviceMemcpy(mLatDat->GPUDataAddr_Inlet_velocityTable,
+																		Data_dbl_Inlet_velocityTable,  TotalMem_Inlet_velocityTable, GPU::memcpyHostToDevice);
 						if(!status){
 							fprintf(stderr, "GPU memory transfer Host To Device for Velocity Table failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res;
@@ -4355,7 +4355,7 @@ template<class LatticeType>
 
 						// Allocate memory on the GPU (global memory)
 						site_t MemSz = nArr_Coords_iolets *  sizeof(int64_t); 	// site_t (int64_t) Check that will remain like this in the future
-						status = deviceMalloc((void**)&GPUDataAddr_Coords_Inlet_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_Coords_Inlet_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation - Coords for Iolets (Inlet_Edge) EXPANDED version - failed...\n");
 						}
@@ -4379,11 +4379,11 @@ template<class LatticeType>
 							Data_int64_Coords_iolets[shifted_Fluid_Ind*3+2] = z_coord;
 						}
 						// Perform a HtD memcpy (from Data_int64_Coords_iolets to GPUDataAddr_Coords_iolets)
-			 			status = deviceMemcpy(GPUDataAddr_Coords_Inlet_Edge,
-				 													&Data_int64_Coords_iolets[0], MemSz, memcpyHostToDevice);
+			 			status = GPU::deviceMemcpy(GPUDataAddr_Coords_Inlet_Edge,
+				 													&Data_int64_Coords_iolets[0], MemSz, GPU::memcpyHostToDevice);
 
 						if(!status){
-		     			const char * eStr = deviceGetErrorString();
+		     			const char * eStr = GPU::deviceGetErrorString();
 		     			printf("GPU memory copy for IOLETS (Inlet_Edge) coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 							initialise_GPU_res = false; return initialise_GPU_res;
 		   			}
@@ -4418,7 +4418,7 @@ template<class LatticeType>
 
 							// Allocate memory on the GPU (global memory)
 							site_t MemSz = nArr_Coords_iolets *  sizeof(int64_t); 	// site_t (int64_t) Check that will remain like this in the future
-							status = deviceMalloc((void**)&GPUDataAddr_Coords_InletWall_Edge, MemSz);
+							status = GPU::deviceMalloc((void**)&GPUDataAddr_Coords_InletWall_Edge, MemSz);
 							if(!status){
 								fprintf(stderr, "GPU memory allocation - Coords for Iolets (InletWall_Edge) EXPANDED version - failed...\n");
 							}
@@ -4442,11 +4442,11 @@ template<class LatticeType>
 								Data_int64_Coords_iolets[shifted_Fluid_Ind*3+2] = z_coord;
 							}
 							// Perform a HtD memcpy (from Data_int64_Coords_iolets to GPUDataAddr_Coords_iolets)
-				 			status = deviceMemcpy(GPUDataAddr_Coords_InletWall_Edge,
-					 													&Data_int64_Coords_iolets[0], MemSz, memcpyHostToDevice);
+				 			status = GPU::deviceMemcpy(GPUDataAddr_Coords_InletWall_Edge,
+					 													&Data_int64_Coords_iolets[0], MemSz, GPU::memcpyHostToDevice);
 
 							if(!status){
-			     			const char * eStr = deviceGetErrorString();
+			     			const char * eStr = GPU::deviceGetErrorString();
 			     			printf("GPU memory copy for IOLETS (InletWall_Edge) coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 								initialise_GPU_res = false; return initialise_GPU_res;
 			   			}
@@ -4484,7 +4484,7 @@ template<class LatticeType>
 
 						// Allocate memory on the GPU (global memory)
 						site_t MemSz = nArr_Coords_iolets *  sizeof(int64_t); 	// site_t (int64_t) Check that will remain like this in the future
-						status = deviceMalloc((void**)&GPUDataAddr_Coords_Inlet_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_Coords_Inlet_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation - Coords for Iolets EXPANDED version - failed...\n");
 						}
@@ -4508,11 +4508,11 @@ template<class LatticeType>
 							Data_int64_Coords_iolets[shifted_Fluid_Ind*3+2] = z_coord;
 						}
 						// Perform a HtD memcpy (from Data_int64_Coords_iolets to GPUDataAddr_Coords_iolets)
-			 			status = deviceMemcpy(GPUDataAddr_Coords_Inlet_Inner,
-				 													&Data_int64_Coords_iolets[0], MemSz, memcpyHostToDevice);
+			 			status = GPU::deviceMemcpy(GPUDataAddr_Coords_Inlet_Inner,
+				 													&Data_int64_Coords_iolets[0], MemSz, GPU::memcpyHostToDevice);
 
 						if(!status){
-		     			const char * eStr = deviceGetErrorString();
+		     			const char * eStr = GPU::deviceGetErrorString();
 		     			printf("GPU memory copy for IOLETS (Inlet_Inner) coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 							initialise_GPU_res = false; return initialise_GPU_res;
 		   			}
@@ -4547,7 +4547,7 @@ template<class LatticeType>
 
 						// Allocate memory on the GPU (global memory)
 						MemSz = nArr_Coords_iolets *  sizeof(int64_t); 	// site_t (int64_t) Check that will remain like this in the future
-						status = deviceMalloc((void**)&GPUDataAddr_Coords_InletWall_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_Coords_InletWall_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation - Coords for Iolets InletWall Inner EXPANDED version - failed...\n");
 						}
@@ -4571,10 +4571,10 @@ template<class LatticeType>
 							Data_int64_Coords_iolets[shifted_Fluid_Ind*3+2] = z_coord;
 						}
 						// Perform a HtD memcpy (from Data_int64_Coords_iolets to GPUDataAddr_Coords_iolets)
-						status = deviceMemcpy(GPUDataAddr_Coords_InletWall_Inner,
-																	&Data_int64_Coords_iolets[0], MemSz, memcpyHostToDevice);
+						status = GPU::deviceMemcpy(GPUDataAddr_Coords_InletWall_Inner,
+																	&Data_int64_Coords_iolets[0], MemSz, GPU::memcpyHostToDevice);
 						if(!status){
-							const char * eStr = deviceGetErrorString();
+							const char * eStr = GPU::deviceGetErrorString();
 							printf("GPU memory copy for IOLETS (Inlet_Inner) coordinates failed with error: \"%s\" at proc# %i - SiteCount: %lld \n", eStr, myPiD, siteCount);
 							initialise_GPU_res = false; return initialise_GPU_res;
 						}
@@ -4717,8 +4717,8 @@ template<class LatticeType>
 						//------------------------------------------------------------------
 						// Pointer to (n_Inlets) number of pointers
 						// printf("Rank = %d - Number of inlets = %d \n\n", myPiD, n_Inlets ); // correct - n_Inlets=1
-						status = deviceMalloc((void**)&GPUDataAddr_pp_Inlet_weightsTable_coord, sizeof(int64_t*) * n_Inlets);   		// points to n_Inlets pointers
-						status = deviceMalloc((void**)&GPUDataAddr_pp_Inlet_weightsTable_wei, sizeof(distribn_t*) * n_Inlets);	// points to n_Inlets pointers
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_pp_Inlet_weightsTable_coord, sizeof(int64_t*) * n_Inlets);   		// points to n_Inlets pointers
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_pp_Inlet_weightsTable_wei, sizeof(distribn_t*) * n_Inlets);	// points to n_Inlets pointers
 
 						// 2. Move the data to the GPU - Loop over each one of the inlets
 						for (int index_inlet = 0; index_inlet < n_Inlets; index_inlet++)
@@ -4728,8 +4728,8 @@ template<class LatticeType>
 
 							//----------------------------------------------------------------
 							// a. Coordinates of the points in the weights_table as in Data_int_Inlet_weightsTable_coord
-							// Allocates memory on the device
-							status = deviceMalloc((void**)&GPUDataAddr_p_Inlet_weightsTable_coord, 3 * arr_elementsInEachInlet[index_inlet] * sizeof(int64_t));
+							// Allocates memory on the GPU::device
+							status = GPU::deviceMalloc((void**)&GPUDataAddr_p_Inlet_weightsTable_coord, 3 * arr_elementsInEachInlet[index_inlet] * sizeof(int64_t));
 							if(!status){
 								fprintf(stderr, "GPU memory allocation for coordinates in the weights_table failed...\n");
 								initialise_GPU_res = false; return initialise_GPU_res;
@@ -4739,19 +4739,19 @@ template<class LatticeType>
 							// Note:
 							//	1) &GPUDataAddr_p_Inlet_weightsTable_coord is a HOST pointer (contains the data of the coordinates)
 							//	2) If such arrays of addresses need to be passed to a kernel, they can be initialized in the
-							//			pinned memory which the device can access directly.
+							//			pinned memory which the GPU::device can access directly.
 							//------------------------
 							//printf("Rank: %d, nElements (lines) : %d After reading from file weights_table at inlet ID : %d \n", myPiD, arr_elementsInEachInlet[index_inlet], index_inlet);
 
-							deviceMemcpy(GPUDataAddr_p_Inlet_weightsTable_coord,  // destination Device
+							GPU::deviceMemcpy(GPUDataAddr_p_Inlet_weightsTable_coord,  // destination Device
 				                 Data_int_Inlet_weightsTable_coord[index_inlet],     // source Host!!! &GPUDataAddr_p_Inlet_weightsTable_coord is a host pointer
-				                 3 * arr_elementsInEachInlet[index_inlet] * sizeof(int64_t), memcpyHostToDevice);
+				                 3 * arr_elementsInEachInlet[index_inlet] * sizeof(int64_t), GPU::memcpyHostToDevice);
 							//------------------------
 
 							// &GPUDataAddr_p_Inlet_weightsTable_coord is a host pointer
-							status = deviceMemcpy(&GPUDataAddr_pp_Inlet_weightsTable_coord[index_inlet],  // destination Device
+							status = GPU::deviceMemcpy(&GPUDataAddr_pp_Inlet_weightsTable_coord[index_inlet],  // destination Device
 				                  						&GPUDataAddr_p_Inlet_weightsTable_coord,     // source Host!!! &GPUDataAddr_p_Inlet_weightsTable_coord is a host pointer
-				                  						sizeof(int64_t*), memcpyHostToDevice);
+				                  						sizeof(int64_t*), GPU::memcpyHostToDevice);
 							if(!status){
 								fprintf(stderr, "GPU memory copy H2D for coordinates in the weights_table failed...\n");
 								initialise_GPU_res = false; return initialise_GPU_res;
@@ -4760,16 +4760,16 @@ template<class LatticeType>
 
 							//----------------------------------------------------------------
 							// b. weights in the weights_table as in Data_dbl_Inlet_weightsTable_wei
-							deviceMalloc(&GPUDataAddr_p_Inlet_weightsTable_wei, sizeof(distribn_t) * arr_elementsInEachInlet[index_inlet]);
+							GPU::deviceMalloc(&GPUDataAddr_p_Inlet_weightsTable_wei, sizeof(distribn_t) * arr_elementsInEachInlet[index_inlet]);
 							// &GPUDataAddr_p_Inlet_weightsTable_wei is a host pointer - points to Data_dbl_Inlet_weightsTable_wei[index_inlet]
 
-							deviceMemcpy(GPUDataAddr_p_Inlet_weightsTable_wei,  // destination Device
+							GPU::deviceMemcpy(GPUDataAddr_p_Inlet_weightsTable_wei,  // destination Device
 				                 Data_dbl_Inlet_weightsTable_wei[index_inlet],     // source Host!!! &GPUDataAddr_p_Inlet_weightsTable_coord is a host pointer
-				                 arr_elementsInEachInlet[index_inlet] * sizeof(distribn_t), memcpyHostToDevice);
+				                 arr_elementsInEachInlet[index_inlet] * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
-							deviceMemcpy(&GPUDataAddr_pp_Inlet_weightsTable_wei[index_inlet],  	// destination Device
+							GPU::deviceMemcpy(&GPUDataAddr_pp_Inlet_weightsTable_wei[index_inlet],  	// destination Device
 				                  &GPUDataAddr_p_Inlet_weightsTable_wei,     						// source Host
-				                  sizeof(distribn_t*), memcpyHostToDevice);
+				                  sizeof(distribn_t*), GPU::memcpyHostToDevice);
 						//------------------------------------------------------------------
 
 							// After the MemCopy to the GPU has completed - delete/free memory
@@ -4790,7 +4790,7 @@ template<class LatticeType>
 										So that we do not have to do the search on the GPU for the appropriate weight to be used (depending on the local coordinates)
 
 										Maybe in the future consider using thrust vectors...
-										see https://stackoverflow.com/questions/11113485/how-to-cast-thrustdevice-vectorint-to-raw-pointer
+										see https://stackoverflow.com/questions/11113485/how-to-cast-thrustGPU::device-vectorint-to-raw-pointer
 
 									with the array shifted index by the starting Fluid ID for that corresponding type of collision-streaming
 										i.e. std::vector<int64_t> index_weightTable:
@@ -4884,14 +4884,14 @@ template<class LatticeType>
 
 							// Allocate memory on the GPU
 							bool status_1, status_2, status_3, status_4;
-							status_1 = deviceMalloc((void**)&GPUDataAddr_index_weightTable_Inlet_Edge, n_elements_reserved * sizeof(int64_t));
-							status_2 = deviceMalloc((void**)&GPUDataAddr_weightTable_Inlet_Edge, n_elements_reserved * sizeof(distribn_t));
+							status_1 = GPU::deviceMalloc((void**)&GPUDataAddr_index_weightTable_Inlet_Edge, n_elements_reserved * sizeof(int64_t));
+							status_2 = GPU::deviceMalloc((void**)&GPUDataAddr_weightTable_Inlet_Edge, n_elements_reserved * sizeof(distribn_t));
 
 							// Host-to-Device memory copy
-							status_3 = deviceMemcpy(GPUDataAddr_index_weightTable_Inlet_Edge,
-																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), memcpyHostToDevice);
-							status_4 = deviceMemcpy(GPUDataAddr_weightTable_Inlet_Edge,
-																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), memcpyHostToDevice);
+							status_3 = GPU::deviceMemcpy(GPUDataAddr_index_weightTable_Inlet_Edge,
+																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), GPU::memcpyHostToDevice);
+							status_4 = GPU::deviceMemcpy(GPUDataAddr_weightTable_Inlet_Edge,
+																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 							if(status_1 != cudaSuccess || status_2 != cudaSuccess || status_3 != cudaSuccess || status_4 != cudaSuccess ){
 								fprintf(stderr, "GPU memory allocation and transfer Host To Device - key value indices and/or WeightsTable failed\n");
@@ -4964,15 +4964,15 @@ template<class LatticeType>
 
 							// Allocate memory on the GPU
 							bool status_1, status_2, status_3, status_4;
-							status_1 = deviceMalloc((void**)&GPUDataAddr_index_weightTable_InletWall_Edge, n_elements_reserved * sizeof(int64_t));
-							status_2 = deviceMalloc((void**)&GPUDataAddr_weightTable_InletWall_Edge, n_elements_reserved * sizeof(distribn_t));
+							status_1 = GPU::deviceMalloc((void**)&GPUDataAddr_index_weightTable_InletWall_Edge, n_elements_reserved * sizeof(int64_t));
+							status_2 = GPU::deviceMalloc((void**)&GPUDataAddr_weightTable_InletWall_Edge, n_elements_reserved * sizeof(distribn_t));
 
 
 							// Host-to-Device memory copy
-							status_3 = deviceMemcpy(GPUDataAddr_index_weightTable_InletWall_Edge,
-																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), memcpyHostToDevice);
-							status_4 = deviceMemcpy(GPUDataAddr_weightTable_InletWall_Edge,
-																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), memcpyHostToDevice);
+							status_3 = GPU::deviceMemcpy(GPUDataAddr_index_weightTable_InletWall_Edge,
+																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), GPU::memcpyHostToDevice);
+							status_4 = GPU::deviceMemcpy(GPUDataAddr_weightTable_InletWall_Edge,
+																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 							if(status_1 != cudaSuccess || status_2 != cudaSuccess || status_3 != cudaSuccess || status_4 != cudaSuccess ){
 								fprintf(stderr, "GPU memory allocation and transfer Host To Device - key value indices and/or WeightsTable failed\n");
@@ -5045,14 +5045,14 @@ template<class LatticeType>
 
 							// Allocate memory on the GPU
 							bool status_1, status_2, status_3, status_4;
-							status_1 = deviceMalloc((void**)&GPUDataAddr_index_weightTable_Inlet_Inner, n_elements_reserved * sizeof(int64_t));
-							status_2 = deviceMalloc((void**)&GPUDataAddr_weightTable_Inlet_Inner, n_elements_reserved * sizeof(distribn_t));
+							status_1 = GPU::deviceMalloc((void**)&GPUDataAddr_index_weightTable_Inlet_Inner, n_elements_reserved * sizeof(int64_t));
+							status_2 = GPU::deviceMalloc((void**)&GPUDataAddr_weightTable_Inlet_Inner, n_elements_reserved * sizeof(distribn_t));
 
 							// Host-to-Device memory copy
-							status_3 = deviceMemcpy(GPUDataAddr_index_weightTable_Inlet_Inner,
-																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), memcpyHostToDevice);
-							status_4 = deviceMemcpy(GPUDataAddr_weightTable_Inlet_Inner,
-																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), memcpyHostToDevice);
+							status_3 = GPU::deviceMemcpy(GPUDataAddr_index_weightTable_Inlet_Inner,
+																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), GPU::memcpyHostToDevice);
+							status_4 = GPU::deviceMemcpy(GPUDataAddr_weightTable_Inlet_Inner,
+																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 							if(status_1 != cudaSuccess || status_2 != cudaSuccess || status_3 != cudaSuccess || status_4 != cudaSuccess ){
 								fprintf(stderr, "GPU memory allocation and transfer Host To Device - key value indices and/or WeightsTable failed\n");
@@ -5126,14 +5126,14 @@ template<class LatticeType>
 
 							// Allocate memory on the GPU
 							bool status_1, status_2, status_3, status_4;
-							status_1 = deviceMalloc((void**)&GPUDataAddr_index_weightTable_InletWall_Inner, n_elements_reserved * sizeof(int64_t));
-							status_2 = deviceMalloc((void**)&GPUDataAddr_weightTable_InletWall_Inner, n_elements_reserved * sizeof(distribn_t));
+							status_1 = GPU::deviceMalloc((void**)&GPUDataAddr_index_weightTable_InletWall_Inner, n_elements_reserved * sizeof(int64_t));
+							status_2 = GPU::deviceMalloc((void**)&GPUDataAddr_weightTable_InletWall_Inner, n_elements_reserved * sizeof(distribn_t));
 
 							// Host-to-Device memory copy
-							status_3 = deviceMemcpy(GPUDataAddr_index_weightTable_InletWall_Inner,
-																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), memcpyHostToDevice);
-							status_4 = deviceMemcpy(GPUDataAddr_weightTable_InletWall_Inner,
-																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), memcpyHostToDevice);
+							status_3 = GPU::deviceMemcpy(GPUDataAddr_index_weightTable_InletWall_Inner,
+																	&index_weightTable[0], n_elements_reserved * sizeof(int64_t), GPU::memcpyHostToDevice);
+							status_4 = GPU::deviceMemcpy(GPUDataAddr_weightTable_InletWall_Inner,
+																											&vel_weightTable[0], n_elements_reserved * sizeof(distribn_t), GPU::memcpyHostToDevice);
 
 							if(status_1 != cudaSuccess || status_2 != cudaSuccess || status_3 != cudaSuccess || status_4 != cudaSuccess ){
 								fprintf(stderr, "GPU memory allocation and transfer Host To Device - key value indices and/or WeightsTable failed\n");
@@ -5203,15 +5203,15 @@ template<class LatticeType>
 					 // D.1. Positions of the iolets
 					 // Allocate memory on the GPU (global memory)
 					 site_t MemSz = 4 * n_Inlets * sizeof(double); 	// site_t (int64_t) Check that will remain like this in the future
-					 status = deviceMalloc((void**)&GPUDataAddr_inlets_position, MemSz);
+					 status = GPU::deviceMalloc((void**)&GPUDataAddr_inlets_position, MemSz);
 					 if(!status){ fprintf(stderr, "GPU memory allocation - Inlets position - failed...\n");
 						 initialise_GPU_res = false; }
 
 					 // Perform a HtD memcpy (from  inlets_position to GPUDataAddr_inlets_position)
-					 status = deviceMemcpy(GPUDataAddr_inlets_position, &inlets_position, MemSz, memcpyHostToDevice);
+					 status = GPU::deviceMemcpy(GPUDataAddr_inlets_position, &inlets_position, MemSz, GPU::memcpyHostToDevice);
 
 					 if(!status){
-						 const char * eStr = deviceGetErrorString();
+						 const char * eStr = GPU::deviceGetErrorString();
 						 printf("GPU memory copy - Inlets position failed with error: \"%s\" at proc# %i \n", eStr, myPiD);
 						 initialise_GPU_res = false;
 					 }
@@ -5220,15 +5220,15 @@ template<class LatticeType>
 					 // D.2. Radius of the iolets
 					 // Allocate memory on the GPU (global memory)
 					 MemSz = 2 * n_Inlets * sizeof(double); 	// site_t (int64_t) Check that will remain like this in the future
-					 status = deviceMalloc((void**)&GPUDataAddr_inlets_radius, MemSz);
+					 status = GPU::deviceMalloc((void**)&GPUDataAddr_inlets_radius, MemSz);
 					 if(!status){ fprintf(stderr, "GPU memory allocation - Inlets radius - failed...\n");
 						 initialise_GPU_res = false; }
 
 					 // Perform a HtD memcpy (from  inlets_position to GPUDataAddr_inlets_position)
-					 status = deviceMemcpy(GPUDataAddr_inlets_radius, &inlets_radius, MemSz, memcpyHostToDevice);
+					 status = GPU::deviceMemcpy(GPUDataAddr_inlets_radius, &inlets_radius, MemSz, GPU::memcpyHostToDevice);
 
 					 if(!status){
-						 const char * eStr = deviceGetErrorString();
+						 const char * eStr = GPU::deviceGetErrorString();
 						 printf("GPU memory copy - Inlets radius failed with error: \"%s\" at proc# %i \n", eStr, myPiD);
 						 initialise_GPU_res = false;
 					 }
@@ -5270,7 +5270,7 @@ template<class LatticeType>
 
 					if(site_Count_Inlet_Edge!=0){
 						MemSz = site_Count_Inlet_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom prefactor_correction - Inlet Edge failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res; //return false;
@@ -5279,7 +5279,7 @@ template<class LatticeType>
 
 					if(site_Count_InletWall_Edge!=0){
 						MemSz = site_Count_InletWall_Edge * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom prefactor_correction - InletWall Edge failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res; //return false;
@@ -5288,7 +5288,7 @@ template<class LatticeType>
 
 					if(site_Count_Inlet_Inner!=0){
 						MemSz = site_Count_Inlet_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom prefactor_correction - Inlet Inner failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res; //return false;
@@ -5297,7 +5297,7 @@ template<class LatticeType>
 
 					if(site_Count_InletWall_Inner!=0){
 						MemSz = site_Count_InletWall_Inner * (LatticeType::NUMVECTORS - 1) * sizeof(distribn_t);
-						status = deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner, MemSz);
+						status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner, MemSz);
 						if(!status){
 							fprintf(stderr, "GPU memory allocation wallMom prefactor_correction - InletWall Inner failed\n");
 							initialise_GPU_res = false; return initialise_GPU_res; //return false;
@@ -5441,7 +5441,7 @@ template<class LatticeType>
 				}*/
 
 				// Alocate memory on the GPU
-				status = deviceMalloc((void**)&GPUDataAddr_int64_streamInd, totSharedFs * sizeof(site_t));
+				status = GPU::deviceMalloc((void**)&GPUDataAddr_int64_streamInd, totSharedFs * sizeof(site_t));
 				if(!status){
 					fprintf(stderr, "GPU memory allocation for streamingIndicesForReceivedDistributions failed\n");
 					initialise_GPU_res = false;
@@ -5450,7 +5450,7 @@ template<class LatticeType>
 				}
 
 				// Memory copy from host (Data_int64_streamInd) to Device (GPUDataAddr_int64_Neigh)
-				status = deviceMemcpy(GPUDataAddr_int64_streamInd, Data_int64_streamInd, totSharedFs * sizeof(site_t), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(GPUDataAddr_int64_streamInd, Data_int64_streamInd, totSharedFs * sizeof(site_t), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for streamingIndicesForReceivedDistributions failed\n");
 					initialise_GPU_res = false;
@@ -5468,10 +5468,10 @@ template<class LatticeType>
 				mLatDat->h_Stability_GPU_mLatDat=-1;
 				h_Stability_GPU=-1;
 				//h_Stability_GPU[0] = -1; // Same value as the one used to denote UndefinedStability (value -1)
-				status = deviceMalloc((void**)&d_Stability_GPU, sizeof(int));
-				status = deviceMalloc((void**)&(mLatDat->d_Stability_GPU_mLatDat), sizeof(int));
+				status = GPU::deviceMalloc((void**)&d_Stability_GPU, sizeof(int));
+				status = GPU::deviceMalloc((void**)&(mLatDat->d_Stability_GPU_mLatDat), sizeof(int));
 
-				status = deviceMemcpy(d_Stability_GPU, &h_Stability_GPU, sizeof(int), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(d_Stability_GPU, &h_Stability_GPU, sizeof(int), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
 					initialise_GPU_res = false;
@@ -5479,7 +5479,7 @@ template<class LatticeType>
 					//return false;
 				}
 
-				status = deviceMemcpy(mLatDat->d_Stability_GPU_mLatDat, &(mLatDat->h_Stability_GPU_mLatDat), sizeof(int), memcpyHostToDevice);
+				status = GPU::deviceMemcpy(mLatDat->d_Stability_GPU_mLatDat, &(mLatDat->h_Stability_GPU_mLatDat), sizeof(int), GPU::memcpyHostToDevice);
 				if(!status){
 					fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
 					initialise_GPU_res = false;
@@ -5557,7 +5557,7 @@ template<class LatticeType>
 				//		g. useWeightsFromFile - Case of Vel BCs
 
 				// 2.a. Weight coefficients for the equilibrium distr. functions
-				status = deviceMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (1)\n");
 					initialise_GPU_res = false;
@@ -5568,7 +5568,7 @@ template<class LatticeType>
 
 				// 2.b. Number of vectors: LatticeType::NUMVECTORS
 				static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
-				status = deviceMemcpyToSymbol(&hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(&hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (2)\n");
 					initialise_GPU_res = false;
@@ -5578,7 +5578,7 @@ template<class LatticeType>
 				}
 
 				// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
-				status = deviceMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (3)\n");
 					initialise_GPU_res = false;
@@ -5588,21 +5588,21 @@ template<class LatticeType>
 				}
 
 				// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
-				status = deviceMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (4)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				status = deviceMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (5)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				status = deviceMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (6)\n");
 					initialise_GPU_res = false;
@@ -5617,7 +5617,7 @@ template<class LatticeType>
 				if(myPiD==1) printf("Relaxation Time = %.5f\n\n", tau);
 				double minus_inv_tau = mParams.GetOmega();	// printf("Minus Inv. Relaxation Time = %.5f\n\n", minus_inv_tau);
 
-				status = deviceMemcpyToSymbol(&hemelb::dev_tau, &tau, sizeof(tau), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(&hemelb::dev_tau, &tau, sizeof(tau), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (7)\n");
 					initialise_GPU_res = false;
@@ -5625,7 +5625,7 @@ template<class LatticeType>
 					//return false;
 				}
 
-				status = deviceMemcpyToSymbol(&hemelb::dev_minusInvTau, &minus_inv_tau, sizeof(minus_inv_tau), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(&hemelb::dev_minusInvTau, &minus_inv_tau, sizeof(minus_inv_tau), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (8)\n");
 					initialise_GPU_res = false;
@@ -5633,7 +5633,7 @@ template<class LatticeType>
 					//return false;
 				}
 
-				status = deviceMemcpyToSymbol(&hemelb::_Cs2, &Cs2, sizeof(Cs2), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(&hemelb::_Cs2, &Cs2, sizeof(Cs2), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (9)\n");
 					initialise_GPU_res = false;
@@ -5642,7 +5642,7 @@ template<class LatticeType>
 				}
 
 				// 2g. useWeightsFromFile - Case of Vel BCs
-				status = deviceMemcpyToSymbol(&hemelb::_useWeightsFromFile, &useWeightsFromFile, sizeof(useWeightsFromFile), 0, memcpyHostToDevice);
+				status = GPU::deviceMemcpyToSymbol(&hemelb::_useWeightsFromFile, &useWeightsFromFile, sizeof(useWeightsFromFile), 0, GPU::memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (10)\n");
 					initialise_GPU_res = false;
@@ -5664,15 +5664,15 @@ template<class LatticeType>
 
 				//a. for the D2H memcpy
 				MemSz = (1+totSharedFs) * sizeof(distribn_t);
-				status = deviceMallocHost((void**)&Data_D2H_memcpy_totalSharedFs, MemSz);
-				if(!status){ fprintf(stderr, "deviceMallocHost for Data_D2H_memcpy_totalSharedFs failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
+				status = GPU::deviceMallocHost((void**)&Data_D2H_memcpy_totalSharedFs, MemSz);
+				if(!status){ fprintf(stderr, "GPU::deviceMallocHost for Data_D2H_memcpy_totalSharedFs failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
 				// memset(Data_D2H_memcpy_totalSharedFs, 0, MemSz);
 
 				//b. for the H2D memcpy
 				MemSz = totSharedFs * sizeof(distribn_t);
 
-				status = deviceMallocHost((void**)&Data_H2D_memcpy_totalSharedFs, MemSz);
-				if(!status){ fprintf(stderr, "deviceMallocHost for Data_H2D_memcpy_totalSharedFs failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
+				status = GPU::deviceMallocHost((void**)&Data_H2D_memcpy_totalSharedFs, MemSz);
+				if(!status){ fprintf(stderr, "GPU::deviceMallocHost for Data_H2D_memcpy_totalSharedFs failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
 				// memset(Data_H2D_memcpy_totalSharedFs, 0, MemSz);
 				*/
 				//=================================================================================================================================
@@ -5680,29 +5680,29 @@ template<class LatticeType>
 				//cudaDeviceSynchronize();
 
 				// Create the Streams here
-				deviceStreamCreate(&Collide_Stream_PreSend_1);
-				deviceStreamCreate(&Collide_Stream_PreSend_2);
-				deviceStreamCreate(&Collide_Stream_PreSend_3);
-				deviceStreamCreate(&Collide_Stream_PreSend_4);
-				deviceStreamCreate(&Collide_Stream_PreSend_5);
-				deviceStreamCreate(&Collide_Stream_PreSend_6);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_1);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_2);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_3);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_4);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_5);
+				GPU::deviceStreamCreate(&Collide_Stream_PreSend_6);
 
-				deviceStreamCreate(&Collide_Stream_PreRec_1);
-				deviceStreamCreate(&Collide_Stream_PreRec_2);
-				deviceStreamCreate(&Collide_Stream_PreRec_3);
-				deviceStreamCreate(&Collide_Stream_PreRec_4);
-				deviceStreamCreate(&Collide_Stream_PreRec_5);
-				deviceStreamCreate(&Collide_Stream_PreRec_6);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_1);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_2);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_3);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_4);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_5);
+				GPU::deviceStreamCreate(&Collide_Stream_PreRec_6);
 
-				deviceStreamCreate(&stream_ghost_dens_inlet);
-				deviceStreamCreate(&stream_ghost_dens_outlet);
+				GPU::deviceStreamCreate(&stream_ghost_dens_inlet);
+				GPU::deviceStreamCreate(&stream_ghost_dens_outlet);
 
-				deviceStreamCreate(&stream_ReceivedDistr);
-				deviceStreamCreate(&stream_SwapOldAndNew);
-				deviceStreamCreate(&stream_memCpy_CPU_GPU_domainEdge);
+				GPU::deviceStreamCreate(&stream_ReceivedDistr);
+				GPU::deviceStreamCreate(&stream_SwapOldAndNew);
+				GPU::deviceStreamCreate(&stream_memCpy_CPU_GPU_domainEdge);
 
-				deviceStreamCreate(&stream_Read_Data_GPU_Dens);
-				deviceStreamCreate(&stability_check_stream);
+				GPU::deviceStreamCreate(&stream_Read_Data_GPU_Dens);
+				GPU::deviceStreamCreate(&stability_check_stream);
 
 				//----------------------------------------------------------------------
 				// Create the cuda stream for the asynch. MemCopy DtH at the domain edges: creates a stream in net::BaseNet object
@@ -5811,7 +5811,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type2, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type2, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Wall Edge failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5824,7 +5824,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type5, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type5, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Inlet Wall Edge failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5837,7 +5837,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type6, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Edge_Type6, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Outlet Wall Edge failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5850,7 +5850,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type2, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type2, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Wall Inner failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5863,7 +5863,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type5, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type5, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Inlet Wall Inner failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5876,7 +5876,7 @@ template<class LatticeType>
 				if (site_count!=0){
 					site_t MemSz = site_count * sizeof(distribn_t);
 
-					status = deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type6, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallShearStressMagn_Inner_Type6, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation Wall Shear Stress magnitude: Outlet Wall Inner failed...\n");
 						initialise_GPU_WallShearStress_res = false;
@@ -5915,14 +5915,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t); 	// site_t (int64_t) Check that will remain like this in the future
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type2, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type2, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Wall Edge failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type2) to Device (GPUDataAddr_WallNormal_Edge_Type2)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type2, Data_dbl_WallNormal_Edge_Type2, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type2, Data_dbl_WallNormal_Edge_Type2, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Wall Edge) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -5955,14 +5955,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t);
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type5, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type5, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Inlet-Wall Edge failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type2) to Device (GPUDataAddr_WallNormal_Edge_Type2)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type5, Data_dbl_WallNormal_Edge_Type5, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type5, Data_dbl_WallNormal_Edge_Type5, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Inlet-Wall Edge) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -5995,14 +5995,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t);
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type6, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Edge_Type6, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Outlet-Wall Edge failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type6) to Device (GPUDataAddr_WallNormal_Edge_Type6)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type6, Data_dbl_WallNormal_Edge_Type6, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Edge_Type6, Data_dbl_WallNormal_Edge_Type6, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Outlet-Wall Edge) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -6035,14 +6035,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t);
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type2, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type2, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Wall Inner failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type6) to Device (GPUDataAddr_WallNormal_Edge_Type6)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type2, Data_dbl_WallNormal_Inner_Type2, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type2, Data_dbl_WallNormal_Inner_Type2, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Wall Inner) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -6074,14 +6074,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t);
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type5, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type5, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Inlet-Wall Inner failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type6) to Device (GPUDataAddr_WallNormal_Edge_Type6)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type5, Data_dbl_WallNormal_Inner_Type5, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type5, Data_dbl_WallNormal_Inner_Type5, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Inlet-Wall Inner) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -6113,14 +6113,14 @@ template<class LatticeType>
 
 					// Allocate memory on the GPU (global memory)
 					site_t MemSz = 3*site_count *  sizeof(distribn_t);
-					status = deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type6, MemSz);
+					status = GPU::deviceMalloc((void**)&GPUDataAddr_WallNormal_Inner_Type6, MemSz);
 					if(!status){
 						fprintf(stderr, "GPU memory allocation - Wall Normal - Outlet-Wall Inner failed ...\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
 					}
 
 					// Memory copy from host (Data_dbl_WallNormal_Edge_Type6) to Device (GPUDataAddr_WallNormal_Edge_Type6)
-					status = deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type6, Data_dbl_WallNormal_Inner_Type6, MemSz, memcpyHostToDevice);
+					status = GPU::deviceMemcpy(GPUDataAddr_WallNormal_Inner_Type6, Data_dbl_WallNormal_Inner_Type6, MemSz, GPU::memcpyHostToDevice);
 					if(!status){
 						fprintf(stderr, "GPU memory transfer (Wall Normal - Outlet-Wall Inner) Host To Device failed\n");
 						initialise_GPU_WallShearStress_res = false; return initialise_GPU_WallShearStress_res;
@@ -6464,7 +6464,7 @@ template<class LatticeType>
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
 
-				//if (myPiD!=0) deviceStreamSynchronize(stream_ReceivedDistr);
+				//if (myPiD!=0) GPU::deviceStreamSynchronize(stream_ReceivedDistr);
 
 				//----------------------------------
 				// Cuda kernel set-up
@@ -6518,8 +6518,8 @@ template<class LatticeType>
 				bool Write_GlobalMem = (mState->GetTimeStep()%frequency_WriteGlobalMem == 0) ? 1 : 0;
 
 				// Before the collision starts make sure that the swap of distr. functions at the previous step has Completed
-				//if (myPiD!=0) deviceStreamSynchronize(stream_SwapOldAndNew);
-				if (myPiD!=0) deviceStreamSynchronize(stream_ReceivedDistr);
+				//if (myPiD!=0) GPU::deviceStreamSynchronize(stream_SwapOldAndNew);
+				if (myPiD!=0) GPU::deviceStreamSynchronize(stream_ReceivedDistr);
 				//----------------------------------------------------------------------
 
 				//----------------------------------------------------------------------
@@ -6547,9 +6547,9 @@ template<class LatticeType>
 						/*
 						// Debugging purposes - Remove later and move in PreReceive()
 						// 	(get the value returned by the kernel GPU_Check_Stability if unstable simulation -see StabilityTester.h)
-						deviceStreamSynchronize(stability_check_stream);
+						GPU::deviceStreamSynchronize(stability_check_stream);
 						// MemCopy from Device To Host the value for the Stability - TODO!!!
-						status = deviceMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), memcpyDeviceToHost, stability_check_stream);
+						status = GPU::deviceMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), GPU::memcpyDeviceToHost, stability_check_stream);
 						//printf("Rank = %d - Host Stability flag: %d \n\n", myPiD, mLatDat->h_Stability_GPU_mLatDat);
 						*/
 				}
@@ -6760,14 +6760,14 @@ template<class LatticeType>
 
 					// Approach 1: No pinned Memory
 					// Inlet BCs: NashZerothOrderPressure - Specify the ghost density for each inlet
-					//	Pass the ghost density[nInlets] to the GPU kernel (deviceMemcpy):
+					//	Pass the ghost density[nInlets] to the GPU kernel (GPU::deviceMemcpy):
 					h_ghostDensity = new distribn_t[n_Inlets];
 
 					/*
 					// Approach 2: Switch to pinned memory Feb 2022
 					int n_bytes = n_Inlets * sizeof(distribn_t);
-					status = deviceMallocHost((void**)&h_ghostDensity, n_bytes);
-					if(!status){ fprintf(stderr, "deviceMallocHost for h_ghostDensity failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
+					status = GPU::deviceMallocHost((void**)&h_ghostDensity, n_bytes);
+					if(!status){ fprintf(stderr, "GPU::deviceMallocHost for h_ghostDensity failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
 					memset(h_ghostDensity, 0, n_bytes); */
 					//
 
@@ -6778,10 +6778,10 @@ template<class LatticeType>
 							h_ghostDensity[i] = mInletValues->GetBoundaryDensity(i);
 							//std::cout << "Cout: GhostDensity : " << h_ghostDensity[i] << std::endl;
 						}
-						if (myPiD!=0){ // MemCopy memcpyHostToDevice only if rank!=0
+						if (myPiD!=0){ // MemCopy GPU::memcpyHostToDevice only if rank!=0
 							// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity)
-							//status = deviceMemcpy(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), memcpyHostToDevice);
-							bool status = deviceMemcpyAsync(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_inlet);
+							//status = GPU::deviceMemcpy(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), GPU::memcpyHostToDevice);
+							bool status = GPU::deviceMemcpyAsync(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), GPU::memcpyHostToDevice, stream_ghost_dens_inlet);
 							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity) Host To Device failed\n"); //return false;
 							}
 						}
@@ -6831,7 +6831,7 @@ template<class LatticeType>
 				else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 
 					// Outlet BCs: NashZerothOrderPressure - Specify the ghost density for each outlet
-					//	Pass the ghost density_out[nInlets] to the GPU kernel (deviceMemcpy):
+					//	Pass the ghost density_out[nInlets] to the GPU kernel (GPU::deviceMemcpy):
 
 					// Approach 1: No pinned memory
 					h_ghostDensity_out = new distribn_t[n_Outlets];
@@ -6839,8 +6839,8 @@ template<class LatticeType>
 					/*
 					// Approach 2: Use pinned memory
 					int n_bytes = n_Outlets * sizeof(distribn_t);
-					status = deviceMallocHost((void**)&h_ghostDensity_out, n_bytes);
-					if(!status){ fprintf(stderr, "deviceMallocHost for h_ghostDensity_out failed\n"); }
+					status = GPU::deviceMallocHost((void**)&h_ghostDensity_out, n_bytes);
+					if(!status){ fprintf(stderr, "GPU::deviceMallocHost for h_ghostDensity_out failed\n"); }
 					memset(h_ghostDensity_out, 0, n_bytes);
 					// */
 
@@ -6851,10 +6851,10 @@ template<class LatticeType>
 							h_ghostDensity_out[i] = mOutletValues->GetBoundaryDensity(i);
 							//std::cout << "Rank: " << myPiD <<  " Cout: GhostDensity Out: " << h_ghostDensity_out[i] << std::endl;
 						}
-						if (myPiD!=0){ // MemCopy memcpyHostToDevice only if rank!=0
+						if (myPiD!=0){ // MemCopy GPU::memcpyHostToDevice only if rank!=0
 							// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity)
-							//status = memcpy(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), memcpyHostToDevice);
-							bool status = deviceMemcpyAsync(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_outlet);
+							//status = memcpy(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), GPU::memcpyHostToDevice);
+							bool status = GPU::deviceMemcpyAsync(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), GPU::memcpyHostToDevice, stream_ghost_dens_outlet);
 							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity_out) Host To Device failed\n"); //return false;
 							}
 						}
@@ -6927,7 +6927,7 @@ template<class LatticeType>
 					}
 					else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						// Make sure it has received the values for ghost density on the GPU for the case of Pressure BCs
-						if (myPiD!=0) deviceStreamSynchronize(stream_ghost_dens_inlet);	// Maybe transfer this within the loop for Press. BCs below
+						if (myPiD!=0) GPU::deviceStreamSynchronize(stream_ghost_dens_inlet);	// Maybe transfer this within the loop for Press. BCs below
 
 						if (n_LocalInlets_mInlet_Edge <=(local_iolets_MaxSIZE/3)){
 							hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_3>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
@@ -6994,7 +6994,7 @@ template<class LatticeType>
 					}
 					else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 						// Make sure it has received the values for ghost density on the GPU
-						if (myPiD!=0) deviceStreamSynchronize(stream_ghost_dens_outlet);
+						if (myPiD!=0) GPU::deviceStreamSynchronize(stream_ghost_dens_outlet);
 
 						if(n_LocalOutlets_mOutlet_Edge<=(local_iolets_MaxSIZE/3))
 						{
@@ -7174,12 +7174,12 @@ template<class LatticeType>
 				// If we follow the same steps as in the CPU version of hemeLB (Send step following PreSend) - INCLUDE this here!!!
 				// Synchronisation barrier
 				if(myPiD!=0){
-					deviceStreamSynchronize(Collide_Stream_PreSend_1);
-					deviceStreamSynchronize(Collide_Stream_PreSend_2);
-					deviceStreamSynchronize(Collide_Stream_PreSend_3);
-					deviceStreamSynchronize(Collide_Stream_PreSend_4);
-					deviceStreamSynchronize(Collide_Stream_PreSend_5);
-					deviceStreamSynchronize(Collide_Stream_PreSend_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_6);
 				}
 
 				// Once all collision-streaming types are completed then send the distr. functions fNew in totalSharedFs to the CPU
@@ -7190,15 +7190,15 @@ template<class LatticeType>
 
 				//
 				// Approach 1: No pinned memory for ghost density (Pressure BCs)
-				// Delete the variables used for deviceMemcpy
+				// Delete the variables used for GPU::deviceMemcpy
 				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity_out;
 				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity;
 
 				/*
 				// Approach 2: Pinned memory for ghost density (Pressure BCs)
-				// Delete the variables used for deviceMemcpy
-				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") deviceFreeHost(h_ghostDensity_out); //delete[] h_ghostDensity_out;
-				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") deviceFreeHost(h_ghostDensity); //delete[] h_ghostDensity;
+				// Delete the variables used for GPU::deviceMemcpy
+				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") GPU::deviceFreeHost(h_ghostDensity_out); //delete[] h_ghostDensity_out;
+				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") GPU::deviceFreeHost(h_ghostDensity); //delete[] h_ghostDensity;
 				// */
 
 				//cudaProfilerStop();
@@ -7294,12 +7294,12 @@ template<class LatticeType>
 				//		c. Send
 				// Synchronisation barrier
 				if(myPiD!=0){
-					deviceStreamSynchronize(Collide_Stream_PreSend_1);
-					deviceStreamSynchronize(Collide_Stream_PreSend_2);
-					deviceStreamSynchronize(Collide_Stream_PreSend_3);
-					deviceStreamSynchronize(Collide_Stream_PreSend_4);
-					deviceStreamSynchronize(Collide_Stream_PreSend_5);
-					deviceStreamSynchronize(Collide_Stream_PreSend_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_6);
 				}
 				*/
 				//######################################################################
@@ -7389,12 +7389,12 @@ template<class LatticeType>
 				//		c. Send
 				// Synchronisation barrier
 				if(myPiD!=0){
-					deviceStreamSynchronize(Collide_Stream_PreSend_1);
-					deviceStreamSynchronize(Collide_Stream_PreSend_2);
-					deviceStreamSynchronize(Collide_Stream_PreSend_3);
-					deviceStreamSynchronize(Collide_Stream_PreSend_4);
-					deviceStreamSynchronize(Collide_Stream_PreSend_5);
-					deviceStreamSynchronize(Collide_Stream_PreSend_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_6);
 				}
 
 				// Once all collision-streaming types are completed then send the distr. functions fNew in totalSharedFs to the CPU
@@ -7841,12 +7841,12 @@ template<class LatticeType>
 				//		c. Send
 				// Synchronisation barrier
 				if(myPiD!=0){
-					deviceStreamSynchronize(Collide_Stream_PreSend_1);
-					deviceStreamSynchronize(Collide_Stream_PreSend_2);
-					deviceStreamSynchronize(Collide_Stream_PreSend_3);
-					deviceStreamSynchronize(Collide_Stream_PreSend_4);
-					deviceStreamSynchronize(Collide_Stream_PreSend_5);
-					deviceStreamSynchronize(Collide_Stream_PreSend_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreSend_6);
 				}
 
 				// Comments:
@@ -7865,16 +7865,16 @@ template<class LatticeType>
 				//-------------------------------------------------------------------------------------------------------------
 
 				// Stream for the asynchronous MemCopy DtH - f's at domain edges - after the collision-streaming kernels in PreSend().
-				//if(myPiD!=0) deviceStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge);
+				//if(myPiD!=0) GPU::deviceStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge);
 
 
 				// Synchronisation point for the kernel GPU_Check_Stability launched at the beginning of PreSend() step. Ensure the stability check has completed and the results are ready
 				// memcopy D2H value of stability copied to mLatDat->h_Stability_GPU_mLatDat
 				if(myPiD!=0 && mState->GetTimeStep()%1000 ==0){
-						deviceStreamSynchronize(stability_check_stream);
+						GPU::deviceStreamSynchronize(stability_check_stream);
 						// MemCopy from Device To Host the value for the Stability - TODO!!!
-						// status = deviceMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), memcpyDeviceToHost, stability_check_stream);
-						bool status = deviceMemcpy( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), memcpyDeviceToHost);
+						// status = GPU::deviceMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), GPU::memcpyDeviceToHost, stability_check_stream);
+						bool status = GPU::deviceMemcpy( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), GPU::memcpyDeviceToHost);
 
 						if(mLatDat->h_Stability_GPU_mLatDat==0)
 							printf("Rank = %d - Unstable SImulation: Host Stability flag: %d \n\n", myPiD, mLatDat->h_Stability_GPU_mLatDat);
@@ -7888,12 +7888,12 @@ template<class LatticeType>
 				{
 					if(myPiD!=0) {
 						// Must ensure that writing the updated macroVariables from the above kernels has completed.
-						deviceStreamSynchronize(Collide_Stream_PreRec_1);
-						deviceStreamSynchronize(Collide_Stream_PreRec_2);
-						deviceStreamSynchronize(Collide_Stream_PreRec_3);
-						deviceStreamSynchronize(Collide_Stream_PreRec_4);
-						deviceStreamSynchronize(Collide_Stream_PreRec_5);
-						deviceStreamSynchronize(Collide_Stream_PreRec_6);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_1);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_2);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_3);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_5);
+						GPU::deviceStreamSynchronize(Collide_Stream_PreRec_6);
 					}
 
 					// Check whether the hemeLB picks up the macroVariables at the PostReceive step???
@@ -7947,7 +7947,7 @@ template<class LatticeType>
 
 #ifdef HEMELB_USE_GPU
 
-				// 1*. host-to-device memcopy (NOT needed when CUDA-aware mpi is enabled!!!):
+				// 1*. host-to-GPU::device memcopy (NOT needed when CUDA-aware mpi is enabled!!!):
 				// 		Send the totalSharedFs distr. functions in fOld to the GPU
 				// 		( these have been already received - MPI exchange completed)
 
@@ -7967,15 +7967,15 @@ template<class LatticeType>
 				// Think how it could be possible to call this earlier. To do!!!
 				// It requires the completion of the MPI exchange step... Step: Send
 
-				// 1*. host-to-device memcopy: 1. Send the totalSharedFs distr. functions in fOld to the GPU
+				// 1*. host-to-GPU::device memcopy: 1. Send the totalSharedFs distr. functions in fOld to the GPU
 				// 			Previously Used the cuda stream: stream_memCpy_CPU_GPU_domainEdge
 				//				Now Switched to stream: stream_ReceivedDistr
 				if(myPiD!=0)
 					Read_DistrFunctions_CPU_to_GPU_totalSharedFs();
 
-				// Syncrhonisation Barrier for the above stream involved in the host-to-device memcopy (domain edges)
+				// Syncrhonisation Barrier for the above stream involved in the host-to-GPU::device memcopy (domain edges)
 				/** 8-7-2020:
-						Maybe remove the synch point: deviceStreamSynchronize(stream_memCpy_CPU_GPU_domainEdge);
+						Maybe remove the synch point: GPU::deviceStreamSynchronize(stream_memCpy_CPU_GPU_domainEdge);
 						 	and just use the same cuda stream used in the HtD memcpy above in function Read_DistrFunctions_CPU_to_GPU_totalSharedFs (stream_memCpy_CPU_GPU_domainEdge)
 						for launching the cuda kernel
 							hemelb::GPU_StreamReceivedDistr
@@ -7984,16 +7984,16 @@ template<class LatticeType>
 				/*
 				// Not needed if using the stream: stream_ReceivedDistr in Read_DistrFunctions_CPU_to_GPU_totalSharedFs.
 				if(myPiD!=0) {
-					// deviceStreamSynchronize(stream_memCpy_CPU_GPU_domainEdge); // Needed if we switch to asynch memcopy and use this stream in Read_DistrFunctions_CPU_to_GPU_totalSharedFs
+					// GPU::deviceStreamSynchronize(stream_memCpy_CPU_GPU_domainEdge); // Needed if we switch to asynch memcopy and use this stream in Read_DistrFunctions_CPU_to_GPU_totalSharedFs
 
 					// The following might be needed here for cases where the PostReceive Step is usefull, e.g. for interpolating types of BCs,
 					// Otherwise could be moved before the GPU_SwapOldAndNew kernel
-					deviceStreamSynchronize(Collide_Stream_PreRec_1);
-					deviceStreamSynchronize(Collide_Stream_PreRec_2);
-					deviceStreamSynchronize(Collide_Stream_PreRec_3);
-					deviceStreamSynchronize(Collide_Stream_PreRec_4);
-					deviceStreamSynchronize(Collide_Stream_PreRec_5);
-					deviceStreamSynchronize(Collide_Stream_PreRec_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_6);
 				}
 				*/
 #endif
@@ -8079,7 +8079,7 @@ template<class LatticeType>
 
 				// Synchronisation barrier for stream_ReceivedDistr
 				// 		Ensure that the received distr. functions have been placed in fNew beforing swaping the populations (fNew -> fOld)
-				//		if (myPiD!=0) deviceStreamSynchronize(stream_ReceivedDistr);
+				//		if (myPiD!=0) GPU::deviceStreamSynchronize(stream_ReceivedDistr);
 				// Or simply use the same cuda stream: stream_ReceivedDistr
 
 				// 25-3-2021
@@ -8092,12 +8092,12 @@ template<class LatticeType>
 				if(myPiD!=0) {
 					// The following might be needed in PostReceive() for cases where the PostReceive Step is usefull, e.g. for interpolating types of BCs,
 					// Otherwise could be moved here before the GPU_SwapOldAndNew kernel
-					deviceStreamSynchronize(Collide_Stream_PreRec_1);
-					deviceStreamSynchronize(Collide_Stream_PreRec_2);
-					deviceStreamSynchronize(Collide_Stream_PreRec_3);
-					deviceStreamSynchronize(Collide_Stream_PreRec_4);
-					deviceStreamSynchronize(Collide_Stream_PreRec_5);
-					deviceStreamSynchronize(Collide_Stream_PreRec_6);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_1);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_2);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_3);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_5);
+					GPU::deviceStreamSynchronize(Collide_Stream_PreRec_6);
 				}
 
 				/*
@@ -8117,14 +8117,14 @@ template<class LatticeType>
 				// 25-3-2021
 				// Consider whether to Comment out the following and transfer in Step PostReceive()
 				//========================================================================================================
-				// Approach 2: Using memcpyDeviceToDevice:
-				// As this is a single large copy from device global memory to device global memory, then  memcpyDeviceToDevice should be ok.
-				// See the discussion here: https://stackoverflow.com/questions/22345391/cuda-device-memory-copies-memcpyDevicetodevice-vs-copy-kernel
+				// Approach 2: Using GPU::memcpyDeviceToDevice:
+				// As this is a single large copy from GPU::device global memory to GPU::device global memory, then  GPU::memcpyDeviceToDevice should be ok.
+				// See the discussion here: https://stackoverflow.com/questions/22345391/cuda-GPU::device-memory-copies-GPU::memcpyDevicetoGPU::device-vs-copy-kernel
 				if (myPiD!=0) {
 					bool status;
 					unsigned long long MemSz = site_Count * LatticeType::NUMVECTORS * sizeof(distribn_t); // Total memory size
-					status = deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[0]), &(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[0]), MemSz, memcpyDeviceToDevice, stream_ReceivedDistr);
-					if (!status) fprintf(stderr, "GPU memory copy device-to-device failed ... \n");
+					status = GPU::deviceMemcpyAsync(&(((distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat)[0]), &(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[0]), MemSz, GPU::memcpyDeviceToDevice, stream_ReceivedDistr);
+					if (!status) fprintf(stderr, "GPU memory copy GPU::device-to-GPU::device failed ... \n");
 				}
 				// End of Approach 2
 				//========================================================================================================
@@ -8163,7 +8163,7 @@ template<class LatticeType>
 				/*// Testing - Remove later:
 				if (myPiD!=0)
 				{
-					cudaDeviceSynchronize(); // Included a deviceStreamSynchronize at the beginning of PreSend(); Should do the same job
+					cudaDeviceSynchronize(); // Included a GPU::deviceStreamSynchronize at the beginning of PreSend(); Should do the same job
 
 					//kernels::HydroVarsBase<LatticeType> hydroVars(geometry::Site<geometry::LatticeData> const &site);
 

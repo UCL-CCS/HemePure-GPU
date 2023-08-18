@@ -61,7 +61,7 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        deviceStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
+        GPU::deviceStreamSynchronize(stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
@@ -71,7 +71,7 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        deviceStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
+        GPU::deviceStreamCreate(&stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
@@ -81,13 +81,13 @@ namespace hemelb
     {
       int myPiD = communicator.Rank();
       if (myPiD!=0) {
-        deviceStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
+        GPU::deviceStreamDestroy(stream_memCpy_GPU_CPU_domainEdge_new2);
       }
       return true;
     }
 
     // Get the device stream - private member
-    Stream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
+    GPU::Stream_t BaseNet::Get_stream_memCpy_GPU_CPU_domainEdge_new2()
     {
       return stream_memCpy_GPU_CPU_domainEdge_new2;
     }
