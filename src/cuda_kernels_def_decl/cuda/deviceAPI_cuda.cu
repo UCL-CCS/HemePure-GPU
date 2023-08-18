@@ -18,6 +18,8 @@ namespace hemelb {
     }
 }
 
+namespace hemelb {
+namespace GPU { 
 
 const char* deviceGetErrorString()
 {
@@ -25,7 +27,7 @@ const char* deviceGetErrorString()
 	return cudaGetErrorString(error);
 }
 
-bool deviceMemcpyAsync( void* dst, const void* src, size_t count, memcpyKind kind, Stream_t stream)
+bool deviceMemcpyAsync( void* dst, const void* src, size_t count, memcpyKind kind, Stream_t stream=0) 
 {
 	cudaMemcpyKind cudaKind = kind == memcpyHostToDevice ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost ;
 	cudaError_t cudaStatus = cudaMemcpyAsync(dst, src, count, cudaKind, stream);
@@ -80,16 +82,18 @@ bool deviceStreamCreate(Stream_t* streamPtr)
 		return false;
 	}
 	return true;
+
 }
 
-void deviceStreamSynchronize(Stream_t stream)
-{
-	cudaStreamSynchronize((cudaStream_t)stream);
+
+void
+deviceStreamSynchronize(Stream_t stream) {
+  cudaStreamSynchronize((cudaStream_t) stream);
 }
 
-void deviceStreamDestroy(Stream_t stream)
-{
-	cudaStreamDestroy((cudaStream_t)stream);
+void
+deviceStreamDestroy(Stream_t stream) {
+  cudaStreamDestroy((cudaStream_t) stream);
 }
 
 bool deviceFree(void *devPtr) 
@@ -103,16 +107,16 @@ bool deviceFree(void *devPtr)
 	}
 }
 
-size_t deviceGetProperties(int myPiD)
+size_t deviceGetProperties(int myProc)
 {
-	cudaDeviceProp_t dev_prop;
+	cudaDeviceProp dev_prop;
 
 	// Just obtain the properties of GPU assigned to task 1
 	cudaGetDeviceProperties( &dev_prop, 0);
-	hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD);
+	hemelb::check_cuda_errors(__FILE__, __LINE__, myProc);
 
 	// Rank 1 only reports:
-	if(myPiD==1){
+	if(myProc == 1){
 		std::cout << "===============================================" << "\n";
 		std::cout << "Device properties: " << std::endl;
 		printf("Device name:        %s\n", dev_prop.name);
@@ -127,9 +131,9 @@ size_t deviceGetProperties(int myPiD)
 		std::cout << "Warp Size:  "<< dev_prop.warpSize<< std::endl;
 		std::cout << "===============================================" << "\n\n";
 		fflush(stdout);
-
-		return dev_prop.totalGlobalMem;
-	}
+  }
+	return dev_prop.totalGlobalMem;
+	
 }
 
 int deviceGetCount()
@@ -148,3 +152,33 @@ bool deviceAttach(int device)
 	return true;
 }
 
+char pointerSpace(const void *p) 
+{
+  cudaPointerAttributes attr;
+  cudaError_t err = cudaPointerGetAttributes(&attr,p);
+ 
+  if ( err == cudaSuccess ) { 
+	  if( attr.type == cudaMemoryTypeHost ) {
+	   return 'h';
+	  }
+
+	 if (attr.type == cudaMemoryTypeDevice ) {
+	  return 'd';
+	 }
+
+	 if (attr.type == cudaMemoryTypeManaged ) {
+	  return 'm';
+	 }
+
+	if ( attr.type == cudaMemoryTypeUnregistered ) { 
+          return 'u';
+        }
+   }
+
+  return 'x';
+   
+
+}
+
+}
+}
