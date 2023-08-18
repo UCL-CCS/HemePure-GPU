@@ -340,4 +340,9 @@ __device__ __forceinline__ void _determine_Iolet_ID(int num_local_Iolets, site_t
 
 
 }
+
+#include "cuda_kernels_def_decl/GPU_BaseKernels.hpp"
+#include "cuda_kernels_def_decl/GPU_Collide_Stream_iolets.hpp"
+#include "cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.hpp"
+
 #endif
