@@ -98,6 +98,12 @@ __global__ void GPU_CollideStream_Iolets_Ladd_VelBCs(distribn_t* GMem_dbl_fOld_b
 		momentum_x += (double)_CX_19[direction] * dev_ff[direction];
 		momentum_y += (double)_CY_19[direction] * dev_ff[direction];
 		momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+
+#if 1
+		if( Ind == lower_limit+5) 
+			printf("Kern dir: %d dev_ff: %16.8e nn: %16.8e mom=(%16.8e %16.8e %16.8e)\n", 
+					direction, dev_ff[direction], nn, momentum_x, momentum_y, momentum_z);
+#endif
 		//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 	}
 
@@ -125,8 +131,8 @@ __global__ void GPU_CollideStream_Iolets_Ladd_VelBCs(distribn_t* GMem_dbl_fOld_b
 								+ (double)_CZ_19[i] * momentum_z;
 
 		double dev_fEq = _EQMWEIGHTS_19[i]
-												* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
-																+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+										* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
+										+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
 		dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 
@@ -316,7 +322,7 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 
 	// Load the distribution functions
 	//f[19] and fEq[19]
-	double dev_ff[19]; //, dev_fEq[19];
+	double dev_ff[19]={0}; //, dev_fEq[19];
 	double nn = 0.0;	// density
 	double momentum_x, momentum_y, momentum_z;
 	momentum_x = momentum_y = momentum_z = 0.0;
@@ -336,9 +342,9 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 		momentum_x += (double)_CX_19[direction] * dev_ff[direction];
 		momentum_y += (double)_CY_19[direction] * dev_ff[direction];
 		momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
-		//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
-	}
+	
 
+	}
 
 	// In the case of body force
 	//momentum_x += 0.5 * _force_x;
@@ -370,6 +376,7 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 
 		dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 	}
+
 	//-----------------------------------------------------------------------------------------------------------
 
 	// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
@@ -423,9 +430,10 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 
 	// Access the info from the constant memory: _Iolets_Inlet_Inner[local_iolets_MaxSIZE], local_iolets_MaxSIZE = 6 cuda_params.h (Assume 2 max iolets per RANK)
 	// Determine the IdInlet - Done!!!
+
 	int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 	if(num_local_Iolets==1){
-		IdInlet = Iolets_info.Iolets_ID_range[0];// IdInlet = iolets_ID_range[0];
+		IdInlet =(int) Iolets_info.Iolets_ID_range[0];// IdInlet = iolets_ID_range[0];
 	}
 	else{
 		// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -440,10 +448,6 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 	{
 		printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! \n\n", Ind, IdInlet);
 	}
-	/*else{
-		printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
-	}
-	*/
 
 	//printf("Number of local Iolets = %d \n", num_local_Iolets);
 /*
@@ -697,7 +701,7 @@ uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 if(num_local_Iolets==1){
 	// Approach 1 - from GPU global mem (GMem_Iolets_info)
-	IdInlet = GMem_Iolets_info[0];
+	IdInlet = (int)(GMem_Iolets_info[0]);
 	// Approach 2 - from struct array
 	// IdInlet = Iolets_info.Iolets_ID_range[0];
 }
@@ -1235,7 +1239,7 @@ if (write_GlobalMem){
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = iolets_ID_range[0];
+			IdInlet = (int)(iolets_ID_range[0]);
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -1492,7 +1496,7 @@ if (write_GlobalMem){
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_Inlet_Inner[0];// IdInlet = iolets_ID_range[0];
+			IdInlet = (int) _Iolets_Inlet_Inner[0];// IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -1749,7 +1753,7 @@ if (write_GlobalMem){
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_Inlet_Edge[0];// IdInlet = iolets_ID_range[0];
+			IdInlet = (int)_Iolets_Inlet_Edge[0];// IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -2007,7 +2011,7 @@ if (write_GlobalMem){
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_Outlet_Inner[0];// IdInlet = iolets_ID_range[0];
+			IdInlet =(int) _Iolets_Outlet_Inner[0];// IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -2263,7 +2267,7 @@ if (write_GlobalMem){
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_Outlet_Edge[0];// IdInlet = iolets_ID_range[0];
+			IdInlet = (int)_Iolets_Outlet_Edge[0];// IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array

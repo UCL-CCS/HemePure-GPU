@@ -1,5 +1,5 @@
 source ../env_crusher_afar.sh
-OPT="-g -ggdb -O3"
+OPT="-g -ggdb -O"
 
 cmake -DHEMELB_GPU_BACKEND=HIP_ROCM \
 		 -DCMAKE_CXX_COMPILER=$ROCM_PATH/llvm/bin/amdclang++ \

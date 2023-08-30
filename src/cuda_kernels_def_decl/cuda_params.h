@@ -242,7 +242,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
  			each iolet has fluid sites with indices in the range: [lower_limit,upper_limit]
  	Function returns the iolet ID value: IdInlet.
 */
-__device__ __forceinline__ void _determine_Iolet_ID(int num_local_Iolets, site_t* iolets_ID_range, site_t fluid_Ind, int* IdInlet)
+GPU_INLINE_DEVICE_FUNCTION void _determine_Iolet_ID(int num_local_Iolets, site_t* iolets_ID_range, site_t fluid_Ind, int* IdInlet)
 {
 	// Loop over the number of local iolets (num_local_Iolets) and determine whether the fluid ID (fluid_Ind) falls whithin the range
 	for (int i_local_iolet = 0; i_local_iolet<num_local_Iolets; i_local_iolet++)
@@ -253,96 +253,76 @@ __device__ __forceinline__ void _determine_Iolet_ID(int num_local_Iolets, site_t
 
 		//if ((fluid_Ind - upper_limit +1) * (fluid_Ind - lower_limit) <= 0){	 	//When the upper_limit is NOT included
 		if ((fluid_Ind - upper_limit) * (fluid_Ind - lower_limit) <= 0){ 				// When the upper_limit is included
-			*IdInlet = (int)iolets_ID_range[3*i_local_iolet];
+			*IdInlet =(int)(iolets_ID_range[3*i_local_iolet]);
 			return;
 		}
 	}// closes the loop over the local iolets
 }
 //==============================================================================
 
-	/* Device function to evaluate second moment of a distr. function
-	   Despite its name, this method does not compute the whole pi tensor (i.e. momentum flux tensor). What it does is
-							 * computing the second moment of a distribution function. If this distribution happens to be f_eq, the resulting
-							 * tensor will be the equilibrium part of pi. However, if the distribution function is f_neq, the result WON'T be
-							 * the non equilibrium part of pi. In order to get it, you will have to multiply by (1 - timestep/2*tau)
-							 *
-							 * @param f distribution function
-							 * @return second moment of the distribution function f
-	*/
-	__device__ __forceinline__ double *_CalculatePiTensor(const distribn_t* const f)
-	{
-			static double ret_SecMomDistrFunc[6];
+/* Device function to evaluate second moment of a distr. function
+   Despite its name, this method does not compute the whole pi tensor (i.e. momentum flux tensor). What it does is
+ * computing the second moment of a distribution function. If this distribution happens to be f_eq, the resulting
+ * tensor will be the equilibrium part of pi. However, if the distribution function is f_neq, the result WON'T be
+ * the non equilibrium part of pi. In order to get it, you will have to multiply by (1 - timestep/2*tau)
+ *
+ * @param f distribution function
+ * @return second moment of the distribution function f
+*/
+GPU_INLINE_DEVICE_FUNCTION void _CalculatePiTensor(const distribn_t* const f, double* SecMomDistrFunc)
+{
+		// Explicitly calculate the elements (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
+		// and saves these with this order in the array SecMomDistrFunc
 
-			/*
-			// Fill in (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
-			for (int ii = 0; ii < 3; ++ii)
-			{
-				for (int jj = 0; jj <= ii; ++jj)
-				{
-					ret[ii][jj] = 0.0;
-						for (unsigned int l = 0; l < DmQn::NUMVECTORS; ++l)
-						{
-							ret[ii][jj] += f[l] * DmQn::discreteVelocityVectors[ii][l]
-													* DmQn::discreteVelocityVectors[jj][l];
-						}
-				}
-			}
-			*/
+		// Element (0,0)
+		SecMomDistrFunc[0] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[0] += f[l] * _CX_19[l]* _CX_19[l];
+		}
 
-			// Explicitly calculate the elements (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
-			// and saves these with this order in the array ret_SecMomDistrFunc
+		// Element (1,0)
+		SecMomDistrFunc[1] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[1] += f[l] * _CY_19[l]* _CX_19[l];
+		}
 
-			// Element (0,0)
-			ret_SecMomDistrFunc[0] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[0] += f[l] * _CX_19[l]* _CX_19[l];
-			}
+		// Element (1,1)
+		SecMomDistrFunc[2] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[2] += f[l] * _CY_19[l]* _CY_19[l];
+		}
 
-			// Element (1,0)
-			ret_SecMomDistrFunc[1] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[1] += f[l] * _CY_19[l]* _CX_19[l];
-			}
+		// Element (2,0)
+		SecMomDistrFunc[3] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[3] += f[l] * _CZ_19[l]* _CX_19[l];
+		}
 
-			// Element (1,1)
-			ret_SecMomDistrFunc[2] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[2] += f[l] * _CY_19[l]* _CY_19[l];
-			}
+		// Element (2,1)
+		SecMomDistrFunc[4] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[4] += f[l] * _CZ_19[l]* _CY_19[l];
+		}
 
-			// Element (2,0)
-			ret_SecMomDistrFunc[3] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[3] += f[l] * _CZ_19[l]* _CX_19[l];
-			}
+		// Element (2,2)
+		SecMomDistrFunc[5] = 0.0;
+		for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+		{
+			SecMomDistrFunc[5] += f[l] * _CZ_19[l]* _CZ_19[l];
+		}
 
-			// Element (2,1)
-			ret_SecMomDistrFunc[4] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[4] += f[l] * _CZ_19[l]* _CY_19[l];
-			}
-
-			// Element (2,2)
-			ret_SecMomDistrFunc[5] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
-			{
-				ret_SecMomDistrFunc[5] += f[l] * _CZ_19[l]* _CZ_19[l];
-			}
-
-
-			return ret_SecMomDistrFunc;
-	}
+}
 
 
 }
 
 #include "cuda_kernels_def_decl/GPU_BaseKernels.hpp"
-#include "cuda_kernels_def_decl/GPU_Collide_Stream_iolets.hpp"
+#include "cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.hpp"
 #include "cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.hpp"
 
 #endif

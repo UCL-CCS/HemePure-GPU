@@ -1060,7 +1060,7 @@ __global__ void GPU_WallMom_correction_File_prefactor(
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
 			// Approach 1 - from GPU global mem (GMem_Iolets_info)
-			IdInlet = GMem_Iolets_info[0];
+			IdInlet = (int)GMem_Iolets_info[0];
 			// Approach 2 - from struct array
 			// IdInlet = Iolets_info.Iolets_ID_range[0];
 		}
@@ -1252,9 +1252,9 @@ __global__ void GPU_WallMom_correction_File_prefactor_v2(
 		// Approach 2 (Should be Faster - consider testing this):
 		// Access the info from the GPU's constant memory: _Iolets_Inlet_Inner[local_iolets_MaxSIZE], local_iolets_MaxSIZE = 90 cuda_params.h (Assume 30 max iolets per RANK)
 		// Determine the IdInlet - Done!!!
-		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
+		int  IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = Iolets_info.Iolets_ID_range[0];// IdInlet = iolets_ID_range[0];
+			IdInlet = (int)Iolets_info.Iolets_ID_range[0];// IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -1467,11 +1467,9 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 
 						GMem_dbl_WallMom[index_wallMom_correction] = correction;
 						//
-				} // Closes the loop if(is_Iolet_link)
-
-				//if (time_Step==1 && correction!=0)
-					//printf("GPU - Fluid ID: %lld, LB-Dir: %d, correction: %5.3e \n", Ind, LB_Dir, correction);
-
+						//	if (time_Step==1 && correction!=0)
+						//    printf("GPU - Fluid ID: %lld, LB-Dir: %d, correction: %5.3e \n", Ind, LB_Dir, correction);
+				}
 			} // ends the loop over the LB_Dir directions
 			//==========================================================================
 
@@ -1824,22 +1822,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 		}
 
-		// Add here an if wallShearStressMagn_Eval
-		// This will initially evaluate the second moments of the distr. functions
-		// Explicitly calculate the elements (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
-		// and saves these with this order in the array ret_SecMomDistrFunc
-		// 	Need then to exploit symmetry to fill the elements (0,1) (0,2) (1,2)
-		double *SecMomDistrFunc;
-		SecMomDistrFunc = _CalculatePiTensor(f_neq);
-		SecMomDistrFunc[6] = SecMomDistrFunc[1];
-		SecMomDistrFunc[7] = SecMomDistrFunc[3];
-		SecMomDistrFunc[8] = SecMomDistrFunc[4];
-		/*// Debugging
-		for (int i = 0; i < 6; ++i) {
-			printf("Second Mom. Distr. funct. %5.5e\n", SecMomDistrFunc[i]);
-		}*/
 		//-----------------------------------------------------------------------------------------------------------
-
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
 		//-----------------------------------------------------------------------------------------------------------
 

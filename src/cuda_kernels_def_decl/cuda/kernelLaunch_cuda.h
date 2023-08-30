@@ -3,8 +3,10 @@
 
  
 #define GPU_KERNEL __host__ __device__
-#define GPU_FUNCTION __host__ __device__
-#define GPU_INLINE_FUNCTION __host__ __device__ __forceinline__
+#define GPU_DEVICE_FUNCTION __device__
+#define GPU_INLINE_DEVICE_FUNCTION __device__ __forceinline__
+
+#define GPU_DUMMY_SYNC 
 
 
 #ifndef DEVICE_API_CUDA_H

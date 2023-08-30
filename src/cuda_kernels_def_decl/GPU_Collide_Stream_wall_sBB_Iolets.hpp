@@ -125,7 +125,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = Iolets_info.Iolets_ID_range[0];//IdInlet = iolets_ID_range[0];
+			IdInlet =(int) Iolets_info.Iolets_ID_range[0];//IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -403,7 +403,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
 			// Approach 1 - from GPU global mem (GMem_Iolets_info)
-			IdInlet = GMem_Iolets_info[0];
+			IdInlet =(int) GMem_Iolets_info[0];
 			// Approach 2 - from struct array
 			// IdInlet = Iolets_info.Iolets_ID_range[0];
 		}
@@ -624,7 +624,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 			momentum_z += (double)c.CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
-
 
 		// In the case of body force
 		//momentum_x += 0.5 * _force_x;

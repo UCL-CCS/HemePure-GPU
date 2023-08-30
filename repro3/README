@@ -1,0 +1,97 @@
+This test exercises the "GPU_CollideStream_Iolets_Ladd_VelBCs" kernels.
+This is related to velocity boundary conditions in HemeLB and is similar to repro_Ladd_Vel_BCs.
+
+There is a 'functorized version' of the kernel as well as just a regular __global__ function. 
+The functor version fails to reproduce the results of the kernel version unless a 
+
+__syncthreads(); ( or in some cases printf()s ) are introduced at line 107 of  GPU_Collide_Stream_Iolets.hpp
+
+This test reuses the input date from precursor_data_7.h, but because it uses a different kernel
+doesn't have reference output data. Instead it compares the results of the two kernels called to each other.
+
+
+Files:
+
+api.h :   Kernel launchig + macros (mini portable API implemented in HIP)
+
+GPU_Collide_Stream_wall_sBB_Iolets.hpp:
+
+	This contains the kernels both the functor form and the '__global__' function form
+	The file also contains a device function the kernels call.
+	Finally the '__global__ function' version relies on some constant memory so this file
+	contains a setup() function to fill the constant memory symbols from the 'nash_data_1.h' file
+
+precursor_data_7.h: the input data to the kernels and expected output data -- dumped from process 7 of the original test
+
+main.cu: the test code (applies both the Functor, and reglar kernel version of the code and compares
+against referens)
+
+
+NB: There is overall only 1 compilation unit. main.cu includes GPU_Collide_Stream_Iolets.hpp, which
+in turn incldes the api.h and nash_data_1.h file.
+
+To run, just run:  
+
+make
+
+Failing test output looks like:
+
+[bjoo@login2.crusher repro3]$ make
+
+==============================================./repro_teso=
+Devict properties:
+Device name:  AMDGCN GFX910
+Compute Capability: 9.0
+
+Total Global Mem:    64.0GB
+Number of Streaming Multiprocessors:  110
+Shared Mem Per SM:   64KB
+Max Number of Threads per Block:  1024
+Max Number of Blocks allowed in x-dir:  2147483647
+Max Number of Blocks allowed in y-dir:  2147483647
+Warp Size:  64
+===============================================
+
+Initialization completed. Symbols copied
+Running testIoletsLaddVelBC
+Copying Auxiliary fields to device
+Calling Functor
+Copying Back Results
+Restoring original fNew and MacroVars
+Calling Kernel
+Copying Back Results
+Comparing fNew results from functor and kernel for sameness.... FAILED
+Comparing MacroVars results from functor and kernel for sameness.... OK!
+Test Failed
+
+To make the test pass, uncomment the __syncthreads() on line 107 of GPU_Collide_Stream_Iolets.hpp
+
+a passing test looks like:
+
+./repro_test
+===============================================
+Device properties:
+Device name:  AMDGCN GFX910
+Compute Capability: 9.0
+
+Total Global Mem:    64.0GB
+Number of Streaming Multiprocessors:  110
+Shared Mem Per SM:   64KB
+Max Number of Threads per Block:  1024
+Max Number of Blocks allowed in x-dir:  2147483647
+Max Number of Blocks allowed in y-dir:  2147483647
+Warp Size:  64
+===============================================
+
+Initialization completed. Symbols copied
+Running testIoletsLaddVelBC
+Copying Auxiliary fields to device
+Calling Functor
+Copying Back Results
+Restoring original fNew and MacroVars
+Calling Kernel
+Copying Back Results
+Comparing fNew results from functor and kernel for sameness.... OK!
+Comparing MacroVars results from functor and kernel for sameness.... OK!
+Test Succeeded
+

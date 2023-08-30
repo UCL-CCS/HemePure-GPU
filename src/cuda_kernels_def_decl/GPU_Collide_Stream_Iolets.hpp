@@ -27,7 +27,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
       : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), GMem_dbl_MacroVars(GMem_dbl_MacroVars_), GMem_int64_Neigh(GMem_int64_Neigh_),
         GMem_uint32_Iolet_Link(GMem_uint32_Iolet_Link_), nArr_dbl(nArr_dbl_), GMem_dbl_WallMom(GMem_dbl_WallMom_), nArr_wallMom(nArr_wallMom_),
         lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
-        minusInvTau(minusInvTau_) {}
+        minusInvTau(minusInvTau_){}
 
   GPU_KERNEL void operator()(unsigned long long Ind) {
 	const lb::lattices::D3Q19GPUConstants c;
@@ -38,14 +38,15 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
 
     // Load the distribution functions
     // f[19] and fEq[19]
-    double dev_ff[19];   //, dev_fEq[19];
+    double dev_ff[19]={0};   //, dev_fEq[19];
     double nn = 0.0;     // density
     double momentum_x, momentum_y, momentum_z;
     momentum_x = momentum_y = momentum_z = 0.0;
 
     double velx, vely, velz;   // Fluid Velocity
 
-                               //-----------------------------------------------------------------------------------------------------------
+
+    //-----------------------------------------------------------------------------------------------------------
     // 1. Read the fOld_GPU_b distr. functions
     // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
     // 		a. Calculate density
@@ -54,12 +55,15 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
+
       nn += dev_ff[direction];
       momentum_x += (double) c.CX[direction] * dev_ff[direction];
       momentum_y += (double) c.CY[direction] * dev_ff[direction];
       momentum_z += (double) c.CZ[direction] * dev_ff[direction];
     }
 
+	// To get around ROCM Compiler bugs 'portably'....
+	GPU_DUMMY_SYNC();
 
     // Compute velocity components
     velx = momentum_x / nn;
@@ -77,11 +81,13 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
       double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y 
 			+ (double) c.CZ[i] * momentum_z;
 
-      double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
-                                        (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
+		double dev_fEq = c.EQMWEIGHTS[i]
+									* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
+														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
       dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
     }
+
     //----------------------------------------------------------------------------------------------------
 
     // d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
@@ -201,15 +207,18 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
   Iolets Iolets_info;
   const double minusInvTau;
 
+  const int myPiD;
+  const int line;
+
   GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor(distribn_t *GMem_dbl_fOld_b_, distribn_t *GMem_dbl_fNew_b_, distribn_t *GMem_dbl_MacroVars_,
                                                            int64_t *GMem_int64_Neigh_, uint32_t *GMem_uint32_Iolet_Link_, distribn_t *GMem_ghostDensity_,
                                                            float *GMem_inletNormal_, int nInlets_, uint64_t nArr_dbl_, uint64_t lower_limit_,
                                                            uint64_t upper_limit_, uint64_t totalSharedFs_, bool write_GlobalMem_, int num_local_Iolets_,
-                                                           Iolets Iolets_info_, double minusInvTau_)
+                                                           Iolets Iolets_info_, double minusInvTau_, int myPiD_, int line_)
       : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), GMem_dbl_MacroVars(GMem_dbl_MacroVars_), GMem_int64_Neigh(GMem_int64_Neigh_),
         GMem_uint32_Iolet_Link(GMem_uint32_Iolet_Link_), GMem_ghostDensity(GMem_ghostDensity_), GMem_inletNormal(GMem_inletNormal_), nInlets(nInlets_),
         nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
-        num_local_Iolets(num_local_Iolets_), Iolets_info(Iolets_info_), minusInvTau(minusInvTau_) {}
+        num_local_Iolets(num_local_Iolets_), Iolets_info(Iolets_info_), minusInvTau(minusInvTau_), myPiD(myPiD_), line(line_) {}
 
   GPU_KERNEL void operator()(unsigned long long Ind) {
 	const lb::lattices::D3Q19GPUConstants c;
@@ -295,25 +304,17 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     // Access the info from the constant memory: _Iolets_Inlet_Inner[local_iolets_MaxSIZE], 
     // local_iolets_MaxSIZE = 6 cuda_params.h (Assume 2 max iolets per
     // RANK) Determine the IdInlet - Done!!!
-
     int IdInlet = INT32_MAX;   // Iolet (Inlet/Outlet) ID
-    if (num_local_Iolets == 1) {
 
-      IdInlet = Iolets_info.Iolets_ID_range[0];   // IdInlet = iolets_ID_range[0];
+    if (num_local_Iolets ==  1) {
+      IdInlet = (int) (Iolets_info.Iolets_ID_range[0]);   // IdInlet = iolets_ID_range[0];
     } else {
-      // Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
-      // iolets_ID_range Array:
-      //	a. Size: num_local_Iolets * 3
-      // 	b. Iolet ID, Range of fluid IDs: [lower_limit, upper_limit)
-
-      _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind,
+	  _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind,
                           &IdInlet);
     }
-
-    // Testing:
     if (IdInlet == INT32_MAX) {
-      printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! \n\n", Ind, IdInlet);
-    }
+      printf("Fluid_ID : %ld, ID_iolet: %ld - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: %d file: lb.hpp line: %d  \n\n", Ind, IdInlet, myPiD, line);
+	}
 
     ghost_dens = GMem_ghostDensity[IdInlet];
     inletNormal_x = GMem_inletNormal[3 * IdInlet];
@@ -540,7 +541,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     int IdInlet = INT32_MAX;   // Iolet (Inlet/Outlet) ID
     if (num_local_Iolets == 1) {
       // Approach 1 - from GPU global mem (GMem_Iolets_info)
-      IdInlet = GMem_Iolets_info[0];
+      IdInlet = (int)GMem_Iolets_info[0];
       // Approach 2 - from struct array
       // IdInlet = Iolets_info.Iolets_ID_range[0];
     } else {

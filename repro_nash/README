@@ -1,0 +1,108 @@
+This test exercises the "Nash Zero Pressure Kernel" 
+There is a 'functorized version' of the kernel in GPU_Collide_Stream_Iolets.hpp
+as well as just a regular __global__ function. 
+
+in main.cu the test function runs both and compares the results against the 
+"expectation" which comes from exercising the kernel (__global__ function version)
+in the real application. Appropriate inputs and expected outputs are dumped into 
+the 'nash_data_1.h' file. Float arrays are dumped as byte arrays to keep bit identicality
+with the original scenario.
+
+The file contents are as follows:
+
+api.h :   Kernel launchig + macros (mini portable API implemented in HIP)
+
+GPU_Collide_Stream_Iolets.hpp: 
+	This contains the kernels both the functor form and the '__global__' function form
+	The file also contains a device function the kernels call.
+	Finally the '__global__ function' version relies on some constant memory so this file
+	contains a setup() function to fill the constant memory symbols from the 'nash_data_1.h' file
+
+nash_data_1.h: the input data to the kernels and expected output data.
+
+main.cu: the test code.
+
+
+NB: There is overall only 1 compilation unit. main.cu includes GPU_Collide_Stream_Iolets.hpp, which
+in turn incldes the api.h and nash_data_1.h file.
+
+To run, just run:  
+
+make
+
+
+ROCm-5.4.3 exhibits the error:
+
+	Fluid_ID : 10916, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10917, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10918, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10919, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10920, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10921, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10922, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10923, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Fluid_ID : 10924, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+	Checking Functor fNew: ...FAILED!!!!
+	Checking Functor MacroVars: ...OK!
+	Checking Kernel fNew: ...OK!
+	Checking Kernel MacroVars: ...OK!
+	Test Failed
+
+The particular warning message:
+
+	Fluid_ID : 10916, ID_iolet: 2147483647 - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: 1 file: lb.hpp line: 140
+
+comes from this part of the 'Functor' version of the kernel (GPU_Collide_Stream_Iolets.hpp) - line 144 (lb.hpp filename is incorrect, it  is hardwired)
+
+
+          int IdInlet = INT32_MAX;   // Iolet (Inlet/Outlet) ID
+
+          if (num_local_Iolets ==  1) {
+             IdInlet = (int) (Iolets_info.Iolets_ID_range[0]);   // IdInlet = iolets_ID_range[0];
+          } else {
+            _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind,
+                       &IdInlet);
+          }
+
+          if (IdInlet == INT32_MAX) {
+            printf("Fluid_ID : %llu, ID_iolet: %d - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: %d file: lb.hpp line: %d  \n\n", Ind, IdInlet, myPiD, line);
+		  }
+
+What seems to happen here is that the 'if (num_local_Iolets == 1)' branch seems not to be taken. It works in the Kernel (__global__ function) version of the code. 
+We don't get a message from that
+
+
+This test seems to always succeed with  a reacent AFAR (2146)
+
+./repro_test
+===============================================
+Device properties:
+Device name:  AMDGCN GFX910
+Compute Capability: 9.0
+
+Total Global Mem:    64.0GB
+Number of Streaming Multiprocessors:  110
+Shared Mem Per SM:   64KB
+Max Number of Threads per Block:  1024
+Max Number of Blocks allowed in x-dir:  2147483647
+Max Number of Blocks allowed in y-dir:  2147483647
+Warp Size:  64
+===============================================
+
+Initialization completed. Symbols copied
+Running testNashZerothOrderPressure
+Copying Auxiliary fields to device
+Checking Functor fNew: ...OK!
+Checking Functor MacroVars: ...OK!
+Checking Kernel fNew: ...OK!
+Checking Kernel MacroVars: ...OK!
+Test Succeeded

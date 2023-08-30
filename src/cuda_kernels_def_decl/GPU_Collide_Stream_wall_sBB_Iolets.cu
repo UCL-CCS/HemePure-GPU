@@ -416,7 +416,7 @@ namespace hemelb
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = iolets_ID_range[0];
+			IdInlet = (int)iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -680,7 +680,7 @@ namespace hemelb
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_InletWall_Edge[0];//IdInlet = iolets_ID_range[0];
+			IdInlet = (int)_Iolets_InletWall_Edge[0];//IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -943,7 +943,7 @@ namespace hemelb
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_InletWall_Inner[0];//IdInlet = iolets_ID_range[0];
+			IdInlet = (int)_Iolets_InletWall_Inner[0];//IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -1207,7 +1207,7 @@ namespace hemelb
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = _Iolets_OutletWall_Edge[0];//IdInlet = iolets_ID_range[0];
+			IdInlet =(int) _Iolets_OutletWall_Edge[0];//IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -1742,7 +1742,7 @@ namespace hemelb
 		// Determine the IdInlet - Done!!!
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
-			IdInlet = Iolets_info.Iolets_ID_range[0];//IdInlet = iolets_ID_range[0];
+			IdInlet =(int) (Iolets_info.Iolets_ID_range[0]);//IdInlet = iolets_ID_range[0];
 		}
 		else{
 			// Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
@@ -2020,7 +2020,7 @@ namespace hemelb
 		int IdInlet = INT32_MAX; // Iolet (Inlet/Outlet) ID
 		if(num_local_Iolets==1){
 			// Approach 1 - from GPU global mem (GMem_Iolets_info)
-			IdInlet = GMem_Iolets_info[0];
+			IdInlet = (int)GMem_Iolets_info[0];
 			// Approach 2 - from struct array
 			// IdInlet = Iolets_info.Iolets_ID_range[0];
 		}

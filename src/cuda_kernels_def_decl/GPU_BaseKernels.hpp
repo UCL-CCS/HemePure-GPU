@@ -1,6 +1,6 @@
 // cuda_params.h
-#ifndef cuda_params_h
-#define cuda_params_h
+#ifndef GPU_BASE_KERNELS_H
+#define GPU_BASE_KERNELS_H
 
 #include "cuda_kernels_def_decl/deviceAPI.h"
 #include "cuda_kernels_def_decl/deviceLaunch.h"
@@ -15,6 +15,7 @@ namespace hemelb {
                         each iolet has fluid sites with indices in the range: [lower_limit,upper_limit]
         Function returns the iolet ID value: IdInlet.
 */
+#if 0
 GPU_INLINE_FUNCTION  void
 _determine_Iolet_ID(int num_local_Iolets, site_t *iolets_ID_range, site_t fluid_Ind, int *IdInlet) {
   // Loop over the number of local iolets (num_local_Iolets) and determine whether the fluid ID (fluid_Ind) falls whithin the range
@@ -30,6 +31,7 @@ _determine_Iolet_ID(int num_local_Iolets, site_t *iolets_ID_range, site_t fluid_
     }
   }   // closes the loop over the local iolets
 }
+#endif
 //==============================================================================
 
 #if 0
@@ -502,7 +504,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_Fun
     int IdInlet = INT32_MAX;   // Iolet (Inlet/Outlet) ID
     if (num_local_Iolets == 1) {
       // Approach 1 - from GPU global mem (GMem_Iolets_info)
-      IdInlet = GMem_Iolets_info[0];
+      IdInlet = (int)GMem_Iolets_info[0];
       // Approach 2 - from struct array
       // IdInlet = Iolets_info.Iolets_ID_range[0];
     } else {
@@ -521,7 +523,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_Fun
 
     // Debugging:
     if (IdInlet == INT32_MAX) {
-      printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort... \n\n", Ind, IdInlet);
+      printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort...\n\n", Ind, IdInlet);
     }
     /*else{
             printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
@@ -693,7 +695,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_v2_
     // per RANK) Determine the IdInlet - Done!!!
     int IdInlet = INT32_MAX;                      // Iolet (Inlet/Outlet) ID
     if (num_local_Iolets == 1) {
-      IdInlet = Iolets_info.Iolets_ID_range[0];   // IdInlet = iolets_ID_range[0];
+      IdInlet = (int)(Iolets_info.Iolets_ID_range[0]);   // IdInlet = iolets_ID_range[0];
     } else {
       // Call a device function to determine which is the Iolet ID - using the iolets_ID_range Array
       // iolets_ID_range Array:
@@ -824,11 +826,11 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_v2_
 //**************************************************************
 //**************************************************************
 template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoIoletIDSearch_Functor {
-  distribn_t *GMem_dbl_wallMom_prefactor_correction;
-  distribn_t *GMem_dbl_WallMom;
-  uint32_t *GMem_uint32_Iolet_Link;
+  distribn_t *GPU_wallMom_prefactor_correction;
+  distribn_t *GPU_WallMom;
+  uint32_t *GPU_Iolet_Link;
   int IdInlet;
-  distribn_t *GMem_Inlet_velocityTable;
+  distribn_t *GPU_Inlet_velocityTable;
   site_t start_Fluid_ID_givenColStreamType;
   site_t site_Count_givenColStreamType;
   site_t lower_limit;
@@ -841,8 +843,8 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
                                                                 site_t start_Fluid_ID_givenColStreamType_, site_t site_Count_givenColStreamType_,
                                                                 site_t lower_limit_, site_t upper_limit_, unsigned long time_Step_,
                                                                 unsigned long total_TimeSteps_)
-      : GMem_dbl_wallMom_prefactor_correction(GMem_dbl_wallMom_prefactor_correction_), GMem_dbl_WallMom(GMem_dbl_WallMom_),
-        GMem_uint32_Iolet_Link(GMem_uint32_Iolet_Link_), IdInlet(IdInlet_), GMem_Inlet_velocityTable(GMem_Inlet_velocityTable_),
+      : GPU_wallMom_prefactor_correction(GMem_dbl_wallMom_prefactor_correction_), GPU_WallMom(GMem_dbl_WallMom_),
+        GPU_Iolet_Link(GMem_uint32_Iolet_Link_), IdInlet(IdInlet_), GPU_Inlet_velocityTable(GMem_Inlet_velocityTable_),
         start_Fluid_ID_givenColStreamType(start_Fluid_ID_givenColStreamType_), site_Count_givenColStreamType(site_Count_givenColStreamType_),
         lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_), total_TimeSteps(total_TimeSteps_) {}
 
@@ -862,7 +864,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
 
     //==========================================================================
     // III. Load the Iolet-Fluid links info
-    uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
+    uint32_t Iolet_Intersect = GPU_Iolet_Link[Ind];
 
     // Here is the loop over the LB lattice directions
 #pragma unroll 19
@@ -884,7 +886,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
 
         // A. Step: Load the prefactor correction term
         site_t index_wallMom_correction = (LB_Dir - 1) * site_Count_givenColStreamType + shifted_Fluid_Ind;
-        distribn_t prefactor_correction = GMem_dbl_wallMom_prefactor_correction[index_wallMom_correction];
+        distribn_t prefactor_correction = GPU_wallMom_prefactor_correction[index_wallMom_correction];
 
         // Note that the prefactor contains the info (see Eval_wallMom_prefactor_correction in LaddIoletDelegate)
         /**
@@ -897,7 +899,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
 
         // Just multiply with max Velocity(IdInlet,t) from velocityTable
         // 	Load max Vel
-        distribn_t max_vel = GMem_Inlet_velocityTable[IdInlet * (total_TimeSteps + 1) + time_Step];   // index_inlet*(total_TimeSteps+1)+timeStep
+        distribn_t max_vel = GPU_Inlet_velocityTable[IdInlet * (total_TimeSteps + 1) + time_Step];   // index_inlet*(total_TimeSteps+1)+timeStep
 
         // B. Step: Evaluate the single correction term as
         distribn_t correction = prefactor_correction * max_vel;
@@ -921,13 +923,12 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
         // shifted ID: %lld, Index WallMom: %lld \n", shifted_Fluid_Ind, ((unsigned long long)(LB_Dir - 1) * site_Count_givenColStreamType +
         // shifted_Fluid_Ind));
 
-        GMem_dbl_WallMom[index_wallMom_correction] = correction;
+        GPU_WallMom[index_wallMom_correction] = correction;
         //
-      }   // Closes the loop if(is_Iolet_link)
 
-          // if (time_Step==1 && correction!=0)
-      // printf("GPU - Fluid ID: %lld, LB-Dir: %d, correction: %5.3e \n", Ind, LB_Dir, correction);
-
+        // if (time_Step==1 && correction!=0)
+        //    printf("GPU - Fluid ID: %lld, LB-Dir: %d, correction: %5.3e \n", Ind, LB_Dir, correction);
+      }
     }   // ends the loop over the LB_Dir directions
         //==========================================================================
 

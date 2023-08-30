@@ -105,6 +105,15 @@ namespace hemelb
 				//GPU Data Addresses - Remove later the ones not used - See memory allocations for the distrib. functions (method a and b)
 				void *GPUDataAddr_dbl_fOld, *GPUDataAddr_dbl_fNew;
 				void *GPUDataAddr_dbl_MacroVars;
+
+				// BJ: Kernel debugging.
+				size_t nElemfNew;
+				size_t nElemMacroVars;
+				distribn_t* host_fnew_bkup;
+				distribn_t* host_mvars_bkup;
+				distribn_t* host_fnew;
+				distribn_t* host_mvars;
+
 				void *GPUDataAddr_int64_Neigh;
 				void *GPUDataAddr_int64_streamInd;
 				void *GPUDataAddr_uint32_Wall;
@@ -215,6 +224,15 @@ namespace hemelb
 				void *GPUDataAddr_wallMom_correction_OutletWall_Edge;
 				void *GPUDataAddr_wallMom_correction_Outlet_Inner;
 				void *GPUDataAddr_wallMom_correction_OutletWall_Inner;
+
+				void *GPUDataAddr_wallMom_correction_Inlet_Edge_Kernel;
+				void *GPUDataAddr_wallMom_correction_InletWall_Edge_Kernel;
+				void *GPUDataAddr_wallMom_correction_Inlet_Inner_Kernel;
+				void *GPUDataAddr_wallMom_correction_InletWall_Inner_Kernel;
+				void *GPUDataAddr_wallMom_correction_Outlet_Edge_Kernel;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Edge_Kernel;
+				void *GPUDataAddr_wallMom_correction_Outlet_Inner_Kernel;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Inner_Kernel;
 
 				// And the corresponding host vectors related to the above
 				// Replace the above with a single correction term instead of 3 components

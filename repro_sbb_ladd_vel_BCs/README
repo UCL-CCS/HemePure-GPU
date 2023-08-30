@@ -1,0 +1,99 @@
+This test exercises the "GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs" kernels.
+This is related to velocity boundary conditions in HemeLB.
+There is a 'functorized version' of the kernel as well as just a regular __global__ function. 
+The functor version fails at high optimization level (-O3) but appears to pass at lower optimization (-O)
+
+in main.cu the test function runs both and compares the results against the 
+"expectation" which comes from exercising the kernel (__global__ function version)
+in the real application - appropriate inputs and expected outputs were dumped into 
+the 'precursor_data_7.h' file. Float and double arrays are dumped as byte arrays to keep bit identicality
+with the original scenario.
+
+The file contents are as follows:
+
+api.h :   Kernel launchig + macros (mini portable API implemented in HIP)
+
+GPU_Collide_Stream_wall_sBB_Iolets.hpp:
+
+	This contains the kernels both the functor form and the '__global__' function form
+	The file also contains a device function the kernels call.
+	Finally the '__global__ function' version relies on some constant memory so this file
+	contains a setup() function to fill the constant memory symbols from the 'nash_data_1.h' file
+
+precursor_data_7.h: the input data to the kernels and expected output data -- dumped from process 7 of the original test
+
+main.cu: the test code (applies both the Functor, and reglar kernel version of the code and compares
+against referens)
+
+
+NB: There is overall only 1 compilation unit. main.cu includes GPU_Collide_Stream_Iolets.hpp, which
+in turn incldes the api.h and nash_data_1.h file.
+
+To run, just run:  
+
+make
+
+This test seems to pass at lower optimization (-O and -O1) 
+but fails on (-O2 and -O3)
+
+Passing (-O and -O1)
+./repro_test
+===============================================
+Device properties:
+Device name:  AMDGCN GFX910
+Compute Capability: 9.0
+
+Total Global Mem:    64.0GB
+Number of Streaming Multiprocessors:  110
+Shared Mem Per SM:   64KB
+Max Number of Threads per Block:  1024
+Max Number of Blocks allowed in x-dir:  2147483647
+Max Number of Blocks allowed in y-dir:  2147483647
+Warp Size:  64
+===============================================
+
+Initialization completed. Symbols copied
+Running testSBBIoletsLaddVelBC
+Copying Auxiliary fields to device
+Calling Functor
+Copying Back Results
+Checking Resulting fNew.... OK!
+Checking Resulting Macrovars.... OK!
+Restoring original fNew and MacroVars
+Calling Kernel
+Copying Back Results
+Checking Resulting fNew.... OK!
+Checking Resulting Macrovars.... OK!
+Test Succeeded
+
+
+Failing: (-O2 and -O3)
+./repro_test
+===============================================
+Device properties:
+Device name:  AMDGCN GFX910
+Compute Capability: 9.0
+
+Total Global Mem:    64.0GB
+Number of Streaming Multiprocessors:  110
+Shared Mem Per SM:   64KB
+Max Number of Threads per Block:  1024
+Max Number of Blocks allowed in x-dir:  2147483647
+Max Number of Blocks allowed in y-dir:  2147483647
+Warp Size:  64
+===============================================
+
+Initialization completed. Symbols copied
+Running testSBBIoletsLaddVelBC
+Copying Auxiliary fields to device
+Calling Functor
+Copying Back Results
+Checking Resulting fNew.... FAILED
+Checking Resulting Macrovars.... OK!
+Restoring original fNew and MacroVars
+Calling Kernel
+Copying Back Results
+Checking Resulting fNew.... OK!
+Checking Resulting Macrovars.... OK!
+Test Failed
+

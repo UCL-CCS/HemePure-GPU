@@ -6,6 +6,13 @@ module load cray-python
 module load amd/5.4.3
 module load cmake                     # Cmake
 module unload cray-libsci             # Nuisance we don't need but PrgEnv loads
+
+export ROCM_PATH=/lustre/orion/proj-shared/stf006/bjoo/rocm-afar-2146
+#export ROCM_PATH=/opt/rocm-5.4.3
+export PATH=${ROCM_PATH}/bin:${ROCM_PATH}/llvm/bin:$PATH
+export LD_LIBRARY_PATH=${ROCM_PATH}/lib:${ROCM_PATH}/llvm/lib:$LD_LIBRARY_PATH
+export HIP_PATH=${ROCM_PATH}/hip
+export HIP_CLANG_PATH=${ROCM_PATH}/llvm/bin
 export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 
 export MPICH_ROOT=/opt/cray/pe/mpich/8.1.26
@@ -21,4 +28,3 @@ export PK_BUILD_TYPE="Release"
 export PATH=${ROCM_PATH}/llvm/bin:$PATH
 
 export LD_LIBRARY_PATH=${ROCM_PATH}/llvm/lib:${ROCM_PATH}/lib:${LD_LIBRARY_PATH}
-ex
