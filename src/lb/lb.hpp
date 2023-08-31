@@ -1672,7 +1672,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 			// Launch the GPU kernel here
 			if (nBlocks_WallMom!=0) {
 
-				// New Kernel into correction_Inlet_Edge_Kernel
 				hemelb::GPU_WallMom_correction_File_Weights_NoSearch_Functor<LatticeType> kern(
 						(int64_t *) GPUDataAddr_Coords_Inlet_Edge, (int64_t **) GPUDataAddr_pp_Inlet_weightsTable_coord,
 						(distribn_t **) GPUDataAddr_pp_Inlet_weightsTable_wei, (int64_t *) GPUDataAddr_index_weightTable_Inlet_Edge,
@@ -1682,26 +1681,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 						mState->GetTotalTimeSteps(),Cs2);
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3);
-
-#if 0
-				// Old Kernel
-				hemelb::GPU_WallMom_correction_File_Weights_NoSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3>>>
-					( (int64_t*)GPUDataAddr_Coords_Inlet_Edge,
-					  (int64_t**)GPUDataAddr_pp_Inlet_weightsTable_coord,
-					  (distribn_t**)GPUDataAddr_pp_Inlet_weightsTable_wei,
-					  (int64_t*)GPUDataAddr_index_weightTable_Inlet_Edge,
-					  (distribn_t*)GPUDataAddr_weightTable_Inlet_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge,
-					  (float*)d_inletNormal,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  arr_elementsInEachInlet[iolet_ID],
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, max_Fluid_index,
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps());
-
-#endif
 
 			}
 		}
@@ -1765,25 +1744,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 						mState->GetTotalTimeSteps(),Cs2);
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5);
-
-#if 0
-				hemelb::GPU_WallMom_correction_File_Weights_NoSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5>>>
-					( (int64_t*)GPUDataAddr_Coords_InletWall_Edge,
-					  (int64_t**)GPUDataAddr_pp_Inlet_weightsTable_coord,
-					  (distribn_t**)GPUDataAddr_pp_Inlet_weightsTable_wei,
-					  (int64_t*)GPUDataAddr_index_weightTable_InletWall_Edge,
-					  (distribn_t*)GPUDataAddr_weightTable_InletWall_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge,
-					  (float*)d_inletNormal,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  arr_elementsInEachInlet[iolet_ID],
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, max_Fluid_index,
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -1852,25 +1812,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3 );
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_Weights_NoSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3>>>
-					( (int64_t*)GPUDataAddr_Coords_Inlet_Inner,
-					  (int64_t**)GPUDataAddr_pp_Inlet_weightsTable_coord,
-					  (distribn_t**)GPUDataAddr_pp_Inlet_weightsTable_wei,
-					  (int64_t*)GPUDataAddr_index_weightTable_Inlet_Inner,
-					  (distribn_t*)GPUDataAddr_weightTable_Inlet_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner,
-					  (float*)d_inletNormal,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  arr_elementsInEachInlet[iolet_ID],
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, max_Fluid_index,
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
-
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0){
@@ -1929,24 +1870,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_Weights_NoSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5>>>
-					( (int64_t*)GPUDataAddr_Coords_InletWall_Inner,
-					  (int64_t**)GPUDataAddr_pp_Inlet_weightsTable_coord,
-					  (distribn_t**)GPUDataAddr_pp_Inlet_weightsTable_wei,
-					  (int64_t*)GPUDataAddr_index_weightTable_InletWall_Inner,
-					  (distribn_t*)GPUDataAddr_weightTable_InletWall_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner,
-					  (float*)d_inletNormal,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  arr_elementsInEachInlet[iolet_ID],
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, max_Fluid_index,
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0){
@@ -2082,18 +2005,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3);
 
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, (site_t*)GPUDataAddr_Inlet_Edge,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 		if(use_approach_2) {
 
@@ -2106,18 +2017,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3);
 
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor_v2 <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, Inlet_Edge,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 
 	}
@@ -2149,19 +2048,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 					(start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5);
-
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, (site_t*)GPUDataAddr_InletWall_Edge,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 		if(use_approach_2) {
 
@@ -2173,18 +2059,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5);
 
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor_v2 <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, InletWall_Edge,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 
 	}
@@ -2221,19 +2095,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 					(start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3);
-
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, (site_t*)GPUDataAddr_Inlet_Inner,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 		if(use_approach_2) {
 
@@ -2244,19 +2105,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 					(start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3);
-
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor_v2 <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, Inlet_Inner,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 	}
 	//----------------------------------------------------------------------
@@ -2287,19 +2135,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 					(start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5);
-
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, (site_t*)GPUDataAddr_InletWall_Inner,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 		if(use_approach_2) {
 
@@ -2310,19 +2145,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 					(start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 			GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5 );
-
-#if 0
-			hemelb::GPU_WallMom_correction_File_prefactor_v2 <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5>>>
-				( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner,
-				  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner,
-				  (uint32_t*)GPUDataAddr_uint32_Iolet,
-				  n_LocalInlets, InletWall_Inner,
-				  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-				  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-				  start_Fluid_ID_givenColStreamType, (start_Fluid_ID_givenColStreamType + site_Count_givenColStreamType),
-				  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-				);
-#endif
 		}
 	}
 	//====================================================================
@@ -2420,18 +2242,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 						site_Count_givenColStreamType, lower_Fluid_index, (max_Fluid_index + 1), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreadsPerBlock_WallMom_correct, 0, Collide_Stream_PreSend_3 );
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2481,18 +2291,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreadsPerBlock_WallMom_correct, 0, Collide_Stream_PreSend_5 );
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2589,21 +2387,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreadsPerBlock_WallMom_correct, 0, Collide_Stream_PreRec_3);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-
-#endif
-
-
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2653,19 +2436,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreadsPerBlock_WallMom_correct, 0, Collide_Stream_PreRec_5);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2771,19 +2541,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_3>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-
-#endif 
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2831,19 +2588,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 						site_Count_givenColStreamType, lower_Fluid_index, (max_Fluid_index + 1), mState->GetTimeStep(), mState->GetTotalTimeSteps());
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5);
-
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreSend_5>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 
 			}
 		}
@@ -2898,20 +2642,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_3>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-
-#endif
-
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -2961,18 +2691,6 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 
 				GPU::kernelLaunch(kern, nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5);
 
-#if 0
-				hemelb::GPU_WallMom_correction_File_prefactor_NoIoletIDSearch <<<nBlocks_WallMom, nThreads_WallMom, 0, Collide_Stream_PreRec_5>>>
-					( (distribn_t*)GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner,
-					  (distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner,
-					  (uint32_t*)GPUDataAddr_uint32_Iolet,
-					  iolet_ID,
-					  (distribn_t*)mLatDat->GPUDataAddr_Inlet_velocityTable,
-					  start_Fluid_ID_givenColStreamType, site_Count_givenColStreamType,
-					  lower_Fluid_index, (max_Fluid_index+1),
-					  mState->GetTimeStep(), mState->GetTotalTimeSteps()
-					);
-#endif
 			}
 		}
 	} // Closes the if(n_LocalInlets != 0)
@@ -3138,19 +2856,9 @@ bool LBM<LatticeType>::FinaliseGPU()
 			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (1) inlet  failed\n"); finalise_GPU_res=false; }
 		}
 
-		if(GPUDataAddr_wallMom_correction_Inlet_Edge_Kernel){
-			status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Inlet_Edge_Kernel);
-			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (1K) inlet  failed\n"); finalise_GPU_res=false; }
-		}
-
 		if(GPUDataAddr_wallMom_correction_InletWall_Edge){
 			status  = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Edge);
 			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (2) inlet  failed\n"); finalise_GPU_res=false; }
-		}
-
-		if(GPUDataAddr_wallMom_correction_InletWall_Edge_Kernel){
-			status  = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Edge_Kernel);
-			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (2K) inlet  failed\n"); finalise_GPU_res=false; }
 		}
 
 		if(GPUDataAddr_wallMom_correction_Inlet_Inner){
@@ -3158,19 +2866,11 @@ bool LBM<LatticeType>::FinaliseGPU()
 			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (3) inlet  failed\n"); finalise_GPU_res=false; }
 		}
 
-		if(GPUDataAddr_wallMom_correction_Inlet_Inner_Kernel){
-			status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Inlet_Inner_Kernel);
-			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (3K) inlet  failed\n"); finalise_GPU_res=false; }
-		}
 		if(GPUDataAddr_wallMom_correction_InletWall_Inner){
 			status = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Inner);
 			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4) inlet  failed\n"); finalise_GPU_res=false; }
 		}
 
-		if(GPUDataAddr_wallMom_correction_InletWall_Inner_Kernel){
-			status = GPU::deviceFree(GPUDataAddr_wallMom_correction_InletWall_Inner_Kernel);
-			if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4K) inlet  failed\n"); finalise_GPU_res=false; }
-		}
 		// Only valid for the Vel Bcs Case: b. File
 		if(GPUDataAddr_pp_Inlet_weightsTable_coord){
 			status = GPU::deviceFree(GPUDataAddr_pp_Inlet_weightsTable_coord);
@@ -3242,18 +2942,6 @@ bool LBM<LatticeType>::FinaliseGPU()
 		status = GPU::deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Inner);
 		if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4) outlet  failed\n"); finalise_GPU_res=false; }
 
-
-		status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Outlet_Edge_Kernel);
-		if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (1) outlet Kernel  failed\n"); finalise_GPU_res=false; }
-
-		status = GPU::deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Edge_Kernel);
-		if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (2) outlet Kernel failed\n"); finalise_GPU_res=false; }
-
-		status = GPU::deviceFree(GPUDataAddr_wallMom_correction_Outlet_Inner_Kernel);
-		if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (3) outlet  Kernel failed\n"); finalise_GPU_res=false; }
-
-		status = GPU::deviceFree(GPUDataAddr_wallMom_correction_OutletWall_Inner_Kernel);
-		if(!status){ fprintf(stderr, "GPU::deviceFree wall mom correction (4) outlet Kernel failed\n"); finalise_GPU_res=false; }
 	}
 
 	//----------------------------------------------------------------------
@@ -3272,12 +2960,6 @@ bool LBM<LatticeType>::FinaliseGPU()
 	
 	status = GPU::deviceFree(GPUDataAddr_int64_Neigh_d);
 	if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
-
-	delete [] host_fnew;
-	delete [] host_fnew_bkup;
-	delete [] host_mvars;
-	delete [] host_mvars_bkup;
-
 
 	/*
 	// Free up pinned Memory
@@ -3400,11 +3082,6 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 		//return false;
 	}
 
-
-  nElemMacroVars = (  (1+3) * nFluid_nodes );
-  host_mvars_bkup = new distribn_t[ nElemMacroVars ];
-  host_mvars = new distribn_t[ nElemMacroVars ];
-
 	// 12 April 2023
 	// Check whether to allocate memory for the wall shear stress magnitude
 	// Related to mSimConfig
@@ -3500,9 +3177,6 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 		//return false;
 	}
 
-  nElemfNew = nArray_Distr;
-  host_fnew = new distribn_t[ nElemfNew ];
-  host_fnew_bkup = new distribn_t[ nElemfNew ] ;
 	// Delete - Free-up memory here... (Not at the end of the function)
 	//=================================================================================================================================
 
@@ -4291,12 +3965,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Edge_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - Inlet Edge Kernelfailed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
 		}
 
 		site_t site_Count_InletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(4);
@@ -4310,12 +3978,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 				return initialise_GPU_res; //return false;
 			}
 
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Edge_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - InletWall Edge Kernel failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
 		}
 
 		site_t site_Count_Inlet_Inner = mLatDat->GetMidDomainCollisionCount(2);
@@ -4328,12 +3990,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Inlet_Inner_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - Inlet Inner Kernel failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
 		}
 
 		site_t site_Count_InletWall_Inner = mLatDat->GetMidDomainCollisionCount(4);
@@ -4343,12 +3999,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Inner, MemSz);
 			if(!status){
 				fprintf(stderr, "GPU memory allocation wallMom - InletWall Inner failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_InletWall_Inner_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - InletWall Inner Kernel failed\n");
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
@@ -4385,15 +4035,7 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
-
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Edge_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - Outlet Edge Kernel failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
 		}
-
 		site_t site_Count_OutletWall_Edge = mLatDat->GetDomainEdgeCollisionCount(5);
 		if(site_Count_OutletWall_Edge!=0){
 			// Correction term
@@ -4401,14 +4043,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Edge, MemSz);
 			if(!status){
 				fprintf(stderr, "GPU memory allocation wallMom - OutletWall Edge failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
-
-
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Edge_Kernel, MemSz);
-			if(!status) {
-				fprintf(stderr, "GPU memory allocation wallMom - OutletWall Edge Kernel failed\n");
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
@@ -4424,12 +4058,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_Outlet_Inner_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - Outlet Inner Kernel failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
 		}
 
 		site_t site_Count_OutletWall_Inner = mLatDat->GetMidDomainCollisionCount(5);
@@ -4439,12 +4067,6 @@ If NO,	then calculate these values once in Initialise_GPU and memcpy to GPU.
 			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Inner, MemSz);
 			if(!status){
 				fprintf(stderr, "GPU memory allocation wallMom - OutletWall Inner failed\n");
-				initialise_GPU_res = false;
-				return initialise_GPU_res; //return false;
-			}
-			status = GPU::deviceMalloc((void**)&GPUDataAddr_wallMom_correction_OutletWall_Inner_Kernel, MemSz);
-			if(!status){
-				fprintf(stderr, "GPU memory allocation wallMom - OutletWall Inner Kernel failed\n");
 				initialise_GPU_res = false;
 				return initialise_GPU_res; //return false;
 			}
@@ -5917,99 +5539,11 @@ https://stackoverflow.com/questions/26111794/how-to-use-pointer-to-pointer-in-cu
 	//		f. Cs2
 	//		g. useWeightsFromFile - Case of Vel BCs
 
-	// 2.a. Weight coefficients for the equilibrium distr. functions
-	status = GPU::deviceMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (1)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-		//goto Error;
-	}
-
-	// 2.b. Number of vectors: LatticeType::NUMVECTORS
-	static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
-	status = GPU::deviceMemcpyToSymbol(&hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (2)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-		//goto Error;
-	}
-
-	// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
-	status = GPU::deviceMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (3)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-		//goto Error;
-	}
-
-	// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
-	status = GPU::deviceMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (4)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-	status = GPU::deviceMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (5)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-	status = GPU::deviceMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (6)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-
 	// 2.e. Relaxation Time tau
 	//static const int num_Vectors = LatticeType::NUMVECTORS;
 	// mParams object of type hemelb::lb::LbmParameters (struct LbmParameters)
 	double tau = mParams.GetTau();
 	if(myPiD==1) printf("Relaxation Time = %.5f\n\n", tau);
-	double minus_inv_tau = mParams.GetOmega();	// printf("Minus Inv. Relaxation Time = %.5f\n\n", minus_inv_tau);
-
-	status = GPU::deviceMemcpyToSymbol(&hemelb::dev_tau, &tau, sizeof(tau), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (7)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-
-	status = GPU::deviceMemcpyToSymbol(&hemelb::dev_minusInvTau, &minus_inv_tau, sizeof(minus_inv_tau), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (8)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-
-	status = GPU::deviceMemcpyToSymbol(&hemelb::_Cs2, &Cs2, sizeof(Cs2), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (9)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-
-	// 2g. useWeightsFromFile - Case of Vel BCs
-	status = GPU::deviceMemcpyToSymbol(&hemelb::_useWeightsFromFile, &useWeightsFromFile, sizeof(useWeightsFromFile), 0, GPU::memcpyHostToDevice);
-	if (!status) {
-		fprintf(stderr, "GPU constant memory copy failed (10)\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-	}
-
 	//=================================================================================================================================
 
 	// Remove later...
@@ -6907,16 +6441,6 @@ void LBM<LatticeType>::PreSend()
 
 		GPU::kernelLaunch(stability_kernel, nBlocks_Check, nThreadsPerBlock_Check, 0, stability_check_stream);
 
-#if 0
-
-		hemelb::GPU_Check_Stability <<< nBlocks_Check, nThreads_Check, 0, stability_check_stream >>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-				(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
-				(int*)mLatDat->d_Stability_GPU_mLatDat,
-				nFluid_nodes_test,
-				first_Index_test, (first_Index_test + site_Count_test), mState->GetTimeStep()); 
-
-#endif
-
 
 		// (int64_t*)GPUDataAddr_int64_Neigh_b
 		/*
@@ -6969,16 +6493,6 @@ void LBM<LatticeType>::PreSend()
 
 		GPU::kernelLaunch(collision_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_1);
 
-#if 0
-		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_1>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-				(distribn_t *) fNewBackup,
-				(distribn_t *) MacroVarsBackup, 
-				(site_t*)GPUDataAddr_int64_Neigh_d,
-				(uint32_t*)GPUDataAddr_uint32_Wall,
-				nFluid_nodes,
-				first_Index, (first_Index + site_Count_MidFluid),
-				(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
-#endif
 
 	}
 
@@ -7317,16 +6831,6 @@ void LBM<LatticeType>::PreSend()
 
 			GPU::kernelLaunch(kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3 );
 
-#if 0
-			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_3>>> ( (distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *) fNewBackup,
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			// Make sure it has received the values for ghost density on the GPU for the case of Pressure BCs
@@ -7347,19 +6851,6 @@ void LBM<LatticeType>::PreSend()
 
 				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3); 
 
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_3>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup,
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInlet_Edge, Inlet_Edge);
-#endif
 			}
 			else{
 
@@ -7374,19 +6865,6 @@ void LBM<LatticeType>::PreSend()
 
 				GPU::kernelLaunch(collide_kern,nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3 );
 
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_3>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInlet_Edge, (site_t*)GPUDataAddr_Inlet_Edge);
-#endif
 			}
 		}
 		//--------------------------------------------------------------------
@@ -7427,16 +6905,6 @@ void LBM<LatticeType>::PreSend()
 
 			GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_4);
 
-#if 0
-			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_4>>> ( (distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *) fNewBackup,
-					(distribn_t *) MacroVarsBackup,
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_Outlet_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			// Make sure it has received the values for ghost density on the GPU
@@ -7454,19 +6922,6 @@ void LBM<LatticeType>::PreSend()
 						n_LocalOutlets_mOutlet_Edge, Outlet_Edge, mParams.GetOmega(), myPiD,  __LINE__);   //
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_4);
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_4>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutlet_Edge, Outlet_Edge); //
-#endif
 
 			}
 			else{
@@ -7480,19 +6935,6 @@ void LBM<LatticeType>::PreSend()
 						n_LocalOutlets_mOutlet_Edge, (site_t *) GPUDataAddr_Outlet_Edge, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_4 );
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_4>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutlet_Edge, (site_t*)GPUDataAddr_Outlet_Edge);
-#endif
 			}
 
 		}
@@ -7534,18 +6976,6 @@ void LBM<LatticeType>::PreSend()
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch(velbc_functor, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5);
-
-#if 0
-			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_5>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *) fNewBackup, 
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Wall,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 
@@ -7562,20 +6992,6 @@ void LBM<LatticeType>::PreSend()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5); 
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_5>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *)MacroVarsBackup, 
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInletWall_Edge, InletWall_Edge); //
-#endif
 			}
 			else{
 
@@ -7590,20 +7006,6 @@ void LBM<LatticeType>::PreSend()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5 );
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_5>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *)MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInletWall_Edge, (site_t*)GPUDataAddr_InletWall_Edge); //
-#endif
 			}
 		}
 		//--------------------------------------------------------------------
@@ -7646,17 +7048,6 @@ void LBM<LatticeType>::PreSend()
 
 			GPU::kernelLaunch( velbc_functor, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
 
-#if 0
-			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_6>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *) fNewBackup,
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Wall,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_OutletWall_Edge, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalOutlets_mOutletWall_Edge<=(local_iolets_MaxSIZE/3))
@@ -7671,21 +7062,6 @@ void LBM<LatticeType>::PreSend()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_6>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutletWall_Edge, OutletWall_Edge);
-
-#endif
 			}
 			else{
 
@@ -7698,25 +7074,6 @@ void LBM<LatticeType>::PreSend()
 						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalOutlets_mOutletWall_Edge, (site_t *) GPUDataAddr_OutletWall_Edge, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_6>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup, 
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutletWall_Edge, (site_t*)GPUDataAddr_OutletWall_Edge);
-
-				{
-					bool ok = diff<distribn_t>(fNewBackup, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat, nElemfNew, Collide_Stream_PreSend_6, myPiD, __FILE__, __LINE__);
-					ok = diff<distribn_t>(MacroVarsBackup, GPUDataAddr_dbl_MacroVars, nElemMacroVars, Collide_Stream_PreSend_6, myPiD, __FILE__, __LINE__);
-				}
-#endif
 			}
 		}
 		//--------------------------------------------------------------------
@@ -7897,16 +7254,6 @@ void LBM<LatticeType>::PreReceive()
 
 		GPU::kernelLaunch(collision_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_1);
 
-#if 0
-		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_1>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-				(distribn_t *) fNewBackup,
-				(distribn_t *) MacroVarsBackup, 
-				(site_t*)GPUDataAddr_int64_Neigh_d,
-				(uint32_t*)GPUDataAddr_uint32_Wall,
-				nFluid_nodes,
-				first_Index, (first_Index + site_Count_MidFluid),
-				(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem); // (int64_t*)GPUDataAddr_int64_Neigh_b
-#endif
 
 	}
 	//#####################################################################################################################################################
@@ -8155,18 +7502,6 @@ void LBM<LatticeType>::PreReceive()
 
 			GPU::kernelLaunch(c_kern2, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_3);
 
-#if 0
-
-			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_3>>> ( (distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *)fNewBackup, 
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_Inlet_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-
-#endif
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalInlets_mInlet<=(local_iolets_MaxSIZE/3))
@@ -8182,20 +7517,6 @@ void LBM<LatticeType>::PreReceive()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_3);
 
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure<<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_3>>> (	
-						(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInlet, Inlet_Inner); // (int64_t*)GPUDataAddr_int64_Neigh_b
-#endif
 			}
 			else{
 
@@ -8209,19 +7530,6 @@ void LBM<LatticeType>::PreReceive()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_3 );
 
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2<<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_3>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInlet, (site_t*)GPUDataAddr_Inlet_Inner);
-#endif
 			}
 		}
 		//--------------------------------------------------------------------
@@ -8265,74 +7573,10 @@ void LBM<LatticeType>::PreReceive()
 
 			GPU::kernelLaunch( c_kern4, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_4);
 
-#if 0
-			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_4>>> ( (distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *)fNewBackup,  
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_Outlet_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalOutlets_mOutlet<=(local_iolets_MaxSIZE/3))
 			{
-#if 0
-				std::ostringstream fn; 
-				fn << "./nash_data_" << myPiD << ".h";
-
-				FILE *fp = fopen(fn.str().c_str(), "w+");
-
-			    fprintf(fp, "namespace ParamData {\n");
-				fprintf(fp, "double minusInvTau = %16.8e ; \n", mParams.GetOmega());
-			    fprintf(fp, "bool Write_GlobalMem = %s ; \n", Write_GlobalMem ? "true" : "false" );
-				fprintf(fp, "int myPiD = %d ; \n", myPiD);
-				fprintf(fp, "int n_LocalOutlets_mOutlet = %d ; \n", n_LocalOutlets_mOutlet);
-		 		fprintf(fp, "uint64_t totalSharedFs = %lu ; \n", mLatDat->totalSharedFs);
-				fprintf(fp, "uint64_t lower_limit = %lu ; \n", first_Index);
-				fprintf(fp, "uint64_t upper_limit = %lu ; \n", 	(first_Index + site_Count));
-				fprintf(fp, "uint64_t nArr_dbl = %lu ; \n", (mLatDat->GetLocalFluidSiteCount()));
-				fprintf(fp, "int n_Outlets = %d ; \n", n_Outlets);
-
-				size_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount();
-				fprintf(fp, "size_t nFluid_nodes = %ul ; \n", nFluid_nodes);
-			   
-				uint64_t nArray_Distr = nFluid_nodes * LatticeType::NUMVECTORS + 1 + mLatDat->totalSharedFs; 
-				uint64_t nArray_Neigh = nFluid_nodes * LatticeType::NUMVECTORS; 
-				bufferWrite<distribn_t>(fp, "distribn_t", "fOld", nArray_Distr, mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat);
-				bufferWrite<distribn_t>(fp, "distribn_t", "fNew", nArray_Distr, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
-				bufferWrite<distribn_t>(fp, "distribn_t", "MacroVars", (1+3) * nFluid_nodes, GPUDataAddr_dbl_MacroVars);
-				bufferWrite<int64_t>(fp, "int64_t", "Neigh", nArray_Neigh, GPUDataAddr_int64_Neigh_d);
-				bufferWrite<uint32_t>(fp, "uint32_t", "Iolet", nFluid_nodes, GPUDataAddr_uint32_Iolet);
-				bufferWrite<distribn_t>(fp, "distribn_t","ghostDensity_out", n_Outlets, d_ghostDensity_out);
-				bufferWrite<float>(fp, "float", "outletNormal", 3*n_Outlets, d_outletNormal);
-				fprintf(fp, "struct Iolets Outlet_Inner;\n");
-				fprintf(fp, "void setupIoletsOutletInner() { \n");
-			    fprintf(fp, "\t Outlet_Inner.n_local_iolets = %d ;\n", Outlet_Inner.n_local_iolets);
-				for(int i=0; i < Outlet_Inner.n_local_iolets; i++) { 
-					fprintf(fp, "\tOutlet_Inner.Iolets_ID_range[%d] = %lu ; \n", Outlet_Inner.Iolets_ID_range[i]);
-				}
-             	fprintf(fp, "}\n");	
-
-				// Back up data to the host
-				std::vector<distribn_t> host_fNew(nArray_Distr);
-				std::vector<distribn_t> host_MacroVars(4*nFluid_nodes);
-				std::vector<distribn_t> host_fNew_bkup(nArray_Distr);
-				std::vector<distribn_t> host_MacroVars_bkup(4*nFluid_nodes);
-		
-				// Preserve fNew -> host_fNew_bkup
-				GPU::deviceMemcpy((void *)host_fNew_bkup.data(), 
-									(const void *)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat, 
-									nArray_Distr*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-				// Preserve MacroVars -> host_MacroVars_bkup
-				GPU::deviceMemcpy((void *)host_MacroVars_bkup.data(), 
-									(const void *)GPUDataAddr_dbl_MacroVars,
-									4*nFluid_nodes*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-#endif
 
 				// Call the bad routine
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor<LatticeType> collide_kern(
@@ -8344,97 +7588,6 @@ void LBM<LatticeType>::PreReceive()
 						n_LocalOutlets_mOutlet, Outlet_Inner, mParams.GetOmega(), myPiD, __LINE__);
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_4);	
-
-#if 0
-				// Sync
-			    GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
-
-
-				// Save the fNew and the Macrovars
-				//  fNew (bad) -> hostfNew
-				GPU::deviceMemcpy( (void *)host_fNew.data(),
-								   (const void *)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat, 
-								   nArray_Distr*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-				//   MacroVars (bad) -> hostMacroVars
-				GPU::deviceMemcpy( (void *)host_MacroVars.data(),
-							   	   (const void *)GPUDataAddr_dbl_MacroVars,
-									4*nFluid_nodes*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-
-				// Now restore the orignal backed up stuff
-				GPU::deviceMemcpy( (void *)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat, 
-								   (const void *)host_fNew_bkup.data(),
-									nArray_Distr*sizeof(distribn_t), GPU::memcpyHostToDevice);
-
-
-				GPU::deviceMemcpy( (void *)GPUDataAddr_dbl_MacroVars,
-								   (const void *)host_MacroVars_bkup.data(), 
-									4*nFluid_nodes*sizeof(distribn_t), GPU::memcpyHostToDevice);
-				
-				// Call the Good Kernel
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_4>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
-						(double *)GPUDataAddr_dbl_MacroVars,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutlet, Outlet_Inner); //
-
-				// Sync and dump the results to disk.	 
-			    GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
-				bufferWrite<distribn_t>(fp, "distribn_t", "fNewResult", nArray_Distr, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
-				bufferWrite<distribn_t>(fp, "distribn_t", "MacroVarsResult", (1+3) * nFluid_nodes, GPUDataAddr_dbl_MacroVars);
-				fclose(fp);
-	
-				// Save the fNew and the Macrovars
-				//  fNew (good ? ) -> hostfNew_bkup
-				GPU::deviceMemcpy( (void *)host_fNew_bkup.data(),
-								   (const void *)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat, 
-								   nArray_Distr*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-				//   MacroVars (good ?) -> hostMacroVars
-				GPU::deviceMemcpy( (void *)host_MacroVars_bkup.data(),
-							   	   (const void *)GPUDataAddr_dbl_MacroVars,
-									4*nFluid_nodes*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-				// Now diff them 
-				size_t differences_fNew=0; 
-				for(int i=0; i < host_fNew.size(); ++i) {
-					distribn_t diff = fabs( host_fNew_bkup[i] - host_fNew[i] ) ;
-					if ( diff != 0 ) diff /= fabs( host_fNew[i] ); // Turn it into a relative error
-					if ( diff > 1.0e-13 ) {
-						differences_fNew++;
-						fprintf(stderr, "i=%lu fNew rel_diff=%16.8e\n", i, diff);
-					}
-				}
-
-				size_t differences_Mv=0;	
-				for(int i=0; i < host_MacroVars.size(); ++i) {
-					distribn_t diff = fabs( host_MacroVars_bkup[i] - host_MacroVars[i] ) ;
-					if ( diff != 0 ) diff /= fabs( host_MacroVars[i] ); // Turn it into a relative error
-					if ( diff > 1.0e-13 ) {
-						differences_Mv++;
-						fprintf(stderr, "i=%lu MacroVars rel_diff=%16.8e\n", i, diff);
-					}
-				}
-				
-				if ( differences_fNew > 0 ) {
-					fprintf(stderr, "Functor and Kernel gave different results for fNew on proc %d\n", myPiD);
-				} 			
-				if (differences_Mv >  0 )  {
-					fprintf(stderr, "Functor and Kernel gave different results for MacroVars\n", myPiD);
-				}
-
-				if( (differences_Mv + differences_fNew) > 0 )  {
-					fprintf(stderr, "Aborting....\n");
-					abort();
-				}
-#endif
 			}
 			else{
 
@@ -8447,21 +7600,6 @@ void LBM<LatticeType>::PreReceive()
 						n_LocalOutlets_mOutlet, (site_t *) GPUDataAddr_Outlet_Inner, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_4 );
-
-
-#if 0
-				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_4>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutlet, (site_t*)GPUDataAddr_Outlet_Inner);
-#endif
 			}
 
 		}
@@ -8507,17 +7645,6 @@ void LBM<LatticeType>::PreReceive()
 
 			GPU::kernelLaunch(velbc_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5);
 
-#if 0
-			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_5>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
-					(distribn_t*)GPUDataAddr_dbl_MacroVars,
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Wall,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_InletWall_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-#endif
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalInlets_mInletWall<=(local_iolets_MaxSIZE/3))
@@ -8533,21 +7660,6 @@ void LBM<LatticeType>::PreReceive()
 						Write_GlobalMem, n_LocalInlets_mInletWall, InletWall_Inner, mParams.GetOmega());
 
 				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5);
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_5>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInletWall, InletWall_Inner);
-
-#endif
 			}
 			else{
 
@@ -8561,20 +7673,6 @@ void LBM<LatticeType>::PreReceive()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5  );
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_5>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *) MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity,
-						(float*)d_inletNormal,
-						n_Inlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalInlets_mInletWall, (site_t*)GPUDataAddr_InletWall_Inner);
-#endif
 			}
 
 		}
@@ -8619,19 +7717,6 @@ void LBM<LatticeType>::PreReceive()
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch(velbc_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
-
-#if 0
-			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_6>>> (	(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-					(distribn_t *) fNewBackup,
-					(distribn_t *) MacroVarsBackup, 
-					(int64_t*)GPUDataAddr_int64_Neigh_d,
-					(uint32_t*)GPUDataAddr_uint32_Wall,
-					(uint32_t*)GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()),
-					(distribn_t*)GPUDataAddr_wallMom_correction_OutletWall_Inner, site_Count*(LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem);
-
-#endif
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalOutlets_mOutletWall<=(local_iolets_MaxSIZE/3))
@@ -8646,20 +7731,6 @@ void LBM<LatticeType>::PreReceive()
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_6>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *)fNewBackup, 
-						(double *)MacroVarsBackup, 
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutletWall, OutletWall_Inner); //
-#endif
 			}
 			else{
 				
@@ -8673,21 +7744,6 @@ void LBM<LatticeType>::PreReceive()
 
 				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
 
-#if 0
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2 <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_6>>> (	(double*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-						(double *) fNewBackup, 
-						(double *)MacroVarsBackup,
-						(int64_t*)GPUDataAddr_int64_Neigh_d,
-						(uint32_t*)GPUDataAddr_uint32_Wall,
-						(uint32_t*)GPUDataAddr_uint32_Iolet,
-						(distribn_t*)d_ghostDensity_out,
-						(float*)d_outletNormal,
-						n_Outlets,
-						(mLatDat->GetLocalFluidSiteCount()),
-						first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
-						n_LocalOutlets_mOutletWall, (site_t*)GPUDataAddr_OutletWall_Inner);
-
-#endif
 			}
 
 		}
@@ -8880,12 +7936,6 @@ void LBM<LatticeType>::PostReceive()
 				(mLatDat->GetLocalFluidSiteCount()), totSharedFs);
 
 		GPU::kernelLaunch(streaming_kernel, nBlocks_StreamRecDistr, nThreadsPerBlock_StreamRecDistr, 0, stream_ReceivedDistr);
-#if 0
-		hemelb::GPU_StreamReceivedDistr <<<nBlocks_StreamRecDistr, nThreads_StreamRecDistr, 0, stream_ReceivedDistr>>> ( (distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
-				(distribn_t *)fNewBackup, 
-				(site_t*)GPUDataAddr_int64_streamInd, (mLatDat->GetLocalFluidSiteCount()), totSharedFs);
-
-#endif
 		//----------------------------------
 	}
 #else		// Computations on CPU

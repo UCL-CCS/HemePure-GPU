@@ -424,13 +424,13 @@ endif()
 
 if(USE_HIP)
   set(hip_sources SimulationMaster.cu 
-    cuda_kernels_def_decl/hip/deviceAPI_hip.cc
-    cuda_kernels_def_decl/cuda_params.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu
-  )
+    cuda_kernels_def_decl/hip/deviceAPI_hip.cc)
+#    cuda_kernels_def_decl/cuda_params.cu
+#    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
+#    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu
+#  )
   set_source_files_properties(${hip_sources} main.cc PROPERTIES LANGUAGE HIP)
-  set_source_files_properties(${hip_sources} main.cc PROPERTIES COMPILE_FLAGS "-fgpu-rdc")
+#  set_source_files_properties(${hip_sources} main.cc PROPERTIES COMPILE_FLAGS "-fgpu-rdc")
 
   add_library(gpu_objs ${hip_sources})
 
@@ -440,7 +440,7 @@ if(USE_HIP)
 
   add_executable(${HEMELB_EXECUTABLE} main.cc)
 	target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip)
-	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
+#	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
 endif()
 
 
