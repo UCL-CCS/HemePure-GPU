@@ -22,4 +22,8 @@ target_include_directories(hemelb_extraction PUBLIC ${CMAKE_SOURCE_DIR})
 if( USE_HIP )
 	set_source_files_properties(PropertyActor.cc LbDataSourceIterator.cc 
 		 PROPERTIES LANGUAGE HIP)
+
+elseif( USE_SYCL ) 
+	 set_source_files_properties( PropertyActor.cc LbDataSourceIterator.cc
+		PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
 endif()

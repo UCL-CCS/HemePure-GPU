@@ -7,7 +7,7 @@
 #define GPU_DEVICE_FUNCTION __device__
 #define GPU_INLINE_DEVICE_FUNCTION __device__ __forceinline__
 
-#define GPU_DUMMY_SYNC	__syncthreads
+#define GPU_DUMMY_SYNC	__syncthreads()
 
 #ifndef HIP_DEVICE_API_H
 #include "cuda_kernels_def_decl/hip/deviceAPI_hip.h"

@@ -1,9 +1,11 @@
 #ifndef DEVICE_API_H
 #define DEVICE_API_H
 
-#ifdef HEMELB_USE_HIP
+#if defined(HEMELB_USE_HIP)
 #include "cuda_kernels_def_decl/hip/deviceAPI_hip.h"
-#else 
+#elif defined(HEMELB_USE_SYCL)
+#include "cuda_kernels_def_decl/sycl/deviceAPI_sycl.h"
+#else
 #include "cuda_kernels_def_decl/cuda/deviceAPI_cuda.h"
 #endif
 
@@ -25,7 +27,10 @@ bool deviceFree(void *devPtr);
 
 bool deviceMemcpyAsync(void *dst, const void *src, size_t count, memcpyKind kind, Stream_t stream);
 bool deviceMemcpy(void *dst, const void *src, size_t count, memcpyKind kind);
+
+#if 0
 bool deviceMemcpyToSymbol(const void *symbol, const void *src, size_t count, size_t offset = 0, memcpyKind kind = memcpyHostToDevice);
+#endif
 
 bool deviceStreamCreate(Stream_t *streamPtr);
 void deviceStreamSynchronize(Stream_t stream);
@@ -35,7 +40,7 @@ size_t deviceGetProperties(int myPiD);
 int deviceGetCount();
 bool deviceAttach(int device);
 
-char pointerSpace(const void *p);
+//char pointerSpace(const void *p);
 
 }   // namespace GPU
 }   // Namespace hemelb

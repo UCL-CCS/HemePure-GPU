@@ -336,20 +336,29 @@ void SimulationMaster::check_GPU_capabilities()
 		if(localRank==0) std::printf("Rank %d: Detected %d GPU device(s)\n", localRank, dev_count);
 	}
 
-
+#if 0
 	// Set the current GPU device	
 	if(dev_count>1 && localRank!=0){
+		// previously (localRank - 1)%dev_count
 		bool status = hemelb::GPU::deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
 		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
 		}	
 	}
-}
-	
-#endif
-// =============================================================================================
+#else
+	if ( localRank != 0 ) {
+	    bool status = hemelb::GPU::deviceAttach(0);     //Set GPU - Rank 0 does not participate
+        if (!status) {
+            fprintf(stderr, "GPU device setting failed\n");
+            Abort();
+        }
 
+    }
+#endif
+}
+// =============================================================================================
+#endif
 
 unsigned int SimulationMaster::OutputPeriod(unsigned int frequency) {
 	if (frequency == 0) {

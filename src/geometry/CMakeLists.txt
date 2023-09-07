@@ -31,8 +31,17 @@ if( USE_HIP )
 		needs/Needs.cc
 		neighbouring/NeighbouringDataManager.cc
 		PROPERTIES LANGUAGE HIP)
+elseif( USE_SYCL )
+	set_source_files_properties(BlockTraverser.cc 
+		BlockTraverserWithVisitedBlockTracker.cc
+		GeometryReader.cc
+		LatticeData.cc
+		SiteTraverser.cc
+		decomposition/OptimisedDecomposition.cc
+		needs/Needs.cc
+		neighbouring/NeighbouringDataManager.cc
+		PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS} )
 endif()
-
 configure_file(
 	"${PROJECT_SOURCE_DIR}/geometry/decomposition/DecompositionWeights.h.in"
 	"${PROJECT_BINARY_DIR}/geometry/decomposition/DecompositionWeights.h")

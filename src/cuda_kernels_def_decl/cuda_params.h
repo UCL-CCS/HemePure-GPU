@@ -31,7 +31,7 @@ namespace hemelb
 	  each iolet has fluid sites with indices in the range: [lower_limit,upper_limit]
 	  Function returns the iolet ID value: IdInlet.
 	 */
-	GPU_INLINE_DEVICE_FUNCTION void _determine_Iolet_ID(int num_local_Iolets, site_t* iolets_ID_range, site_t fluid_Ind, int* IdInlet)
+	GPU_INLINE_DEVICE_FUNCTION void _determine_Iolet_ID(int num_local_Iolets, const site_t* iolets_ID_range, site_t fluid_Ind, int* IdInlet)
 	{
 		// Loop over the number of local iolets (num_local_Iolets) and determine whether the fluid ID (fluid_Ind) falls whithin the range
 		for (int i_local_iolet = 0; i_local_iolet<num_local_Iolets; i_local_iolet++)

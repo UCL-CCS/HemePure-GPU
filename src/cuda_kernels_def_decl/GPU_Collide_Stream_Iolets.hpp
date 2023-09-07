@@ -29,7 +29,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
         lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
         minusInvTau(minusInvTau_){}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
@@ -63,7 +63,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     }
 
 	// To get around ROCM Compiler bugs 'portably'....
-	GPU_DUMMY_SYNC();
+	GPU_DUMMY_SYNC;
 
     // Compute velocity components
     velx = momentum_x / nn;
@@ -220,7 +220,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
         nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
         num_local_Iolets(num_local_Iolets_), Iolets_info(Iolets_info_), minusInvTau(minusInvTau_), myPiD(myPiD_), line(line_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
 
     Ind = Ind + lower_limit;
@@ -312,9 +312,12 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 	  _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind,
                           &IdInlet);
     }
+
+#ifndef HEMELB_USE_SYCL
     if (IdInlet == INT32_MAX) {
       printf("Fluid_ID : %ld, ID_iolet: %ld - Fluid NOT in IOLET range (NashZerothOrderPressure) !!! PID: %d file: lb.hpp line: %d  \n\n", Ind, IdInlet, myPiD, line);
 	}
+#endif
 
     ghost_dens = GMem_ghostDensity[IdInlet];
     inletNormal_x = GMem_inletNormal[3 * IdInlet];
@@ -446,7 +449,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
         nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
         num_local_Iolets(num_local_Iolets_), GMem_Iolets_info(GMem_Iolets_info_), minusInvTau(minusInvTau_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
@@ -558,12 +561,13 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
       // _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind, &IdInlet);
     }
 
+#ifndef HEMELB_USE_SYCL
     // Debugging:
     if (IdInlet == INT32_MAX) {
       printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort...(NashZerothOrderPressure v2)\n\n", Ind, IdInlet);
     }
     //--------------------------------------------------------------------------
-
+#endif
 
     ghost_dens = GMem_ghostDensity[IdInlet];
     inletNormal_x = GMem_inletNormal[3 * IdInlet];

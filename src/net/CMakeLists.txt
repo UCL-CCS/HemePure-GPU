@@ -35,12 +35,26 @@ if(USE_HIP)
 	  mixins/alltoall/ViaPointPointAllToAll.cc
 		mixins/StoringNet.cc
 		PROPERTIES LANGUAGE HIP)
+elseif(USE_SYCL)
+  set_source_files_properties(mixins/pointpoint/CoalescePointPoint.cc 
+		mixins/pointpoint/SeparatedPointPoint.cc 
+		mixins/pointpoint/ImmediatePointPoint.cc
+ 	    mixins/gathers/SeparatedGathers.cc
+		mixins/gathers/ViaPointPointGathers.cc
+		mixins/alltoall/SeparatedAllToAll.cc
+	    mixins/alltoall/ViaPointPointAllToAll.cc
+		mixins/StoringNet.cc
+		PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
 endif()
 
 if(USE_HIP_ROCM OR USE_HIP_CUDA)
   set(hip_sources BaseNet.cc)
   set_source_files_properties(${hip_sources} PROPERTIES LANGUAGE HIP)
   target_sources(hemelb_net PRIVATE ${hip_sources})
+elseif( USE_SYCL )
+  set(sycl_sources BaseNet.cc)
+  set_source_files_properties(${sycl_sources} PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
+  target_sources(hemelb_net PRIVATE ${sycl_sources})
 endif()
 
 configure_file(

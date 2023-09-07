@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(HemeLB_GPU)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -28,8 +28,12 @@ option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 option(HEMELB_USE_GPU "use GPU accel" ON)
 option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" OFF)
 set(HEMELB_GPU_BACKEND CUDA CACHE STRING "GPU backend")
-set(HEMELB_GPU_BACKENDS CUDA HIP_CUDA HIP_ROCM)
+set(HEMELB_GPU_BACKENDS CUDA HIP_CUDA HIP_ROCM SYCL)
 set_property(CACHE HEMELB_GPU_BACKEND PROPERTY STRINGS ${HEMELB_GPU_BACKENDS})
+
+set(HEMELB_SYCL_COMPILER DPCPP CACHE STRING "SYCL Compiler")
+set(HEMELB_SYCL_TARGET amdgcn-amd-amdhsa CACHE STRING "SYCL Target (e.g. amdgcn-amd-amdhsa )")
+set(HEMELB_SYCL_ARCH gfx90a CACHE STRING "SYCL GPU target arch")
 
 if(HEMELB_GPU_BACKEND STREQUAL "CUDA")
   set(USE_CUDA "ON")
@@ -41,6 +45,10 @@ elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_ROCM")
 elseif(HEMELB_GPU_BACKEND STREQUAL "HIP_CUDA")
   set(USE_HIP "ON")
   set(USE_HIP_CUDA "ON")
+  set(GPU_COMPILER "HOST-default")
+elseif(HEMELB_GPU_BACKEND STREQUAL "SYCL")
+  message("Setting USE_SYCL ON")
+  set(USE_SYCL "ON")
   set(GPU_COMPILER "HOST-default")
 endif()
 
@@ -125,7 +133,7 @@ if(HEMELB_TRACER_PARTICLES)
 	add_definitions(-DHEMELB_TRACER_PARTICLES)
 endif()
 
-if(USE_HIP_ROCM OR USE_HIP_CUDA)
+if(USE_HIP_ROCM OR USE_HIP_CUDA OR USE_HIP_SYCL)
   set(HEMELB_USE_SSE3 OFF)
 endif()
 
@@ -271,8 +279,16 @@ if (USE_HIP)
 endif()
 ## ==============================================================================================================================
 
-
-
+# Add this before recursing to colloids
+if( USE_SYCL ) 
+  add_definitions(-DHEMELB_USE_SYCL)
+  if( HEMELB_SYCL_COMPILER STREQUAL "DPCPP" )
+	set( SYCL_CPPFLAGS "-fsycl -fsycl-unnamed-lambda")
+  	if( HEMELB_SYCL_TARGET STREQUAL "amdgcn-amd-amdhsa")
+	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH}")
+    endif()
+  endif()
+endif()
 
 if(HEMELB_USE_VELOCITY_WEIGHTS_FILE)
 	add_definitions(-DHEMELB_USE_VELOCITY_WEIGHTS_FILE)
@@ -443,6 +459,25 @@ if(USE_HIP)
 #	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
 endif()
 
+
+if(USE_SYCL)
+
+  set(sycl_sources SimulationMaster.cu 
+    cuda_kernels_def_decl/sycl/deviceAPI_sycl.cc
+	cuda_kernels_def_decl/sycl/stream_manager.cc
+  )
+  set_source_files_properties(${sycl_sources} main.cc PROPERTIES LANGUAGE CXX)
+  set_source_files_properties(${sycl_sources} main.cc PROPERTIES COMPILE_FLAGS "-x c++ ${SYCL_CPPFLAGS}")
+  add_library(gpu_objs ${sycl_sources})
+
+  # hipcc(with nvcc backend) build has problem for share library visibility,
+  # need to figure out the reason and enable visibility "hidden" for nvcc eventually.
+  #set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
+
+  add_executable(${HEMELB_EXECUTABLE} main.cc)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
+  target_link_options(${HEMELB_EXECUTABLE} PUBLIC -fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH})
+endif()
 
 add_subdirectory(resources)
 

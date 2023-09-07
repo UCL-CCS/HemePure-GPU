@@ -5,6 +5,7 @@
 #include "cuda_kernels_def_decl/deviceAPI.h"
 #include "cuda_kernels_def_decl/deviceLaunch.h"
 #include "lb/lattices/D3Q19_gpu.h"
+#include <sycl/sycl.hpp>
 
 namespace hemelb {
 
@@ -289,7 +290,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_Weights_NoSea
         start_Fluid_ID_givenColStreamType(start_Fluid_ID_givenColStreamType_), site_Count_givenColStreamType(site_Count_givenColStreamType_),
         lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_), total_TimeSteps(total_TimeSteps_), Cs2(Cs2_)  {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
     Ind = Ind + lower_limit;
 	const lb::lattices::D3Q19GPUConstants c;
 
@@ -482,7 +483,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_Fun
         site_Count_givenColStreamType(site_Count_givenColStreamType_), lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_),
         total_TimeSteps(total_TimeSteps_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
     Ind = Ind + lower_limit;
 	const lb::lattices::D3Q19GPUConstants c;
     if (Ind >= upper_limit)
@@ -645,7 +646,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_v2_
         site_Count_givenColStreamType(site_Count_givenColStreamType_), lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_),
         total_TimeSteps(total_TimeSteps_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 
     Ind = Ind + lower_limit;
 	const lb::lattices::D3Q19GPUConstants c;
@@ -848,7 +849,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
         start_Fluid_ID_givenColStreamType(start_Fluid_ID_givenColStreamType_), site_Count_givenColStreamType(site_Count_givenColStreamType_),
         lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_), total_TimeSteps(total_TimeSteps_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
@@ -947,7 +948,7 @@ struct GPU_Check_Coordinates_Functor {
       : GMem_Coords_iolets(GMem_Coords_iolets_), start_Fluid_ID_givenColStreamType(start_Fluid_ID_givenColStreamType_), lower_limit(lower_limit_),
         upper_limit(upper_limit_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 
     // unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
     // Ind = Ind + lower_limit;
@@ -1012,7 +1013,7 @@ template <typename LatticeType> struct GPU_Check_Stability_Functor {
       : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), d_Stability_flag(d_Stability_flag_), nArr_dbl(nArr_dbl_),
         lower_limit(lower_limit_), upper_limit(upper_limit_), time_Step(time_Step_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
@@ -1102,12 +1103,12 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
         nArr_dbl(nArr_dbl_), lower_limit_MidFluid(lower_limit_MidFluid_), upper_limit_MidFluid(upper_limit_MidFluid_), lower_limit_Wall(lower_limit_Wall_),
         upper_limit_Wall(upper_limit_Wall_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_), minusInvTau(minusInvTau_),  myPiD(myPiD_){}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
+#if 1
 	const lb::lattices::D3Q19GPUConstants c;
-  Ind = Ind + lower_limit_MidFluid;
+  	Ind = Ind + lower_limit_MidFluid;
 
-  if (Ind >= upper_limit_Wall)
-    return;
+    if (Ind >= upper_limit_Wall) return;
 
   double dev_ff[19];   //, dev_fEq[19];
   double nn = 0.0;     // density
@@ -1202,6 +1203,7 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
     GMem_dbl_MacroVars[3ULL * nArr_dbl + Ind] = velz;
   }
 
+#endif 
     //==========================================================================================
   }    // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
 };    // End of functor
@@ -1229,7 +1231,7 @@ template <typename LatticeType> struct GPU_SwapOldAndNew_Functor {
                             site_t upper_limit_)
       : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind, unsigned long long Stride) {
+  GPU_KERNEL void operator()(unsigned long long Ind, unsigned long long Stride) const {
    const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
@@ -1269,7 +1271,7 @@ template <typename LatticeType> struct GPU_StreamReceivedDistr_Functor {
       : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), GMem_int64_streamInd(GMem_int64_streamInd_), nArr_dbl(nArr_dbl_),
         upper_limit(upper_limit_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     // Ind =Ind + lower_limit; // limits are: for (site_t i = 0; i < totalSharedFs; i++)
     if (Ind >= upper_limit)

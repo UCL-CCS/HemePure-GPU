@@ -7,11 +7,22 @@ add_library(hemelb_colloidsBCs
 	BoundaryConditions.cc)
 target_link_libraries(hemelb_colloidsBCs
 	hemelb_io)
-set_source_files_properties(BoundaryConditions.cc PROPERTIES LANGUAGE HIP)
+
+if( USE_HIP ) 
+  set_source_files_properties(BoundaryConditions.cc PROPERTIES LANGUAGE HIP)
+elseif( USE_SYCL )
+  set_source_files_properties(BoundaryConditions.cc PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
+endif()
 
 add_library(hemelb_colloidsForces
 	BodyForces.cc)
-set_source_files_properties(BodyForces.cc PROPERTIES LANGUAGE HIP)
+
+if( USE_HIP )
+  set_source_files_properties(BodyForces.cc PROPERTIES LANGUAGE HIP)
+elseif( USE_SYCL )
+  set_source_files_properties(BodyForces.cc PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
+endif()
+
 target_link_libraries(hemelb_colloidsForces
 	hemelb_io)
 
@@ -32,5 +43,9 @@ set_source_files_properties(ParticleMpiDatatypes.cc
 	ParticleSet.cc
 	Particle.cc
 	ColloidController.cc  PROPERTIES LANGUAGE HIP)
+elseif(USE_SYCL)
+set_source_files_properties(ParticleMpiDatatypes.cc
+    ParticleSet.cc
+    Particle.cc
+    ColloidController.cc  PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
 endif()
-

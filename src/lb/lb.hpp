@@ -9,7 +9,7 @@
 #include "lb/lb.h"
 
 #ifdef HEMELB_USE_GPU
-#ifndef HEMELB_USE_HIP
+#ifdef HEMELB_USE_CUDA
 #include <cuda_profiler_api.h>
 #endif
 #endif
@@ -1590,7 +1590,7 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
 	//----------------------------------------------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_WallMom_correct = 256;				//Number of threads per block for the Collision step
-	dim3 nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
+	size_t nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
 	//----------------------------------------------------------------------
 
 	//----------------------------------------------------------------------
@@ -1940,7 +1940,7 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref()
 	//----------------------------------------------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_WallMom_correct = 256;				//Number of threads per block for the evaluation of wall momentum correction terms
-	dim3 nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
+	size_t nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
 	//----------------------------------------------------------------------
 
 	//----------------------------------------------------------------------
@@ -2167,7 +2167,7 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 	//----------------------------------------------------------------------
 	// Cuda kernel set-up
 	size_t nThreadsPerBlock_WallMom_correct = 256;				//Number of threads per block for the evaluation of wall momentum correction terms
-	dim3 nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
+	size_t nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
 	//----------------------------------------------------------------------
 
 	//----------------------------------------------------------------------
@@ -2313,7 +2313,7 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 	//----------------------------------------------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_WallMom_correct = 256;				//Number of threads per block for the evaluation of wall momentum correction terms
-	dim3 nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
+	size_t nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
 	//----------------------------------------------------------------------
 
 	//----------------------------------------------------------------------
@@ -2460,7 +2460,7 @@ void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction_ApprPref_NoIolet
 	//----------------------------------------------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_WallMom_correct = 256;				//Number of threads per block for the evaluation of wall momentum correction terms
-	dim3 nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
+	size_t nThreads_WallMom(nThreadsPerBlock_WallMom_correct);
 	//----------------------------------------------------------------------
 
 	//----------------------------------------------------------------------
@@ -6364,7 +6364,7 @@ void LBM<LatticeType>::RequestComms()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_CalcMacroVars = 128;				//Number of threads per block for calculating MacroVariables
-	dim3 nThreadsCalcMacroVars(nThreadsPerBlock_CalcMacroVars);
+	size_t nThreadsCalcMacroVars(nThreadsPerBlock_CalcMacroVars);
 
 	// Number of fluid nodes:
 	site_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount();
@@ -6427,7 +6427,7 @@ void LBM<LatticeType>::PreSend()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_Check = 128;				//Number of threads per block for checking the stability of the simulation
-	dim3 nThreads_Check(nThreadsPerBlock_Check);
+	size_t nThreads_Check(nThreadsPerBlock_Check);
 	// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 	int nBlocks_Check = (site_Count_test)/nThreadsPerBlock_Check			+ ((site_Count_test % nThreadsPerBlock_Check > 0)         ? 1 : 0);
 
@@ -6475,7 +6475,7 @@ void LBM<LatticeType>::PreSend()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_Collide = 128;				//Number of threads per block for the Collision step
-	dim3 nThreads_Collide(nThreadsPerBlock_Collide);
+	size_t nThreads_Collide(nThreadsPerBlock_Collide);
 	// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 	int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
 	//----------------------------------
@@ -6513,7 +6513,7 @@ void LBM<LatticeType>::PreSend()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_Collide = 128;				//Number of threads per block for the Collision step
-	dim3 nThreads_Collide(nThreadsPerBlock_Collide);
+	size_t nThreads_Collide(nThreadsPerBlock_Collide);
 	// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 	int nBlocks_Collide = (mLatDat->GetDomainEdgeCollisionCount(0))/nThreadsPerBlock_Collide			+ ((mLatDat->GetDomainEdgeCollisionCount(0) % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
 	//----------------------------------
@@ -7235,7 +7235,7 @@ void LBM<LatticeType>::PreReceive()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_Collide = 256;				//Number of threads per block for the Collision step
-	dim3 nThreads_Collide(nThreadsPerBlock_Collide);
+	size_t nThreads_Collide(nThreadsPerBlock_Collide);
 	// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 	int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
 	//----------------------------------
@@ -7273,7 +7273,7 @@ void LBM<LatticeType>::PreReceive()
 	//----------------------------------
 	// Cuda kernel set-up
 	int nThreadsPerBlock_Collide = 128;				//Number of threads per block for the Collision step
-	dim3 nThreads_Collide(nThreadsPerBlock_Collide);
+	size_t nThreads_Collide(nThreadsPerBlock_Collide);
 	// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 	int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
 	//----------------------------------
@@ -7924,7 +7924,7 @@ void LBM<LatticeType>::PostReceive()
 	// Cuda kernel set-up
 	site_t totSharedFs = mLatDat->totalSharedFs;
 	int nThreadsPerBlock_StreamRecDistr = 128;				//Number of threads per block for the Collision step
-	dim3 nThreads_StreamRecDistr(nThreadsPerBlock_StreamRecDistr);
+	size_t nThreads_StreamRecDistr(nThreadsPerBlock_StreamRecDistr);
 	int nBlocks_StreamRecDistr = totSharedFs/nThreadsPerBlock_StreamRecDistr			+ ((totSharedFs % nThreadsPerBlock_StreamRecDistr > 0)         ? 1 : 0);
 
 	if (nBlocks_StreamRecDistr!=0) {
@@ -8030,7 +8030,7 @@ void LBM<LatticeType>::EndIteration()
 	// Approach 1: Using a GPU copy kernel
 	// Cuda kernel set-up
 	int nThreadsPerBlock_SwapOldAndNew = 128;				//Number of threads per block for the Collision step
-	dim3 nThreads_Swap(nThreadsPerBlock_SwapOldAndNew);
+	size_t  nThreads_Swap(nThreadsPerBlock_SwapOldAndNew);
 	int nBlocks_Swap = site_Count/nThreadsPerBlock_SwapOldAndNew			+ ((site_Count % nThreadsPerBlock_SwapOldAndNew > 0)         ? 1 : 0);
 
 	if(nBlocks_Swap!=0)

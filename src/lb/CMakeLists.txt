@@ -37,4 +37,11 @@ if( USE_HIP )
 			IncompressibilityChecker.cc
 			MacroscopicPropertyCache.cc  
 			StabilityTester.cc PROPERTIES LANGUAGE HIP)
+elseif( USE_SYCL )
+	set_source_files_properties(iolets/BoundaryComms.cc 
+			iolets/BoundaryValues.cc 
+			IncompressibilityChecker.cc
+			MacroscopicPropertyCache.cc  
+			StabilityTester.cc PROPERTIES COMPILE_FLAGS ${SYCL_CPPFLAGS})
 endif()
+

@@ -33,7 +33,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
         GMem_inletNormal(GMem_inletNormal_), nInlets(nInlets_), nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_),
         totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_), num_local_Iolets(num_local_Iolets_),        Iolets_info(Iolets_info_), minusInvTau(minusInvTau_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 		const lb::lattices::D3Q19GPUConstants c;
 
 		Ind = Ind + lower_limit;
@@ -135,6 +135,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 			_determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind, &IdInlet);
 		}
 
+#ifndef HEMELB_USE_SYCL
 		// Testing:
 		if(IdInlet==INT32_MAX)
 		{
@@ -144,7 +145,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 			printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
 		}
 */
-
+#endif
 		ghost_dens = GMem_ghostDensity[IdInlet];
 		inletNormal_x = GMem_inletNormal[3*IdInlet];
 		inletNormal_y = GMem_inletNormal[3*IdInlet+1];
@@ -288,7 +289,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
         GMem_inletNormal(GMem_inletNormal_), nInlets(nInlets_), nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_),
         totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_), num_local_Iolets(num_local_Iolets_), GMem_Iolets_info(GMem_Iolets_info_), minusInvTau(minusInvTau_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 		const lb::lattices::D3Q19GPUConstants c;
 
 		Ind = Ind + lower_limit;
@@ -421,6 +422,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 			// _determine_Iolet_ID(num_local_Iolets, Iolets_info.Iolets_ID_range, Ind, &IdInlet);
 		}
 
+#ifndef HEMELB_USE_SYCL
 		// Debugging:
 		if(IdInlet==INT32_MAX)
 		{
@@ -430,6 +432,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 			printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
 		}*/
 		//--------------------------------------------------------------------------
+#endif
 
 		ghost_dens = GMem_ghostDensity[IdInlet];
 		inletNormal_x = GMem_inletNormal[3*IdInlet];
@@ -593,7 +596,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
         GMem_dbl_WallMom(GMem_dbl_WallMom_), nArr_wallMom(nArr_wallMom_), lower_limit(lower_limit_), upper_limit(upper_limit_), totalSharedFs(totalSharedFs_),
         write_GlobalMem(write_GlobalMem_), minusInvTau(minusInvTau_), Cs2(Cs2_) {}
 
-  GPU_KERNEL void operator()(unsigned long long Ind) {
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
 	const lb::lattices::D3Q19GPUConstants c;
     Ind = Ind + lower_limit;
 
