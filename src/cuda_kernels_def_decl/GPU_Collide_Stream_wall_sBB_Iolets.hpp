@@ -55,7 +55,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
 		for(int direction = 0; direction< c.NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -83,7 +82,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 					+ momentum_y * momentum_y + momentum_z * momentum_z;
-#pragma unroll 19
 		for (int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)c.CX[i] * momentum_x
@@ -161,7 +159,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-#pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
@@ -311,7 +308,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
 		for(int direction = 0; direction< c.NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -340,7 +336,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-#pragma unroll 19
 		for (int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)c.CX[i] * momentum_x
@@ -464,7 +459,6 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-#pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)

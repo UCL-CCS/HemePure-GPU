@@ -5,7 +5,6 @@
 #include "cuda_kernels_def_decl/deviceAPI.h"
 #include "cuda_kernels_def_decl/deviceLaunch.h"
 #include "lb/lattices/D3Q19_gpu.h"
-#include <sycl/sycl.hpp>
 
 namespace hemelb {
 
@@ -330,7 +329,6 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_Weights_NoSea
     uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
     // Here is the loop over the LB lattice directions
-#pragma unroll 19
     for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++)   // keep the loop from LB_Dir=1
     {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
@@ -524,7 +522,7 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_Fun
 
     // Debugging:
     if (IdInlet == INT32_MAX) {
-      printf("Fluid_ID : %lld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort...\n\n", Ind, IdInlet);
+      printf("Fluid_ID : %ld, ID_iolet: %d - Fluid NOT in IOLET range!!! FAILURE!!! Needs to abort...\n\n", Ind, IdInlet);
     }
     /*else{
             printf("Fluid_ID : %lld, ID_iolet: %d \n\n", Ind, IdInlet);
@@ -536,7 +534,6 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_Fun
     uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
     // Here is the loop over the LB lattice directions
-#pragma unroll 19
     for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++)   // keep the loop from LB_Dir=1
     {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
@@ -721,7 +718,6 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_v2_
     uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
     // Here is the loop over the LB lattice directions
-#pragma unroll 19
     for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++)   // keep the loop from LB_Dir=1
     {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
@@ -868,7 +864,6 @@ template <typename LatticeType> struct GPU_WallMom_correction_File_prefactor_NoI
     uint32_t Iolet_Intersect = GPU_Iolet_Link[Ind];
 
     // Here is the loop over the LB lattice directions
-#pragma unroll 19
     for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++)   // keep the loop from LB_Dir=1
     {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To
@@ -969,7 +964,7 @@ struct GPU_Check_Coordinates_Functor {
 
       // printf("Inside GPU kernel - Fluid Index = %lld, start_Fluid_ID_givenColStreamType = %lld, Shifted Index = %lld \n", Ind,
       // start_Fluid_ID_givenColStreamType, shifted_Fluid_Ind);
-      printf("Test coords kernel - Fluid Index = %lld, Shifted Index = %lld, Coordinates: (x, y, z) = (%lld, %lld, %lld) \n", Ind, shifted_Fluid_Ind, x_coord,
+      printf("Test coords kernel - Fluid Index = %ld, Shifted Index = %ld, Coordinates: (x, y, z) = (%ld, %ld, %ld) \n", Ind, shifted_Fluid_Ind, x_coord,
              y_coord, z_coord);
     }
   }
@@ -1123,7 +1118,6 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
   // 		a. Calculate density
   // 		b. Calculate momentum - Note: No body forces
 
-#pragma unroll 19
   for (int direction = 0; direction < c.NUMVECTORS; direction++) {
     double ff = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
     dev_ff[direction] = ff;
@@ -1144,7 +1138,6 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
   //											+ momentum_y * momentum_y + momentum_z * momentum_z;
 
   double f_neq[19];
-#pragma unroll 19
   for (int i = 0; i < c.NUMVECTORS; ++i) {
     double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
@@ -1170,7 +1163,6 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
 
   GMem_dbl_fNew_b[Ind] = dev_ff[0];
 
-#pragma unroll 18
   for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
     int64_t dev_NeighInd =
         GMem_int64_Neigh[(unsigned long long) LB_Dir * nArr_dbl + Ind];   // Neighbouring index refers to the index to be streamed to in the global memory. Here

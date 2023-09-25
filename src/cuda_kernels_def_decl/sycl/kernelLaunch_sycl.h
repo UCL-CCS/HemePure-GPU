@@ -15,6 +15,7 @@ namespace GPU {  // hemelb::GPU
 template <typename Functor>
 void
 kernelLaunch(Functor f, size_t NumBlocks, size_t NumThreadsPerBlock, size_t SMem, Stream_t stream = (Stream_t) 0) {
+//	std::cout << "Launching Kernel: " << typeid(f).name() << "\n";
 	auto& queue = Impl::getStreamManager().getStream(stream);
 
 	// Dumb flat dispatch for now
@@ -35,6 +36,8 @@ kernelLaunch(Functor f, size_t NumBlocks, size_t NumThreadsPerBlock, size_t SMem
 template <typename Functor>
 void
 kernelLaunchStrided(Functor f, size_t NumBlocks, size_t NumThreadsPerBlock, size_t SMem, Stream_t stream = (Stream_t) 0) {
+
+//	std::cout << "Launching Strided Kernel: " << typeid(f).name() << "\n";
 	auto& queue = Impl::getStreamManager().getStream(stream);
 
 	// Dumb flat dispatch for now

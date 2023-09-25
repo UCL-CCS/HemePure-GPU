@@ -51,12 +51,12 @@ bool testIoletsLaddVelBC()
 		abort();
 	}
 
-	status = GPU::deviceMalloc((void **)&WallMom_d, nElem_wallMom_correction*sizeof(distribn_t));
+	status = GPU::deviceMalloc((void **)&WallMom_d, nElem_Wall*sizeof(distribn_t));
 	if( ! status ) {
 	   	fprintf(stderr, "Couldnt alloc device wallMom_correction array\n");
 		abort();
 	}
-	status = GPU::deviceMemcpy((void *)WallMom_d, (const void *)wallMom_correction, nElem_wallMom_correction*sizeof(distribn_t), GPU::memcpyHostToDevice);
+	status = GPU::deviceMemcpy((void *)WallMom_d, (const void *)Wall, nElem_Wall*sizeof(distribn_t), GPU::memcpyHostToDevice);
 	if (! status )  {
 		fprintf(stderr, "Couldnt copy wallMomCorrection array to Device\n"); 
 		abort();
@@ -101,8 +101,6 @@ bool testIoletsLaddVelBC()
 	// Storage to save post-call darta
 	std::vector<distribn_t> host_fnew_func(nElem_fNew);
 	std::vector<distribn_t> host_mvars_func(nElem_MacroVars);
-	std::vector<distribn_t> host_fnew_kern(nElem_fNew);
-	std::vector<distribn_t> host_mvars_kern(nElem_MacroVars);
 
 	size_t site_Count = upper_limit - lower_limit;
 	size_t nThreadsPerBlock_Collide=256;
@@ -125,55 +123,34 @@ bool testIoletsLaddVelBC()
 	GPU::deviceMemcpy((void *)host_fnew_func.data(), (const void *)fNew_d, nElem_fNew*sizeof(distribn_t), GPU::memcpyDeviceToHost);
 	GPU::deviceMemcpy((void *)host_mvars_func.data(), (const void *)MacroVars_d, nElem_MacroVars*sizeof(distribn_t), GPU::memcpyDeviceToHost);
 
-	printf("Restoring original fNew and MacroVars\n");
-	// Replace the saved fNew into the 'device fnew' ie restore conditions before the call
-	GPU::deviceMemcpy((void *)fNew_d, (const void *)fNew,  nElem_fNew*sizeof(distribn_t), GPU::memcpyHostToDevice);
-	GPU::deviceMemcpy((void *)MacroVars_d, (const void *)MacroVars, nElem_MacroVars*sizeof(distribn_t), GPU::memcpyHostToDevice);
+	// Need to compare here...
 
-	printf("Calling Kernel\n");
-	hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs <<<nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3>>> (	(distribn_t*)fOld_d,
-					(distribn_t*)fNew_d,
-					(distribn_t*)MacroVars_d,
-					(int64_t*)Neigh_d,
-					(uint32_t*)Iolet_Link_d,
-					nArr_dbl,
-					(distribn_t*)WallMom_d, nArr_wallMom,
-					lower_limit, upper_limit, totalSharedFs, Write_GlobalMem);
-
-	GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
-
-	// Save the post call fNew
-	printf("Copying Back Results\n");
-
-	GPU::deviceMemcpy((void *)host_fnew_kern.data(), (const void *)fNew_d, nElem_fNew*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-	GPU::deviceMemcpy((void *)host_mvars_kern.data(), (const void *)MacroVars_d, nElem_MacroVars*sizeof(distribn_t), GPU::memcpyDeviceToHost);
-
-
-	printf("Comparing fNew results from functor and kernel for sameness....");
+	printf("Checking Resulting fNew....");
 	size_t diffcount = 0;
 	for(int i=0; i < nElem_fNew; ++i) {
-		double absdiff = fabs( host_fnew_func[i] - host_fnew_kern[i] );
+		double absdiff = fabs( host_fnew_func[i] - fNew_result[i] );
 	    double rel_err = absdiff;
-	    if( host_fnew_kern[i] != 0 ) rel_err  /= fabs( host_fnew_kern[i] );
-	    if ( rel_err > 1.0e-13  ) {
+	    if( host_fnew_func[i] != 0 ) rel_err  /= fabs( fNew_result[i] );
+		if ( rel_err > 1.0e-13  ) {
+			fprintf(stderr, "i=%d rel_err=%lf\n", i, rel_err);
 			diffcount++;	
 	    }
 	}
 
-	if( diffcount > 0 ){
-		 printf(" FAILED\n");
-		 success = false;
+	if ( diffcount > 0 ) {
+			printf(" FAILED\n");
+			success = false;
 	}
-	else {
+	else { 
 		printf(" OK!\n");
 	}
-
-	printf("Comparing MacroVars results from functor and kernel for sameness....");
+	
+    printf("Checking Resulting Macrovars....");
 	diffcount = 0;
 	for(int i=0; i < nElem_MacroVars; ++i) {
-		double absdiff = fabs( host_mvars_func[i] - host_mvars_kern[i] );
+		double absdiff = fabs( host_mvars_func[i] - MacroVars_result[i] );
 	    double rel_err = absdiff;
-	    if( host_mvars_kern[i] != 0 ) rel_err  /= fabs( host_mvars_kern[i] );
+	    if( host_mvars_func[i] != 0 ) rel_err  /= fabs( MacroVars_result[i] );
 	    if ( rel_err > 1.0e-13  ) {
 			diffcount++;	
 	    }
@@ -185,7 +162,7 @@ bool testIoletsLaddVelBC()
 	else {
 		printf(" OK!\n");
 	}
-	
+
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_3);
 	GPU::deviceFree(fNew_d);
 	GPU::deviceFree(fOld_d);

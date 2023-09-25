@@ -51,7 +51,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
     // 		a. Calculate density
     // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -76,7 +75,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     double momentumMagnitudeSquared = momentum_x * momentum_x + momentum_y * momentum_y 
 						+ momentum_z * momentum_z;
 
-#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y 
 			+ (double) c.CZ[i] * momentum_z;
@@ -117,7 +115,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
     // fNew (dev_fn) populations:
-#pragma unroll 19
     for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
                                             // compare against test_bool_Wall_Intersect as well)
@@ -241,7 +238,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
     // 		a. Calculate density
     // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -262,7 +258,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     double momentumMagnitudeSquared = momentum_x * momentum_x + momentum_y * momentum_y 
 			+ momentum_z * momentum_z;
 
-#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y 
 				+ (double) c.CZ[i] * momentum_z;
@@ -328,7 +323,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
     // fNew (dev_fn) populations:
-#pragma unroll 19
     for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
                                             // compare against test_bool_Wall_Intersect as well)
@@ -470,7 +464,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 // 		a. Calculate density
 // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -491,7 +484,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     double momentumMagnitudeSquared = momentum_x * momentum_x 
 			+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double)c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + c.CZ[i] * momentum_z;
 
@@ -578,7 +570,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
 // fNew (dev_fn) populations:
-#pragma unroll 19
     for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
                                             // compare against test_bool_Wall_Intersect as well)

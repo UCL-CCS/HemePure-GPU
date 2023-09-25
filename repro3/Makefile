@@ -1,10 +1,12 @@
-CXX=hipcc
-CXXFLAGS=-O3 --offload-arch=gfx90a --gpu-max-threads-per-block=256
+CXX=clang++
+CXXFLAGS=-O1 -std=c++17 -fsycl -fsycl-unnamed-lambda -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a  -x c++
 
+#CXX=hipcc
+#CXXFLAGS=-std=c++17 -O1 --offload-arch=gfx90a
 test: ./repro_test
 	./repro_test
 
-./repro_test: main.cu GPU_Collide_Stream_Iolets.hpp precursor_data_7.h api.h
+./repro_test: main.cu GPU_Collide_Stream_Iolets.hpp repro3_data_inlet2.h api.h
 	$(CXX) -o ./repro_test $(CXXFLAGS) main.cu
 
 clean:

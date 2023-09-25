@@ -19,6 +19,7 @@
 
 #include <sstream>
 #include <stdio.h>
+#include <mpi.h>
 
 namespace hemelb
 {
@@ -2811,7 +2812,7 @@ bool LBM<LatticeType>::FinaliseGPU()
 		const hemelb::net::Net& rank_Com = *mNet;
 		int myPiD = rank_Com.Rank();
 		status = GPU::deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
-		if(!status){ fprintf(stderr, "Rank: %d GPU::deviceFree Velocity Table failed ptr=%xu  file: %s, line %s\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
+		if(!status){ fprintf(stderr, "Rank: %d GPU::deviceFree Velocity Table failed ptr=%lx  file: %s, line %d\n", myPiD, (unsigned long)(mLatDat->GPUDataAddr_Inlet_velocityTable),__FILE__,__LINE__); finalise_GPU_res=false;  }
 	}
 
 	// Prefactor Wall Momemtum Correction
@@ -6895,16 +6896,16 @@ void LBM<LatticeType>::PreSend()
 		// Inlets BCs
 		if(hemeIoletBC_Outlet == "LADDIOLET"){
 
-			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> collide_kern(
+  		    hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> collide_kern(
 					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					 (int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_Outlet_Edge, site_Count * (LatticeType::NUMVECTORS - 1),
-					first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega());
+					(mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_Outlet_Edge, 
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), 
+					mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega());
 
 			GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_4);
-
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			// Make sure it has received the values for ghost density on the GPU
@@ -7491,6 +7492,34 @@ void LBM<LatticeType>::PreReceive()
 		// Inlets BCs
 		if(hemeIoletBC_Inlet == "LADDIOLET"){
 
+#if 0
+			site_t site_Count_Inlet_Inner = mLatDat->GetMidDomainCollisionCount(2);
+		    size_t nElem_wallMom_Correction = site_Count_Inlet_Inner * (LatticeType::NUMVECTORS - 1);
+			size_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount();
+			uint64_t nArray_Neigh = nFluid_nodes * LatticeType::NUMVECTORS; // uint64_t (unsigned long long int)
+			uint64_t totSharedFs = mLatDat->totalSharedFs;
+ 			size_t nElemMacroVars = (1+3) * nFluid_nodes;
+			size_t nElemF = nFluid_nodes * LatticeType::NUMVECTORS + 1 + totSharedFs;
+
+			std::ostringstream file;
+			file << "./repro3_data_inlet" << myPiD << ".h";
+			FILE *fp = fopen(file.str().c_str(), "w+");
+			fprintf(fp, "namespace hemelb {\n");
+		    fprintf(fp, "namespace ParamData {\n");
+			fprintf(fp, "double minusInvTau = %16.8e ;\n", mParams.GetOmega());
+			fprintf(fp, "bool Write_GlobalMem = %s ;\n", Write_GlobalMem ? "true" : "false");
+			fprintf(fp, "uint64_t totalSharedFs = %lu ;\n", totSharedFs);
+			fprintf(fp, "uint64_t upper_limit = %lu ;\n", first_Index + site_Count);
+			fprintf(fp, "uint64_t lower_limit = %lu ;\n", first_Index);
+			fprintf(fp, "uint64_t nArr_wallMom = %lu ;\n", site_Count * (LatticeType::NUMVECTORS -1 ));
+			fprintf(fp, "uint64_t nArr_dbl = %lu ;\n", nFluid_nodes);
+    		bufferWrite<distribn_t>(fp,"distribn_t", "Wall", nElem_wallMom_Correction, GPUDataAddr_wallMom_correction_Inlet_Inner);
+			bufferWrite<uint32_t>(fp,"uint32_t", "Iolet",nFluid_nodes, GPUDataAddr_uint32_Iolet);
+			bufferWrite<uint64_t>(fp,"uint64_t", "Neigh",nArray_Neigh, GPUDataAddr_int64_Neigh_d);
+			bufferWrite<distribn_t>(fp, "distribn_t", "fOld", nElemF, mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat);
+			bufferWrite<distribn_t>(fp, "distribn_t", "fNew", nElemF, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
+			bufferWrite<distribn_t>(fp, "distribn_t", "MacroVars", nElemMacroVars, GPUDataAddr_dbl_MacroVars);
+#endif
 			// Adding a printf here.. heled
 			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> c_kern2(
 					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
@@ -7502,6 +7531,16 @@ void LBM<LatticeType>::PreReceive()
 
 			GPU::kernelLaunch(c_kern2, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_3);
 
+	#if 0	   
+			bufferWrite<distribn_t>(fp, "distribn_t", "fNew_result", nElemF, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
+			bufferWrite<distribn_t>(fp, "distribn_t", "MacroVars_result", nElemMacroVars, GPUDataAddr_dbl_MacroVars);
+			fprintf(fp,"}\n");
+			fprintf(fp, "}\n");
+			fclose(fp);
+			MPI_Finalize();
+			abort();
+	#endif
+	
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalInlets_mInlet<=(local_iolets_MaxSIZE/3))
