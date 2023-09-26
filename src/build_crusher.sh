@@ -3,7 +3,7 @@ source ../env_crusher_afar.sh
 #
 # This works with AFAR 2146, Do not increase the Optimization beyond -O1
 
-OPT="-O"
+OPT="-O3"
 
 
 # -fgpu-rdc is needed for some reason when working with the AFAR compiler

@@ -3216,6 +3216,8 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 			// If the streaming Index (i.e. neighbour in LB_Dir = l) is within the simulation domain
 			// Calculate its ACTUAL streaming fluid ID index
 			// And then the corresponding address in global memory .
+			// NB: For Non-fluid sites (rubbish sites?) neigh_Index_Heme =  neigbourIndices[] is set to GetLocalFluidSiteCount()*NUMVECTORS
+			// 
 			if (neigh_Index_Heme < mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS )
 			{
 				site_t neigh_Fluid_Index = (neigh_Index_Heme - l)/LatticeType::NUMVECTORS;	// Evaluate the ACTUAL streaming fluid ID index
@@ -3224,23 +3226,12 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 				Data_int64_Neigh_d[(int64_t)l * mLatDat->GetLocalFluidSiteCount() + i] = neigh_Address_Index;
 			}
 			else{
+				// Would it be simplest to set this to: GetLocalFluidSiteCount * LatticeType::NUMVECTORS here directly?
+				// Technically that is what neigh_Index_Heme is
+				// I guess I could asser this:
+				assert( neigh_Index_Heme == mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS );
 				Data_int64_Neigh_d[(int64_t)l * mLatDat->GetLocalFluidSiteCount() + i] = neigh_Index_Heme;
 			}
-
-			/*
-			// Investigate what is the neighbour index if wall link
-			// It turns out that: For the sites next to walls, the corresponding neighbouring index is set to the maximum value based on the number of fluid sites on the Rank PLUS ONE,
-			// i.e. this value is: mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS + 1
-			geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(i);
-			// For Debugging purposes -Remove later
-			bool test_bool_Wall_Intersect = site.HasWall(l);	// Boolean variable: if there is wall (True) - Compare with boolean variable site.HasWall(LB_Dir)
-			if (test_bool_Wall_Intersect){
-			if(myPiD==2) printf("Rank: %d, Site Index: %lld, Wall in LB_dir: %d, Neighbouring Index: %lld, Max Index: %lld \n\n", myPiD, i, l, neigh_Index_Heme, (int64_t)(mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS) );
-
-			}
-			 */
-			//
-			//std::printf("Memory allocation Data_int64_Neigh(b) successful from Proc# %i \n\n", myPiD);
 		}
 	}
 	// ------------------------------------------------------------------------

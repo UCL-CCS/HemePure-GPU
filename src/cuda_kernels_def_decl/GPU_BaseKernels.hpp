@@ -1137,14 +1137,12 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
   // double momentumMagnitudeSquared = momentum_x * momentum_x
   //											+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-  double f_neq[19];
   for (int i = 0; i < c.NUMVECTORS; ++i) {
     double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
     double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * (momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z) * density_1 +
                                           (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
-    f_neq[i] = dev_ff[i] - dev_fEq;
     dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
   }
 
@@ -1161,16 +1159,23 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
 
   site_t index_wall = nArr_dbl * c.NUMVECTORS;   // typedef int64_t site_t;
 
+  // In principle we can pull this out of the loop and save a load and a compare
+  // But for safety maybe I should put it back just now
+#if 0
   GMem_dbl_fNew_b[Ind] = dev_ff[0];
 
   for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+#else
+
+  for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+#endif
     int64_t dev_NeighInd =
         GMem_int64_Neigh[(unsigned long long) LB_Dir * nArr_dbl + Ind];   // Neighbouring index refers to the index to be streamed to in the global memory. Here
                                                                           // it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
     // Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
     // Option 1:
-    if (dev_NeighInd == index_wall)   // Wall Link
+    if (dev_NeighInd == index_wall)  // When setting up dev_NeighInd 'rubbish sites' (non-Fluid?) were set to nArr_dbl*NUMVECTORS  
     {
       // Simple Bounce Back case:
       GMem_dbl_fNew_b[(unsigned long long) c.INVERSEDIRECTIONS[LB_Dir] * nArr_dbl + Ind] = dev_ff[LB_Dir];   // Bounce Back - Same fluid ID - Reverse LB_Dir

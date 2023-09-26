@@ -161,11 +161,11 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			// Avoid undefined behaviour setting the mask...:	
+			// No other uses of LB_Dir - 1 as indexing, 
+			unsigned mask = (LB_Dir > 0) ? 1U << (LB_Dir - 1) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
-
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
-			bool is_Wall_link = (Wall_Intersect & mask_w);
+			bool is_Wall_link  = (Wall_Intersect & mask);
 
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -459,13 +459,12 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
-		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+		
+			// Avoid UB in the shift operator for a -ve number{
+			unsigned mask =  LB_Dir > 0 ? 1U << (LB_Dir - 1) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
-
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
-			bool is_Wall_link = (Wall_Intersect & mask_w);
+			bool is_Wall_link = (Wall_Intersect & mask);
 
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -711,11 +710,10 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			// Avoid UB here
+			unsigned mask = LB_Dir > 0 ? 1U << (LB_Dir - 1) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
-
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
-			bool is_Wall_link = (Wall_Intersect & mask_w);
+			bool is_Wall_link = (Wall_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//=============================================================================================================

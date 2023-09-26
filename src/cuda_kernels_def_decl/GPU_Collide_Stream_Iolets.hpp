@@ -61,9 +61,6 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
       momentum_z += (double) c.CZ[direction] * dev_ff[direction];
     }
 
-	// To get around ROCM Compiler bugs 'portably'....
-	GPU_DUMMY_SYNC;
-
     // Compute velocity components
     velx = momentum_x / nn;
     vely = momentum_y / nn;
@@ -114,10 +111,20 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     // Put the new populations after collision in the GMem_dbl array,
     // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
-    // fNew (dev_fn) populations:
-    for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+	// Peel off first iteration because it is special
+    {   //  dir=0 behaves like bulk -- no bouncebacks because no momentum
+        int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)Ind];
+
+        // Save the post collision population in fNew
+        GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[0];
+    }
+	// Remaining iterations 
+    for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+
+	   // LB_Dir is guaranteed to be >= 0 so no undefined behaviour
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
                                             // compare against test_bool_Wall_Intersect as well)
+
       bool is_Iolet_link = (Iolet_Intersect & mask);
 
       if (is_Iolet_link) {   // ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -129,6 +136,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
         //-----------------------
         // Approach 2
         // July 2022 - Single value correction term (wall momentum) passed to the GPU global memory
+		// Wall Mom  is LB_Dir -1 : Allocationsa re N*sites * (NUMVECTORS - 1)  as allocated in lb.hpp
         distribn_t correction = GMem_dbl_WallMom[(unsigned long long) (LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
 
         // TODO: Pass the boolean variable: CollisionType::CKernel::LatticeType::IsLatticeCompressible()
@@ -136,14 +144,17 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
         correction *= nn;
         //-----------------------
 
+		// These are the actual unshifted LB_Dirs (0 was already done and these go from 1-18)
         int unstreamed_dir = c.INVERSEDIRECTIONS[LB_Dir];
 
+		 // These are the actual unshifted LB_Dirs (0 was already done and these go from 1-18)
         GMem_dbl_fNew_b[(unsigned long long) unstreamed_dir * nArr_dbl + Ind] = dev_ff[LB_Dir] - correction;
 
         //==================================================================================================
       } else {   // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 
         // Use the Neighbouring Index given in GPUDataAddr_int64_Neigh_d, which is the actual streaming Array Index in f_new global memory
+		 // These are the actual unshifted LB_Dirs (0 was already done and these go from 1-18) -- neigh dimensions are sites * NUMVECTORS (as allocated in lb.hpp)
         int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long) LB_Dir * nArr_dbl + Ind];
 
         // Save the post collision population in fNew
@@ -323,17 +334,22 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
     // fNew (dev_fn) populations:
-    for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
-      unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
-                                            // compare against test_bool_Wall_Intersect as well)
-      bool is_Iolet_link = (Iolet_Intersect & mask);
+	// Loop over directions
+
+	// The rest can have iolet/wall neighbors and have some pressure or other BC
+	// We peeled the loop so that the 1U << (LB_Dir -1 ) doesnot generate Undefined Behaviour 
+    for(int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+
+      // In this case LB_Dir - 1 doesn't occur elsewhere in the kernel, so no point in peeling the loop
+      unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; 
+	  bool is_Iolet_link = (Iolet_Intersect &  mask);
 
       if (is_Iolet_link) {   // ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 
         //===================================================================================================
         // Not valid in general! Need to change!!!
         // (IdInlet=0) Here we assume that we have only one inlet and the value of 
-	// int boundaryId = site.GetIoletId() = 1. Need to change in the future!!!
+	    // int boundaryId = site.GetIoletId() = 1. Need to change in the future!!!
         double component = velx * inletNormal_x + vely * inletNormal_y +
                            velz * inletNormal_z;   // distribn_t component = (hydroVars.momentum / hydroVars.density).Dot(ioletNormal);
 
@@ -571,9 +587,10 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 
 // fNew (dev_fn) populations:
     for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
-      unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
-                                            // compare against test_bool_Wall_Intersect as well)
-      bool is_Iolet_link = (Iolet_Intersect & mask);
+
+      // In this case LB_Dir - 1 doesn't occur elsewhere in the kernel, so no point in peeling the loop
+      unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; 
+      bool is_Iolet_link = (Iolet_Intersect & mask); // Direction=0 will be Iolet_Interset & 0x0 = 0x0
 
       if (is_Iolet_link) {   // ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 

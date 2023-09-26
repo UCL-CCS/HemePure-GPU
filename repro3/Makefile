@@ -1,5 +1,5 @@
 CXX=clang++
-CXXFLAGS=-O1 -std=c++17 -fsycl -fsycl-unnamed-lambda -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a  -x c++
+CXXFLAGS=-O3 -std=c++17 -fsycl -fsycl-unnamed-lambda -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx90a  -x c++
 
 #CXX=hipcc
 #CXXFLAGS=-std=c++17 -O1 --offload-arch=gfx90a

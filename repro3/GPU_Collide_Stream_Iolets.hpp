@@ -153,8 +153,15 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     // Put the new populations after collision in the GMem_dbl array,
     // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
-    // fNew (dev_fn) populations:
-    for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+    // fNew (dev_fn) populations
+	// First iteration cannot be an iolet because it is the zero momentum (no movement solution)
+    {
+        int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)Ind];
+
+        // Save the post collision population in fNew
+        GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[0];
+	}
+    for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
       unsigned mask = 1U << (LB_Dir - 1);   // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do:
                                             // compare against test_bool_Wall_Intersect as well)
       bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -168,7 +175,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
         //-----------------------
         // Approach 2
         // July 2022 - Single value correction term (wall momentum) passed to the GPU global memory
-        distribn_t correction = GMem_dbl_WallMom[(unsigned long long) (LB_Dir - 1) * siteCount + shifted_Fluid_Ind];
+        distribn_t correction = GMem_dbl_WallMom[(unsigned long long)(LB_Dir-1) * siteCount + shifted_Fluid_Ind];
 
         // TODO: Pass the boolean variable: CollisionType::CKernel::LatticeType::IsLatticeCompressible()
         // Remember that the wall mom. does not include the correction (multiplication by local density) If Compressible:
@@ -183,7 +190,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
       } else {   // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 
         // Use the Neighbouring Index given in GPUDataAddr_int64_Neigh_d, which is the actual streaming Array Index in f_new global memory
-        int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long) LB_Dir * nArr_dbl + Ind];
+        int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long) LB_Dir* nArr_dbl + Ind];
 
         // Save the post collision population in fNew
         GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir];
