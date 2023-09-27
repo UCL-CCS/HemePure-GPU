@@ -1,7 +1,7 @@
 // This file is part of the GPU development for HemeLB
 /*
 //------------------------------------------------------------------------------
-	HemeLB-GPU version 2.2.d
+	HemeLB-GPU version 1.28.a
 //------------------------------------------------------------------------------
 */
 
@@ -241,11 +241,7 @@ March 2023
 
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-May 2023
-HemeLB-GPU version 2.2.d
-	Evaluate wall shear stress on the GPU
-//------------------------------------------------------------------------------
+
 
 //------------------------------------------------------------------------------
 General things:
@@ -276,7 +272,6 @@ namespace hemelb
 
 #ifdef HEMELB_USE_GPU
 
-
 	// GPU constant memory
 	 __constant__ site_t _Iolets_Inlet_Edge[local_iolets_MaxSIZE];
 	 __constant__ site_t _Iolets_InletWall_Edge[local_iolets_MaxSIZE];
@@ -294,8 +289,7 @@ namespace hemelb
 	__constant__ double _Cs2;
 
 	__constant__ bool _useWeightsFromFile;
-	__constant__ distribn_t _iStressParameter;
-
+	__constant__ double _iStressParameter;
 
 	__constant__ int _InvDirections_19[19];
 
@@ -306,7 +300,7 @@ namespace hemelb
 	__constant__ int _CZ_19[19];
 
 	__constant__ int _WriteStep = 100;
-	__constant__ int _Send_MacroVars_DtH = 100; // Not used.. Delete. Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
+	__constant__ int _Send_MacroVars_DtH = 100; // Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
 
 
 	//===================================================================================================================
@@ -333,7 +327,7 @@ namespace hemelb
 	//		2.6. 	GPU_CollideStream_Iolets_Ladd_VelBCs															Done!!!
 	//		2.7. 	GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs
 	// 3. Case of Velocity BCs and subtype: File:
-	//		3.1. GPU_WallMom_correction_File_prefactor_NoIoletIDSearch
+	//		3.1.	GPU_WallMom_correction_File_Weights_NoSearch											Done!!!
 	//============================================================================
 
 
@@ -1484,6 +1478,153 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 } // Ends the GPU kernel
 
 
+__global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
+																	site_t start_Fluid_ID_givenColStreamType,
+																	site_t lower_limit, site_t upper_limit
+																	)
+{
+	//unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
+	//Ind = Ind + lower_limit;
+
+	//if(Ind >= upper_limit)
+		//return;
+		printf("Enter GPU_Check_Coordinates kernel... \n" );
+		for (int64_t Ind = lower_limit; Ind <= upper_limit; Ind++ ) {// TODO: Check the limits
+
+			// 1. Load the coordinates of the point for which we would like tp evaluate the correction terms
+			// Have in mind that (save registers per thread):
+			int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
+
+			// Address is Misaligned (threads #0 to #31)
+			int64_t x_coord = GMem_Coords_iolets[shifted_Fluid_Ind*3];
+			int64_t y_coord = GMem_Coords_iolets[shifted_Fluid_Ind*3 + 1];
+			int64_t z_coord = GMem_Coords_iolets[shifted_Fluid_Ind*3 + 2];
+
+			//printf("Inside GPU kernel - Fluid Index = %lld, start_Fluid_ID_givenColStreamType = %lld, Shifted Index = %lld \n", Ind, start_Fluid_ID_givenColStreamType, shifted_Fluid_Ind);
+			printf("Test coords kernel - Fluid Index = %lld, Shifted Index = %lld, Coordinates: (x, y, z) = (%lld, %lld, %lld) \n", Ind, shifted_Fluid_Ind, x_coord, y_coord, z_coord);
+
+		}
+}
+
+
+
+/**
+		Test kernel for the Velocity BCs case
+		Check if the velocity table and the
+		weights_table are correctly send on the GPU
+*/
+	__global__ void GPU_Check_Velocity_BCs_table_weights(int64_t **GMem_pp_int_weightsTable_coord,
+																	distribn_t **GMem_pp_dbl_weightsTable_wei,
+																	int inlet_ID,
+																	distribn_t* GMem_Inlet_velocityTable,
+																	int n_arr_elementsInCurrentInlet_weightsTable, int n_Inlets)
+	/*__global__ void GPU_Check_Velocity_BCs_table_weights(int **GMem_pp_int_weightsTable_coord, int inlet_ID,
+																												distribn_t* GMem_Inlet_velocityTable,
+																												int n_arr_elementsInCurrentInlet_weightsTable, int n_Inlets
+																											)*/
+	{
+		//unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
+		/*Ind = Ind + lower_limit;
+
+		if(Ind >= upper_limit)
+			return;
+		*/
+
+		printf("From GPU kernel: n_Elements: %d in weights_table from inlet ID: %d \n\n", n_arr_elementsInCurrentInlet_weightsTable, inlet_ID);
+
+		//printf("Addresses...\n");
+  	//printf("GMem_pp_int_weightsTable_coord[%d] = %p\n", inlet_ID, GMem_pp_int_weightsTable_coord[0]);
+
+		for (int ii=0; ii<n_arr_elementsInCurrentInlet_weightsTable; ii++)
+		//for (int ii=0; ii<1; ii++)
+		{
+			/*printf("Coordinates (x,y,z) : (%d, %d, %d ) - Weight : %f \n",  GMem_pp_int_weightsTable_coord[inlet_ID][ii*3],
+																												GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+1],
+																												GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+2],
+																												GMem_pp_dbl_weightsTable_wei[inlet_ID][ii]	);
+			*/
+			int64_t x_coord = GMem_pp_int_weightsTable_coord[inlet_ID][ii*3];
+			int64_t y_coord = GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+1];
+			int64_t z_coord = GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+2];
+
+			distribn_t vel_weight = GMem_pp_dbl_weightsTable_wei[inlet_ID][ii];
+
+			//printf("GPU - Coordinates (x,y,z) : (%lld, %lld, %lld ) - Weight: %f \n", x_coord, y_coord, z_coord, vel_weight);
+			//printf("Velocity Table : %f \n", GMem_Inlet_velocityTable[ii]);
+		}
+
+	}
+
+
+	__global__ void GPU_Check_Velocity_BCs_table_weights_directArr(int *GMem_p_int_weightsTable_coord, int inlet_ID,
+																												distribn_t* GMem_Inlet_velocityTable,
+																												int n_arr_elementsInCurrentInlet_weightsTable, int n_Inlets
+																											)
+	{
+		//unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
+		/*Ind = Ind + lower_limit;
+
+		if(Ind >= upper_limit)
+			return;
+		*/
+
+		/*for (int index = 0; index < arr_elementsInEachInlet.size(); index++) {
+			//if (data[n][i] != 1) printf("kernel error\n");
+		}*/
+		printf("From GPU kernel: n_Elements: %d in weights_table from inlet ID: %d \n\n", n_arr_elementsInCurrentInlet_weightsTable, inlet_ID);
+		//printf("Inside the GPU kernel ... \n");
+
+		printf("Addresses...\n");
+  	//printf("dX    = %p\n", d_X);
+  	//printf("dA    = %p\n", d_A);
+  	//printf("dB    = %p\n", d_B);
+  	printf("GMem_p_int_weightsTable_coord = %p\n", GMem_p_int_weightsTable_coord[0]);
+  	//printf("GMem_pp_int_weightsTable_coord[1] = %p\n", GMem_pp_int_weightsTable_coord[1]);
+
+		//for (int ii=0; ii<n_arr_elementsInCurrentInlet_weightsTable; ii++)
+		for (int ii=0; ii<2; ii++)
+		{
+			/*printf("Coordinates (x,y,z) : (%d, %d, %d ) - Weight : %f \n",  GMem_pp_int_weightsTable_coord[inlet_ID][ii*3],
+																												GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+1],
+																												GMem_pp_int_weightsTable_coord[inlet_ID][ii*3+2],
+																												GMem_pp_dbl_weightsTable_wei[inlet_ID][ii]	);
+																												*/
+			int x_coord = GMem_p_int_weightsTable_coord[ii*3];
+			int y_coord = GMem_p_int_weightsTable_coord[ii*3+1];
+			int z_coord = GMem_p_int_weightsTable_coord[ii*3+2];
+
+			// double vel_weight =
+			printf("NEW KERNEL - GPU - Coordinates (x,y,z) : (%d, %d, %d ) \n", x_coord, y_coord, z_coord);
+		}
+
+		//int x_coord =
+		//std::cout << "x_coord = " << GMem_p_int_weightsTable_coord[0] << std::endl;
+
+	}
+
+
+	__global__ void GPU_Check_Velocity_BCs_table_weights_directArr_v2(int *GMem_p_int_weightsTable_coord_x,
+																												int *GMem_p_int_weightsTable_coord_y,
+																												int *GMem_p_int_weightsTable_coord_z,
+																												int inlet_ID,
+																												distribn_t* GMem_Inlet_velocityTable,
+																												int n_arr_elementsInCurrentInlet_weightsTable, int n_Inlets
+																											)
+	{
+
+		//for (int ii=0; ii<n_arr_elementsInCurrentInlet_weightsTable; ii++)
+		for (int ii=0; ii<2; ii++)
+		{
+			int x_coord = GMem_p_int_weightsTable_coord_x[ii];
+			int y_coord = GMem_p_int_weightsTable_coord_y[ii];
+			int z_coord = GMem_p_int_weightsTable_coord_z[ii];
+
+			// double vel_weight =
+			printf("NEW KERNEL(2) - GPU - Coordinates (x,y,z) : (%d, %d, %d ) \n", x_coord, y_coord, z_coord);
+		}
+
+	}
+
 
 
 	//**************************************************************
@@ -1572,6 +1713,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 	//==========================================================================================
 
 
+
 	//**************************************************************
 	// Kernel for the Collision step
 	// for the Lattice Boltzmann algorithm
@@ -1596,7 +1738,8 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 										site_t nArr_dbl,
 										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
 										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
-										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal)
+										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+										unsigned long time_Step, int MPI_Rank)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 		Ind = Ind + lower_limit_MidFluid;
@@ -1810,14 +1953,15 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 			// Add here an if wallShearStressMagn_Eval as well
 			// Evaluate the wall shear stress magnitude if this is a wall site
 			// The first approach should be faster (Is it ?)
-			if (((site_t)Ind - upper_limit_Wall +1) * ((site_t)Ind - lower_limit_Wall) <= 0){		// When the upper_limit is NOT included
-			//if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
+			
+			//if (((site_t)Ind - upper_limit_Wall +1) * ((site_t)Ind - lower_limit_Wall) <= 0){		// When the upper_limit is NOT included
+			if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
 					distribn_t stress;
 
-					/*printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
-								lower_limit_MidFluid, upper_limit_MidFluid,
-								lower_limit_Wall, upper_limit_Wall);
-								*/
+					//printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
+					//			lower_limit_MidFluid, upper_limit_MidFluid,
+					//			lower_limit_Wall, upper_limit_Wall);
+								
 					// Load the wall normal components from the GPU global memory
 					site_t shifted_Ind = Ind-lower_limit_Wall;
 					distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
@@ -1829,8 +1973,15 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 						f_neq,
 						wall_normal_x, wall_normal_y, wall_normal_z,
 						_iStressParameter);
-					//printf("Site: % ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
-					//printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e\n",shifted_Ind, stress );
+					
+					//stress=0.001;
+
+					/*if(shifted_Ind==9099 && MPI_Rank==206)	
+						printf("Rank: %d, Time: %ld, Site: %ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", MPI_Rank, time_Step, Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
+					*/
+					//if(shifted_Ind==9099)
+					//		printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e, _iStressParameter = %5.5e \n",shifted_Ind, stress, _iStressParameter );
+					
 					GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
 			}
 			//------------------------------------------------------------------------
@@ -1838,6 +1989,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 
 	} // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
 	//==========================================================================================
+
 
 
 	//**************************************************************
@@ -1950,6 +2102,22 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 			f_neq[i] = dev_ff[i] - dev_fEq;
 			dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 		}
+
+		// Add here an if wallShearStressMagn_Eval
+		// This will initially evaluate the second moments of the distr. functions
+		// Explicitly calculate the elements (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
+		// and saves these with this order in the array ret_SecMomDistrFunc
+		// 	Need then to exploit symmetry to fill the elements (0,1) (0,2) (1,2)
+		double *SecMomDistrFunc;
+		SecMomDistrFunc = _CalculatePiTensor(f_neq);
+		SecMomDistrFunc[6] = SecMomDistrFunc[1];
+		SecMomDistrFunc[7] = SecMomDistrFunc[3];
+		SecMomDistrFunc[8] = SecMomDistrFunc[4];
+		/*// Debugging
+		for (int i = 0; i < 6; ++i) {
+			printf("Second Mom. Distr. funct. %5.5e\n", SecMomDistrFunc[i]);
+		}*/
+		//-----------------------------------------------------------------------------------------------------------
 
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
 		//-----------------------------------------------------------------------------------------------------------
@@ -2067,6 +2235,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 
 	} // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
 	//==========================================================================================
+
 
 
 
@@ -2201,8 +2370,6 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 
 		}	// Ends the GPU_StreamReceivedDistr kernel
 		//==========================================================================================
-
-
 
 #endif
 }
