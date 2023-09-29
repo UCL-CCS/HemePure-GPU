@@ -1118,6 +1118,7 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
   // 		a. Calculate density
   // 		b. Calculate momentum - Note: No body forces
 
+#pragma unroll 19
   for (int direction = 0; direction < c.NUMVECTORS; direction++) {
     double ff = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
     dev_ff[direction] = ff;
@@ -1137,6 +1138,7 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
   // double momentumMagnitudeSquared = momentum_x * momentum_x
   //											+ momentum_y * momentum_y + momentum_z * momentum_z;
 
+#pragma unroll 19
   for (int i = 0; i < c.NUMVECTORS; ++i) {
     double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
@@ -1164,9 +1166,11 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
 #if 0
   GMem_dbl_fNew_b[Ind] = dev_ff[0];
 
+#pragma unroll 18
   for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 #else
 
+#pragma unroll 19
   for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 #endif
     int64_t dev_NeighInd =

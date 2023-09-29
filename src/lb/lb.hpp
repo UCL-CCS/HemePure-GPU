@@ -2710,14 +2710,14 @@ bool LBM<LatticeType>::FinaliseGPU()
 
 	// Cuda Streams
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_1);
-	GPU::deviceStreamDestroy(Collide_Stream_PreSend_2);
+//	GPU::deviceStreamDestroy(Collide_Stream_PreSend_2);
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_3);
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_4);
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_5);
 	GPU::deviceStreamDestroy(Collide_Stream_PreSend_6);
 
 	GPU::deviceStreamDestroy(Collide_Stream_PreRec_1);
-	GPU::deviceStreamDestroy(Collide_Stream_PreRec_2);
+//	GPU::deviceStreamDestroy(Collide_Stream_PreRec_2);
 	GPU::deviceStreamDestroy(Collide_Stream_PreRec_3);
 	GPU::deviceStreamDestroy(Collide_Stream_PreRec_4);
 	GPU::deviceStreamDestroy(Collide_Stream_PreRec_5);
@@ -3229,7 +3229,6 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 				// Would it be simplest to set this to: GetLocalFluidSiteCount * LatticeType::NUMVECTORS here directly?
 				// Technically that is what neigh_Index_Heme is
 				// I guess I could asser this:
-				assert( neigh_Index_Heme == mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS );
 				Data_int64_Neigh_d[(int64_t)l * mLatDat->GetLocalFluidSiteCount() + i] = neigh_Index_Heme;
 			}
 		}
@@ -5568,14 +5567,14 @@ https://stackoverflow.com/questions/26111794/how-to-use-pointer-to-pointer-in-cu
 
 	// Create the Streams here
 	GPU::deviceStreamCreate(&Collide_Stream_PreSend_1);
-	GPU::deviceStreamCreate(&Collide_Stream_PreSend_2);
+//	GPU::deviceStreamCreate(&Collide_Stream_PreSend_2);
 	GPU::deviceStreamCreate(&Collide_Stream_PreSend_3);
 	GPU::deviceStreamCreate(&Collide_Stream_PreSend_4);
 	GPU::deviceStreamCreate(&Collide_Stream_PreSend_5);
 	GPU::deviceStreamCreate(&Collide_Stream_PreSend_6);
 
 	GPU::deviceStreamCreate(&Collide_Stream_PreRec_1);
-	GPU::deviceStreamCreate(&Collide_Stream_PreRec_2);
+//	GPU::deviceStreamCreate(&Collide_Stream_PreRec_2);
 	GPU::deviceStreamCreate(&Collide_Stream_PreRec_3);
 	GPU::deviceStreamCreate(&Collide_Stream_PreRec_4);
 	GPU::deviceStreamCreate(&Collide_Stream_PreRec_5);
@@ -7793,7 +7792,7 @@ void LBM<LatticeType>::PreReceive()
 	// Synchronisation barrier
 	if(myPiD!=0){
 		GPU::deviceStreamSynchronize(Collide_Stream_PreSend_1);
-		GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
+		// GPU::deviceStreamSynchronize(Collide_Stream_PreSend_2);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreSend_3);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreSend_4);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreSend_5);
@@ -8049,7 +8048,7 @@ void LBM<LatticeType>::EndIteration()
 		// The following might be needed in PostReceive() for cases where the PostReceive Step is usefull, e.g. for interpolating types of BCs,
 		// Otherwise could be moved here before the GPU_SwapOldAndNew kernel
 		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_1);
-		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_2);
+//		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_2);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_3);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_4);
 		GPU::deviceStreamSynchronize(Collide_Stream_PreRec_5);

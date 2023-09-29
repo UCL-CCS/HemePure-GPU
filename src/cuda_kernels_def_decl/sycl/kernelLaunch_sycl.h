@@ -24,13 +24,11 @@ kernelLaunch(Functor f, size_t NumBlocks, size_t NumThreadsPerBlock, size_t SMem
 	queue.submit([&]( sycl::handler& cgh ) {
 		cgh.parallel_for(sycl::nd_range<1>({MaxRange}, {NumThreadsPerBlock}),
 	  	 [=]( sycl::nd_item<1> idx ) {
-						// Turn sycl::id into an index our kernels can undestand
 			  unsigned long long Ind = static_cast<unsigned long long>( idx.get_global_id(0) );
 	    	  f(Ind);
 		});
 
 	});
-	queue.wait(); // Dunno if I want this here, or just leave it in the explicit synchronize method
 }
 
 template <typename Functor>
@@ -52,7 +50,6 @@ kernelLaunchStrided(Functor f, size_t NumBlocks, size_t NumThreadsPerBlock, size
 		});
 
 	});
-	queue.wait(); // Dunno if I want this here, or just leave it in the explicit synchronize method
 }
 }// GPU
 } // Hemelb

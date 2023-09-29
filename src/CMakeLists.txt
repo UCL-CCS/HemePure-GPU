@@ -286,6 +286,12 @@ if( USE_SYCL )
 	set( SYCL_CPPFLAGS "-fsycl -fsycl-unnamed-lambda")
   	if( HEMELB_SYCL_TARGET STREQUAL "amdgcn-amd-amdhsa")
 	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH}")
+	elseif( HEMELB_SYCL_TARGET STREQUAL "spir64_gen" )
+	  # SPIR64 Ahead of time compile with DPC++
+	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device ${HEMELB_SYCL_ARCH}\"")
+	elseif( HEMELB_SYCL_TARGET STREQUAL "spir64" )
+	  # SPIR64 JIT compile with DPC++
+	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=spir64 -Xsycl-target-backend \"\"")
     endif()
   endif()
 endif()

@@ -51,6 +51,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
     // 		a. Calculate density
     // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -72,6 +73,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
     double momentumMagnitudeSquared = momentum_x * momentum_x + momentum_y * momentum_y 
 						+ momentum_z * momentum_z;
 
+#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y 
 			+ (double) c.CZ[i] * momentum_z;
@@ -119,6 +121,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_Ladd_VelBCs_Func
         GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[0];
     }
 	// Remaining iterations 
+#pragma unroll 18
     for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 
 	   // LB_Dir is guaranteed to be >= 0 so no undefined behaviour
@@ -249,6 +252,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
     // 		a. Calculate density
     // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -269,6 +273,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     double momentumMagnitudeSquared = momentum_x * momentum_x + momentum_y * momentum_y 
 			+ momentum_z * momentum_z;
 
+#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y 
 				+ (double) c.CZ[i] * momentum_z;
@@ -338,6 +343,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 
 	// The rest can have iolet/wall neighbors and have some pressure or other BC
 	// We peeled the loop so that the 1U << (LB_Dir -1 ) doesnot generate Undefined Behaviour 
+#pragma unroll 19
     for(int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 
       // In this case LB_Dir - 1 doesn't occur elsewhere in the kernel, so no point in peeling the loop
@@ -480,6 +486,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 // 		a. Calculate density
 // 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
     for (int direction = 0; direction < c.NUMVECTORS; direction++) {
       dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
 
@@ -500,6 +507,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
     double momentumMagnitudeSquared = momentum_x * momentum_x 
 			+ momentum_y * momentum_y + momentum_z * momentum_z;
 
+#pragma unroll 19
     for (int i = 0; i < c.NUMVECTORS; ++i) {
       double mom_dot_ei = (double)c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + c.CZ[i] * momentum_z;
 
@@ -586,6 +594,7 @@ template <typename LatticeType> struct GPU_CollideStream_Iolets_NashZerothOrderP
 // implementing the streaming step with Simple Bounce Back if Wall-Fluid link
 
 // fNew (dev_fn) populations:
+#pragma unroll 19
     for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 
       // In this case LB_Dir - 1 doesn't occur elsewhere in the kernel, so no point in peeling the loop

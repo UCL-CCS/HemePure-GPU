@@ -1,4 +1,4 @@
-source ../env_crusher_sycl.sh
+source ../env_pvc.sh
 
 #
 # This works with AFAR 2146, Do not increase the Optimization beyond -O1
@@ -8,6 +8,8 @@ OPT="-O3"
 
 # -fgpu-rdc is needed for some reason when working with the AFAR compiler
 cmake -DHEMELB_GPU_BACKEND=SYCL \
+	  -DHEMELB_SYCL_TARGET=spir64 \
+      -DHEMELB_SYCL_ARCH=pvc \
 		 -DCMAKE_CXX_COMPILER=clang++ \
 		 -DCMAKE_CXX_FLAGS="${OPT} ${MPI_CFLAGS}" \
 		 -DCMAKE_C_COMPILER=clang \

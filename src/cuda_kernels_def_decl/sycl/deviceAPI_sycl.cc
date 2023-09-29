@@ -31,15 +31,14 @@ deviceGetErrorString() {
 
 bool
 deviceMemcpyAsync(void *dst, const void *src, size_t count, memcpyKind kind, Stream_t stream) {
-  auto q = Impl::getStreamManager().getStream(stream);
-  // for now ignore memcpyKind... It really should depend on the pointers
+  auto& q = Impl::getStreamManager().getStream(stream);
   q.memcpy(dst, src, count);
   return true;
 }
 
 bool
 deviceMemcpy(void *dst, const void *src, size_t count, memcpyKind kind) {
-  auto q = Impl::getStreamManager().getDefaultStream();
+  auto& q = Impl::getStreamManager().getDefaultStream();
 
   // for now ignore memcpyKind... It really should depend on the pointers
   q.memcpy(dst, src, count);
@@ -49,7 +48,7 @@ deviceMemcpy(void *dst, const void *src, size_t count, memcpyKind kind) {
 
 bool
 deviceMalloc(void **ptr, size_t MemSz) {
-  auto q = Impl::getStreamManager().getDefaultStream();
+  auto& q = Impl::getStreamManager().getDefaultStream();
   *ptr = sycl::malloc_device( MemSz, q );
    if( ! ptr ) return false;
 	else return true;
@@ -74,8 +73,8 @@ deviceStreamCreate(Stream_t *streamPtr) {
 
 void
 deviceStreamSynchronize(Stream_t stream) {
-  auto& s = Impl::getStreamManager().getStream(stream);
-  s.wait();
+  auto& q = Impl::getStreamManager().getStream(stream);
+  q.wait();
 }
 
 void
@@ -85,7 +84,7 @@ deviceStreamDestroy(Stream_t stream) {
 
 bool
 deviceFree(void *devPtr) {
-  auto q = Impl::getStreamManager().getDefaultStream();
+  auto& q = Impl::getStreamManager().getDefaultStream();
   sycl::free( devPtr, q );
   return true;
 }

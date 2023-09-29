@@ -28,7 +28,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
                                                 distribn_t *GMem_ghostDensity_, float *GMem_inletNormal_, int nInlets_, uint64_t nArr_dbl_,
                                                 uint64_t lower_limit_, uint64_t upper_limit_, uint64_t totalSharedFs_, bool write_GlobalMem_,
                                                 int num_local_Iolets_, Iolets Iolets_info_, double minusInvTau_)
-      : GMem_dbl_fNew_b(GMem_dbl_fNew_b_), GMem_dbl_MacroVars(GMem_dbl_MacroVars_), GMem_int64_Neigh(GMem_int64_Neigh_),
+      : GMem_dbl_fOld_b(GMem_dbl_fOld_b_), GMem_dbl_fNew_b(GMem_dbl_fNew_b_), GMem_dbl_MacroVars(GMem_dbl_MacroVars_), GMem_int64_Neigh(GMem_int64_Neigh_),
         GMem_uint32_Wall_Link(GMem_uint32_Wall_Link_), GMem_uint32_Iolet_Link(GMem_uint32_Iolet_Link_), GMem_ghostDensity(GMem_ghostDensity_),
         GMem_inletNormal(GMem_inletNormal_), nInlets(nInlets_), nArr_dbl(nArr_dbl_), lower_limit(lower_limit_), upper_limit(upper_limit_),
         totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_), num_local_Iolets(num_local_Iolets_),        Iolets_info(Iolets_info_), minusInvTau(minusInvTau_) {}
@@ -41,36 +41,34 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		if(Ind >= upper_limit)
 			return;
 
+		double nn = (double)0; // density
+		double velx=(double)0; // Fluid Velocities
+		double vely=(double)0;
+		double velz=(double)0;
+		double momentum_x=(double)0;
+		double momentum_y=(double)0;
+		double momentum_z=(double)0;
+		double dev_ff[19];
+
+	    
+
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
-		double nn = 0.0;	// density
-		double momentum_x, momentum_y, momentum_z;
-		momentum_x = momentum_y = momentum_z = 0.0;
-
-		double velx, vely, velz;	// Fluid Velocity
 
 		//-----------------------------------------------------------------------------------------
 		// 1. Read the fOld_GPU_b distr. functions
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< c.NUMVECTORS; direction++){
-			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
-
+#pragma unroll 19
+		for(size_t direction = 0; direction< c.NUMVECTORS; direction++){
+			dev_ff[direction] = GMem_dbl_fOld_b[direction * nArr_dbl + Ind];
 			nn += dev_ff[direction];
 			momentum_x += (double)c.CX[direction] * dev_ff[direction];
 			momentum_y += (double)c.CY[direction] * dev_ff[direction];
 			momentum_z += (double)c.CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
-
-
-		// In the case of body force
-		//momentum_x += 0.5 * _force_x;
-		//momentum_y += 0.5 * _force_y;
-		//momentum_z += 0.5 * _force_z;
-
 
 		// Compute velocity components
 		velx = momentum_x/nn;
@@ -82,7 +80,9 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 					+ momentum_y * momentum_y + momentum_z * momentum_z;
-		for (int i = 0; i < c.NUMVECTORS; ++i)
+
+#pragma unroll 19
+		for(int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)c.CX[i] * momentum_x
 						+ (double)c.CY[i] * momentum_y
@@ -159,7 +159,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
+#pragma unroll 19
+		for(int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
 			// Avoid undefined behaviour setting the mask...:	
 			// No other uses of LB_Dir - 1 as indexing, 
@@ -184,7 +185,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = c.INVERSEDIRECTIONS[LB_Dir];
+				size_t unstreamed_dir = c.INVERSEDIRECTIONS[LB_Dir];
 				double mom_dot_ei = (double)c.CX[unstreamed_dir] * momentum_x
 						+ (double)c.CY[unstreamed_dir] * momentum_y
 						+ (double)c.CZ[unstreamed_dir] * momentum_z;
@@ -196,12 +197,12 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 				// Need to distinguish the int boundaryId = site.GetIoletId() correctly and pass the info (identify the proper ghost density and inlet-normals.
 				//=============================================================================================================
 
-				GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_fEq_unstr;
+				GMem_dbl_fNew_b[unstreamed_dir * nArr_dbl + Ind] = dev_fEq_unstr;
 
 			}
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)c.INVERSEDIRECTIONS[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[c.INVERSEDIRECTIONS[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -210,7 +211,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Fun
 				// Including the info for the totalSharedFs (propagate outside of the simulation domain).
 				// (remember the memory layout in hemeLB is based on the site fluid index (Method A), i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
-				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Depends on which neigh array is loaded... Read the streaming info here - Here Refers to Data Address NOT THE STREAMING FLUID ID!!!
+				int64_t dev_NeighInd = GMem_int64_Neigh[(size_t)LB_Dir * nArr_dbl + Ind]; // Depends on which neigh array is loaded... Read the streaming info here - Here Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Put the new populations after collision in the GMem_dbl array, implementing the streaming step as well
 				// fNew populations:
@@ -308,6 +309,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
 		for(int direction = 0; direction< c.NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -335,8 +337,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
-
-		for (int i = 0; i < c.NUMVECTORS; ++i)
+#pragma unroll 19
+		for(int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)c.CX[i] * momentum_x
 							+ (double)c.CY[i] * momentum_y
@@ -359,7 +361,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		//double dev_fn[19];		// or maybe use the existing dev_ff[c.NUMVECTORS] to minimise the memory requirements - Check and replace in the future
 
 		/*// Evolution equation for the fi's here
-		for (int i = 0; i < c.NUMVECTORS; ++i)
+		for(int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * minusInvTau; // Check if multiplying by minusInvTau makes a difference
@@ -459,7 +461,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+#pragma unroll 19
+		for(int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
 		
 			// Avoid UB in the shift operator for a -ve number{
 			unsigned mask =  LB_Dir > 0 ? 1U << (LB_Dir - 1) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
@@ -611,6 +614,7 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
+#pragma unroll 19
 		for(int direction = 0; direction< c.NUMVECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
@@ -637,8 +641,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
-
-		for (int i = 0; i < c.NUMVECTORS; ++i)
+#pragma unroll 19
+		for(int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			double mom_dot_ei = (double)c.CX[i] * momentum_x
 					+ (double)c.CY[i] * momentum_y
@@ -659,7 +663,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		//double dev_fn[19];		// or maybe use the existing dev_ff[c.NUMVECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < c.NUMVECTORS; ++i)
+#pragma unroll 19
+		for(int i = 0; i < c.NUMVECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * minusInvTau; // Check if multiplying by minusInvTau makes a difference
@@ -708,7 +713,8 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
+#pragma unroll 19
+		for(int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++)
 		{
 			// Avoid UB here
 			unsigned mask = LB_Dir > 0 ? 1U << (LB_Dir - 1) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
