@@ -283,16 +283,23 @@ endif()
 if( USE_SYCL ) 
   add_definitions(-DHEMELB_USE_SYCL)
   if( HEMELB_SYCL_COMPILER STREQUAL "DPCPP" )
-	set( SYCL_CPPFLAGS "-fsycl -fsycl-unnamed-lambda")
+
   	if( HEMELB_SYCL_TARGET STREQUAL "amdgcn-amd-amdhsa")
-	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH}")
+	  set( SYCL_BACKEND_FLAGS "-fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH}")
+
 	elseif( HEMELB_SYCL_TARGET STREQUAL "spir64_gen" )
 	  # SPIR64 Ahead of time compile with DPC++
-	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=spir64_gen -Xsycl-target-backend \"-device ${HEMELB_SYCL_ARCH}\"")
+      set(SYCL_BACKEND_FLAGS "-fsycl-targets=spir64_gen -Xsycl-target-backend \"-device ${HEMELB_SYCL_ARCH}\"")
+
 	elseif( HEMELB_SYCL_TARGET STREQUAL "spir64" )
 	  # SPIR64 JIT compile with DPC++
-	  set( SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl-targets=spir64 -Xsycl-target-backend \"\"")
+	  set( SYCL_BACKEND_FLAGS "-fsycl-targets=spir64 -Xsycl-target-backend \"\"")
     endif()
+	set(SYCL_CPPFLAGS "${SYCL_CPPFLAGS} -fsycl -fsycl-unnamed-lambda ${SYCL_BACKEND_FLAGS}" )
+
+	# Very strange: I need to convert the string of args to a list for SYCL_LDFLAGS
+    # but seemingly not for SYCL_CPPFLAGS seems inconsistent
+	string(REPLACE " " ";" SYCL_LDFLAGS "-fsycl ${SYCL_BACKEND_FLAGS} ${SYCL_LDFLAGS}")
   endif()
 endif()
 
@@ -482,7 +489,7 @@ if(USE_SYCL)
 
   add_executable(${HEMELB_EXECUTABLE} main.cc)
   target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
-  target_link_options(${HEMELB_EXECUTABLE} PUBLIC -fsycl -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=${HEMELB_SYCL_ARCH})
+  target_link_options(${HEMELB_EXECUTABLE} PUBLIC ${SYCL_LDFLAGS})
 endif()
 
 add_subdirectory(resources)
