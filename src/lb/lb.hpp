@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <mpi.h>
 
+#define STABILITY_CHECK_FREQUENCY 1000
+
 namespace hemelb
 {
 
@@ -5438,21 +5440,8 @@ https://stackoverflow.com/questions/26111794/how-to-use-pointer-to-pointer-in-cu
 	// Set up the stability value as UndefinedStability (value -1) and modify
 	//  to value Unstable (value 0), see SimulationState.h
 
-	//int* d_Stability_GPU;
 	mLatDat->h_Stability_GPU_mLatDat=-1;
-	h_Stability_GPU=-1;
-	//h_Stability_GPU[0] = -1; // Same value as the one used to denote UndefinedStability (value -1)
-	status = GPU::deviceMalloc((void**)&d_Stability_GPU, sizeof(int));
 	status = GPU::deviceMalloc((void**)&(mLatDat->d_Stability_GPU_mLatDat), sizeof(int));
-
-	status = GPU::deviceMemcpy(d_Stability_GPU, &h_Stability_GPU, sizeof(int), GPU::memcpyHostToDevice);
-	if(!status){
-		fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
-		initialise_GPU_res = false;
-		return initialise_GPU_res;
-		//return false;
-	}
-
 	status = GPU::deviceMemcpy(mLatDat->d_Stability_GPU_mLatDat, &(mLatDat->h_Stability_GPU_mLatDat), sizeof(int), GPU::memcpyHostToDevice);
 	if(!status){
 		fprintf(stderr, "GPU memory transfer Host To Device for Stability param. failed\n");
@@ -6424,7 +6413,7 @@ void LBM<LatticeType>::PreSend()
 
 
 	// TODO: Frequency of checking stability set to 200 / 1000 time-steps. Modify/Check again in the future!
-	if(nBlocks_Check!=0 && mState->GetTimeStep()%1000 ==0){
+	if(nBlocks_Check!=0 && mState->GetTimeStep()%STABILITY_CHECK_FREQUENCY==0){
 		hemelb::GPU_Check_Stability_Functor<LatticeType> stability_kernel(
 				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, (distribn_t *) mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 				(int*)mLatDat->d_Stability_GPU_mLatDat, nFluid_nodes_test, first_Index_test, (first_Index_test + site_Count_test),
@@ -7820,11 +7809,11 @@ void LBM<LatticeType>::PreReceive()
 
 	// Synchronisation point for the kernel GPU_Check_Stability launched at the beginning of PreSend() step. Ensure the stability check has completed and the results are ready
 	// memcopy D2H value of stability copied to mLatDat->h_Stability_GPU_mLatDat
-	if(myPiD!=0 && mState->GetTimeStep()%1000 ==0){
+	if(myPiD!=0 && mState->GetTimeStep()%STABILITY_CHECK_FREQUENCY==0){
 		GPU::deviceStreamSynchronize(stability_check_stream);
-		// MemCopy from Device To Host the value for the Stability - TODO!!!
-		// status = GPU::deviceMemcpyAsync( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), GPU::memcpyDeviceToHost, stability_check_stream);
-		bool status = GPU::deviceMemcpy( &(mLatDat->h_Stability_GPU_mLatDat), &(((int*)mLatDat->d_Stability_GPU_mLatDat)[0]), sizeof(int), GPU::memcpyDeviceToHost);
+
+		// Synchronous copy
+		bool status = GPU::deviceMemcpy( &(mLatDat->h_Stability_GPU_mLatDat), (const void *)(mLatDat->d_Stability_GPU_mLatDat), sizeof(int), GPU::memcpyDeviceToHost );
 
 		if(mLatDat->h_Stability_GPU_mLatDat==0)
 			printf("Rank = %d - Unstable SImulation: Host Stability flag: %d \n\n", myPiD, mLatDat->h_Stability_GPU_mLatDat);

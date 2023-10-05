@@ -1015,7 +1015,9 @@ template <typename LatticeType> struct GPU_Check_Stability_Functor {
     if (Ind >= upper_limit)
       return;
 
-    int Stability_GPU = *d_Stability_flag;
+	
+    bool Stability_GPU = true;
+	
     // printf("Site ID = %lld - Stability flag: %d \n\n", Ind, Stability_GPU);
 
     /** At first, follow the same approach as in the CPU version of hemeLB,
@@ -1044,21 +1046,26 @@ template <typename LatticeType> struct GPU_Check_Stability_Functor {
     // Load the distribution functions fNew_GPU_b[19]
     // distribn_t dev_ff_new[19];
 
-    for (int direction = 0; direction < c.NUMVECTORS; direction++) {
-      distribn_t ff = GMem_dbl_fNew_b[(unsigned long long) direction * nArr_dbl + Ind];
-      // dev_ff_new[direction] = ff;
+    for (size_t direction = 0; direction < c.NUMVECTORS; direction++) {
+      distribn_t ff = GMem_dbl_fNew_b[ direction * nArr_dbl + Ind];
       if (!(ff > 0.0))   // Unstable simulation
       {
-        Stability_GPU = 0;
-        *d_Stability_flag = 0;
+        Stability_GPU = false; // This will break the loop on the next direction
+
+        *d_Stability_flag = 0; // This can become a race (of writes)  but it is sort of OK because only unstable places will set to 0. No one tests d_Stability_flag
+							   // in the kernel, and it doesn't matter which write succeeds because no other thread will write a different value (they will just leave the flag untouched). 
+							   // Still, I would prefer:
+							   //   - an atomic set to zero
+							   //   - a reduction? 
         return;
       }
-      if (Stability_GPU == 0)
-        return;
-
+     
+	  // Remove this: it was there because of a need for a nested break in the CPU version. 
+	  // if (!Stability_GPU) return; //  I don't think this can ever return, since we would have returned already
+									
     }   // Ends the loop over the LB-directions
 
-    // Debugging test
+    // Debugging test: Explicitly sets the flag. 
     // if(time_Step%200 ==0) *d_Stability_flag = 0;
 
   }   // Ends the kernel GPU_Check_Stability

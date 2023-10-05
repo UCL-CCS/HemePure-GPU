@@ -363,11 +363,6 @@ namespace hemelb
 				struct hemelb::Iolets Inlet_Edge, Inlet_Inner, InletWall_Edge, InletWall_Inner;
 				struct hemelb::Iolets Outlet_Edge, Outlet_Inner, OutletWall_Edge, OutletWall_Inner;
 
-				// Pointer to Stability flag (type int*)
-				void* d_Stability_GPU;
-				//int* d_Stability_GPU;
-				int h_Stability_GPU;
-
 
 				// Pointer to pinned memory
 				distribn_t *Data_H2D_memcpy_totalSharedFs, *Data_D2H_memcpy_totalSharedFs;
