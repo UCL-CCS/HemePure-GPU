@@ -193,10 +193,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask;  // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -468,10 +468,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -732,10 +732,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -995,10 +995,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -1259,10 +1259,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -1524,10 +1524,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -1795,10 +1795,10 @@ namespace hemelb
 #pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -2081,10 +2081,10 @@ namespace hemelb
 #pragma unroll 19
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 
@@ -2316,10 +2316,10 @@ namespace hemelb
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0;// Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
-			unsigned mask_w = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			unsigned mask_w = mask; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Wall_link = (Wall_Intersect & mask_w);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
