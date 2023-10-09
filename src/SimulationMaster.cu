@@ -339,7 +339,7 @@ void SimulationMaster::check_GPU_capabilities()
 
 	// Set the current GPU device	
 	if(dev_count>1 && localRank!=0){
-		bool status = deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
+		bool status = deviceAttach((localRank)%dev_count);		//Set GPU - Rank 0 does not participate	
 		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
