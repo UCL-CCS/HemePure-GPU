@@ -148,16 +148,16 @@ message('CXX Flags = ' ${CMAKE_CXX_FLAGS})
 if(HEMELB_USE_GPU)
   add_definitions(-DHEMELB_USE_GPU)
   add_definitions(-DDEBUG)
-endif()
-
-if (USE_CUDA)
-
   ##------------------------------------
   ## If CUDA-aware mpi is enabled
   if(HEMELB_CUDA_AWARE_MPI)
 	add_definitions(-DHEMELB_CUDA_AWARE_MPI)
   endif()
   ##------------------------------------
+endif()
+
+if (USE_CUDA)
+
 
   enable_language(CUDA)
 
@@ -220,19 +220,19 @@ if (USE_HIP)
     ${CMAKE_MODULE_PATH})
 
   if(GPU_COMPILER STREQUAL "HIP-clang")
-    set( HIP_PLATFORM "hcc" )
-    set( HIP_COMPILER "clang" )
-    set( HIP_RUNTIME "rocclr" )
-    #                   mi50   mi100  mi200
-		if( NOT AMDGPU_TARGETS )
+ #   set( HIP_PLATFORM "hcc" )
+ #   set( HIP_COMPILER "clang" )
+ #    set( HIP_RUNTIME "rocclr" )
+ #    mi50   mi100  mi200
+	if( NOT AMDGPU_TARGETS )
       set( AMDGPU_TARGETS gfx906;gfx908;gfx90a
-        CACHE STRING "List of specific machine types for library to target" )
-		endif()
+   		    CACHE STRING "List of specific machine types for library to target" )
+	endif()
   endif()
 
   if (USE_HIP_ROCM)
     find_package(hip REQUIRED)
-    find_package(HIP REQUIRED) # hip_add_library
+    #find_package(HIP REQUIRED) # hip_add_library
   endif()
 
   if (USE_HIP_CUDA)
@@ -425,7 +425,6 @@ endif()
 
 if(USE_HIP)
   set(hip_sources SimulationMaster.cu 
-		cuda_kernels_def_decl/hip/tmpkernel.cc
     cuda_kernels_def_decl/hip/deviceAPI_hip.cc
     cuda_kernels_def_decl/cuda_params.cu
     cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
@@ -441,7 +440,7 @@ if(USE_HIP)
   #set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 
   add_executable(${HEMELB_EXECUTABLE} main.cc)
-	target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip)
+	target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip )
 	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
 endif()
 

@@ -141,10 +141,6 @@ int deviceGetCount()
 	return dev_count;
 }
 
-#ifdef DEBUG
-extern void dummyLauncher();
-#endif
-
 bool deviceAttach(int device)
 {
 	hipError_t hipStatus = hipSetDevice(device);
@@ -152,9 +148,6 @@ bool deviceAttach(int device)
 		return false;
 	}	
 
-#ifdef DEBUG 
-   dummyLauncher();
-#endif
 	return true;
 }
 
