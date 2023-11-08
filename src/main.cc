@@ -10,8 +10,10 @@
 #include "SimulationMaster.h"
 
 #include "net/MpiCommunicator.h"
-
-
+#undef ISSUE_WORKAROUND
+#ifdef ISSUE_WORKAROUND
+#include <hip/hip_runtime.h>
+#endif
 int main(int argc, char *argv[])
 {
   // main function needed to perform the entire simulation. Some
@@ -19,6 +21,9 @@ int main(int argc, char *argv[])
   // standard output
 
   // Bring up MPI
+#ifdef ISSUE_WORKAROUND
+  hipInit(0);
+#endif
   hemelb::net::MpiEnvironment mpi(argc, argv);
   hemelb::log::Logger::Init();
   try

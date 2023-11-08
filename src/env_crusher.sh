@@ -4,6 +4,7 @@ module load craype-accel-amd-gfx90a   # For GPU Aware MPI
 module load perftools-base
 module load perftools
 module load amd/5.7.0
+module load gcc-mixed/12.2.0
 module load cmake                     # Cmake
 module unload cray-libsci             # Nuisance we don't need but PrgEnv loads
 module load cray-python/3.9.13.1

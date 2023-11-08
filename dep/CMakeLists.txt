@@ -256,13 +256,13 @@ if (Boost_FOUND)
 else()
 	message("BOOST not installed, will copy headers")
 
-	find_file(BOOST_TARBALL boost_1_65_1.tar.gz
+	find_file(BOOST_TARBALL boost_1_83_0.tar.gz
 		DOC "Path to download BOOST (can be url http://)"
 		PATHS ${HEMELB_DEPENDENCIES_PATH}/src)
 
 	if(NOT BOOST_TARBALL)
 		message("No BOOST source found, will download")
-		set(BOOST_TARBALL http://sourceforge.net/projects/boost/files/boost/1.65.1/boost_1_65_1.tar.gz
+		set(BOOST_TARBALL http://sourceforge.net/projects/boost/files/boost/1.83.0/boost_1_83_0.tar.gz
 			CACHE STRING "Path to download BOOST (can be local file://)" FORCE)
 	endif()
 

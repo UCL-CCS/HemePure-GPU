@@ -5,7 +5,7 @@
 
 #ifndef HEMELB_LB_LB_HPP
 #define HEMELB_LB_LB_HPP
-
+#include <omp.h>
 #include "io/writers/xdr/XdrMemWriter.h"
 #include "lb/lb.h"
 
@@ -3029,7 +3029,7 @@ template<class LatticeType>
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
 				// std::printf("Local Rank = %i and local fluid sites = %i \n\n", myPiD, mLatDat->GetLocalFluidSiteCount());
-
+				
 				//======================================================================
 				// Preliminary check -
 				// Compare: a) available GPU mem. and
@@ -3198,6 +3198,7 @@ template<class LatticeType>
 				//=================================================================================================================================
 
 
+
 				//=================================================================================================================================
 				// Neighbouring indices - necessary for the STREAMING STEP
 
@@ -3288,7 +3289,6 @@ template<class LatticeType>
 				//=================================================================================================================================
 
 
-
 				//***********************************************************************************************************************************
 				// Fluid-Wall links
 				// Access the information for the fluid-wall links:
@@ -3375,6 +3375,7 @@ template<class LatticeType>
 				//----------------------------------------------------------------------
 				//***********************************************************************************************************************************
 
+
 				//***********************************************************************************************************************************
 				// Fluid-Inlet links
 				// Access the information for the fluid-inlet links:
@@ -3458,7 +3459,6 @@ template<class LatticeType>
 
 				// Delete - Free-up memory here... (Not at the end of the function)
 				//***********************************************************************************************************************************
-
 
 				//***********************************************************************************************************************************
 				// Iolets BCs:
@@ -3882,12 +3882,13 @@ template<class LatticeType>
 					}
 				}
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+#if 0
 				printf("================================================================\n");
 				printf("Rank: %d, n_Inlets_Inner: %d, n_InletsWall_Inner: %d, n_Inlets_Edge: %d, n_InletsWall_Edge: %d \n", myPiD, n_LocalInlets_mInlet, n_LocalInlets_mInletWall, n_LocalInlets_mInlet_Edge, n_LocalInlets_mInletWall_Edge);
 				printf("Rank: %d, n_Outlets_Inner: %d, n_OutletsWall_Inner: %d, n_Outlets_Edge: %d, n_OutletsWall_Edge: %d \n", myPiD, n_LocalOutlets_mOutlet, n_LocalOutlets_mOutletWall, n_LocalOutlets_mOutlet_Edge, n_LocalOutlets_mOutletWall_Edge);
 				printf("================================================================\n");
 				//=============================================================================================================================================================
+#endif
 
 				//=============================================================================================================================================================
 				// Examine the type of Iolets BCs:
@@ -4104,6 +4105,8 @@ template<class LatticeType>
 				}
 				//----------------------------------------------------------------------
 
+			
+			
 				//----------------------------------------------------------------------
 				// Normal vectors to Iolets
 				// Inlets:
@@ -5418,6 +5421,7 @@ template<class LatticeType>
 				//***********************************************************************************************************************************
 
 
+
 				//***********************************************************************************************************************************
 				// Allocate memory for streamingIndicesForReceivedDistributions on the GPU constant Memory
 				// From geometry/LatticeData.h:	std::vector<site_t> streamingIndicesForReceivedDistributions; //! The indices to stream to for distributions received from other processors.
@@ -5542,7 +5546,7 @@ template<class LatticeType>
 				// Add a check whether the memory on the GPU global memory is sufficient!!! Abort if not or split the domain into smaller subdomains and pass info gradually! To do!!!
 				// unsigned long long TotalMem_req = (TotalMem_dbl_fOld * 4 +  TotalMem_dbl_MacroVars + TotalMem_int64_Neigh *4 + TotalMem_uint32_WallIntersect + TotalMem_uint32_IoletIntersect + TotalMem_int64_streamInd); //
 				unsigned long long TotalMem_req = (TotalMem_dbl_fOld * 2 +  TotalMem_dbl_MacroVars + TotalMem_int64_Neigh + TotalMem_uint32_WallIntersect + TotalMem_uint32_IoletIntersect + TotalMem_int64_streamInd); //
-				printf("Rank: %d - Total requested global memory %.2fGB \n\n", myPiD, ((double)TotalMem_req/1073741824.0));
+				// printf("Rank: %d - Total requested global memory %.2fGB \n\n", myPiD, ((double)TotalMem_req/1073741824.0));
 				//***********************************************************************************************************************************
 
 				//=================================================================================================================================

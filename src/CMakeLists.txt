@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(HemeLB_GPU)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -440,8 +440,9 @@ if(USE_HIP)
   #set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 
   add_executable(${HEMELB_EXECUTABLE} main.cc)
-	target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip )
-	target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip )
+  target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
+ 
 endif()
 
 
@@ -453,16 +454,35 @@ if (USE_CUDA)
 endif()
 
 if (USE_HIP)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
   target_link_options(${HEMELB_EXECUTABLE} PUBLIC
     $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
     $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
-  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
   if(USE_HIP_CUDA)
     target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC CUDA::cudart -lstdc++)
   endif()
+
+  add_executable(io_tool io_tool.cc)
+  target_link_options(io_tool PUBLIC "-fgpu-rdc")
+  target_link_libraries(io_tool PUBLIC gpu_objs)
+  target_link_options(io_tool PUBLIC
+    $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
+    $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
+
 endif()
 
 target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
+  ${HEMELB_LIBRARIES}
+  ${MPI_LIBRARIES}
+  ${DECOMPOSE_LIBRARIES}
+  ${TINYXML_LIBRARY}
+  ${Boost_LIBRARIES}
+  ${CTEMPLATE_LIBRARY}
+  ${ZLIB_LIBRARIES}
+  ${CUDA_LINK_LIBRARIES_KEYWORD})
+
+
+target_link_libraries(io_tool PUBLIC
   ${HEMELB_LIBRARIES}
   ${MPI_LIBRARIES}
   ${DECOMPOSE_LIBRARIES}
