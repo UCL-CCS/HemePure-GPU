@@ -144,6 +144,26 @@ namespace hemelb
 					return (blockCoords.x * blockCounts.y + blockCoords.y) * blockCounts.z + blockCoords.z;
 				}
 
+			    inline util::Vector3D<site_t>
+			    GetBlockCoordsFromBlockID(site_t blockID) {
+					util::Vector3D<site_t> ret_val;
+					ret_val.z = blockID % blockCounts.z;
+					site_t rest = blockID / blockCounts.z;
+					ret_val.y = rest % blockCounts.y;
+				    ret_val.x = rest / blockCounts.y;
+					return ret_val;
+				}
+
+			    inline util::Vector3D<site_t>
+			    GetSiteCoordsFromSiteID(site_t siteID) {
+					util::Vector3D<site_t> ret_val;
+					ret_val.z = siteID % blockSize;
+					site_t rest = siteID / blockSize;
+					ret_val.y = rest % blockSize;
+				    ret_val.x = rest / blockSize;
+					return ret_val;
+				}
+
 				bool IsValidLatticeSite(const util::Vector3D<site_t>& siteCoords) const;
 
 				/**
@@ -381,50 +401,82 @@ namespace hemelb
 						const std::vector<float> domainEdgeWallDistance[COLLISION_TYPES])
 				{
 					// Populate the collision count arrays.
+
+					size_t totalMidDomainCollisions = 0;
+				    size_t totalDomainEdgeCollisions = 0;
 					for (unsigned collisionType = 0; collisionType < COLLISION_TYPES; collisionType++)
 					{
 						midDomainProcCollisions[collisionType] = midDomainBlockNumbers[collisionType].size();
+						totalMidDomainCollisions += midDomainProcCollisions[collisionType];
+
 						domainEdgeProcCollisions[collisionType] = domainEdgeBlockNumbers[collisionType].size();
+						totalDomainEdgeCollisions += domainEdgeProcCollisions[collisionType];
 					}
+
+					localFluidSites = totalMidDomainCollisions + totalDomainEdgeCollisions;
+
+					siteData.resize(localFluidSites);
+					wallNormalAtSite.resize(localFluidSites);
+					globalSiteCoords.resize(localFluidSites);
+					distanceToWall.resize(localFluidSites*(latticeInfo.GetNumVectors() - 1));
+
 					// Data about local sites.
-					localFluidSites = 0;
 					// Data about contiguous local sites. First midDomain stuff, then domainEdge.
+
+					site_t offset = 0;
 					for (unsigned collisionType = 0; collisionType < COLLISION_TYPES; collisionType++)
 					{
+
+
+						#pragma omp parallel for schedule(static,1)
 						for (unsigned indexInType = 0; indexInType < midDomainProcCollisions[collisionType]; indexInType++)
 						{
-							siteData.push_back(midDomainSiteData[collisionType][indexInType]);
-							wallNormalAtSite.push_back(midDomainWallNormals[collisionType][indexInType]);
+						    //	siteData.push_back(midDomainSiteData[collisionType][indexInType]);
+							siteData[offset+indexInType] = midDomainSiteData[collisionType][indexInType];
+
+							wallNormalAtSite[offset+indexInType] =midDomainWallNormals[collisionType][indexInType];
+
 							for (Direction direction = 1; direction < latticeInfo.GetNumVectors(); direction++)
 							{
-								distanceToWall.push_back(midDomainWallDistance[collisionType][indexInType
-										* (latticeInfo.GetNumVectors() - 1) + direction - 1]);
+								//distanceToWall.push_back(midDomainWallDistance[collisionType][indexInType
+								//			* (latticeInfo.GetNumVectors() - 1) + direction - 1]);
+								site_t dtwIndex = (latticeInfo.GetNumVectors()-1)*(offset + indexInType) + (direction - 1);
+
+								distanceToWall[ dtwIndex ] = midDomainWallDistance[collisionType][indexInType * (latticeInfo.GetNumVectors() - 1) + direction - 1];
 							}
 							site_t blockId = midDomainBlockNumbers[collisionType][indexInType];
 							site_t siteId = midDomainSiteNumbers[collisionType][indexInType];
-							blocks[blockId].SetLocalContiguousIndexForSite(siteId, localFluidSites);
-							globalSiteCoords.push_back(GetGlobalCoords(blockId, GetSiteCoordsFromSiteId(siteId)));
-							localFluidSites++;
+							blocks[blockId].SetLocalContiguousIndexForSite(siteId, offset + indexInType);
+							globalSiteCoords[offset + indexInType] = GetGlobalCoords(blockId, GetSiteCoordsFromSiteId(siteId));
 						}
+						offset += midDomainProcCollisions[collisionType];
 					}
 
+					
 					for (unsigned collisionType = 0; collisionType < COLLISION_TYPES; collisionType++)
 					{
+						#pragma omp parallel for schedule(static, 1)	
 						for (unsigned indexInType = 0; indexInType < domainEdgeProcCollisions[collisionType]; indexInType++)
 						{
-							siteData.push_back(domainEdgeSiteData[collisionType][indexInType]);
-							wallNormalAtSite.push_back(domainEdgeWallNormals[collisionType][indexInType]);
+							// siteData.push_back(domainEdgeSiteData[collisionType][indexInType]);
+							siteData[offset+indexInType] = domainEdgeSiteData[collisionType][indexInType];
+
+							wallNormalAtSite[offset + indexInType] = domainEdgeWallNormals[collisionType][indexInType];
 							for (Direction direction = 1; direction < latticeInfo.GetNumVectors(); direction++)
 							{
-								distanceToWall.push_back(domainEdgeWallDistance[collisionType][indexInType
-										* (latticeInfo.GetNumVectors() - 1) + direction - 1]);
+							//	distanceToWall.push_back(domainEdgeWallDistance[collisionType][indexInType
+						    // 		* (latticeInfo.GetNumVectors() - 1) + direction - 1]);
+
+								site_t dtwIndex = (latticeInfo.GetNumVectors()-1)*(offset + indexInType) + (direction - 1);
+							    distanceToWall[ dtwIndex ] = domainEdgeWallDistance[collisionType][indexInType * (latticeInfo.GetNumVectors() - 1) + direction - 1];
+
 							}
 							site_t blockId = domainEdgeBlockNumbers[collisionType][indexInType];
 							site_t siteId = domainEdgeSiteNumbers[collisionType][indexInType];
-							blocks[blockId].SetLocalContiguousIndexForSite(siteId, localFluidSites);
-							globalSiteCoords.push_back(GetGlobalCoords(blockId, GetSiteCoordsFromSiteId(siteId)));
-							localFluidSites++;
+							blocks[blockId].SetLocalContiguousIndexForSite(siteId, offset + indexInType);
+							globalSiteCoords[offset + indexInType] = GetGlobalCoords(blockId, GetSiteCoordsFromSiteId(siteId));
 						}
+						offset += domainEdgeProcCollisions[collisionType];
 					}
 
 					oldDistributions.resize(localFluidSites * latticeInfo.GetNumVectors() + 1 + totalSharedFs);
@@ -620,6 +672,7 @@ namespace hemelb
 				util::Vector3D<site_t> sites;
 				site_t sitesPerBlockVolumeUnit;
 				site_t blockCount;
+				std::vector<site_t> nonEmptyBlocks;
 
 				site_t totalSharedFs; //! Number of local distributions shared with neighbouring processors.
 				std::vector<NeighbouringProcessor> neighbouringProcs; //! Info about processors with neighbouring fluid sites.
@@ -640,7 +693,6 @@ namespace hemelb
 				site_t totalFluidSites; //! The total number of fluid sites in the geometry.
 				util::Vector3D<site_t> globalSiteMins, globalSiteMaxes; //! The minimal and maximal coordinates of any fluid sites.
 				std::vector<site_t> neighbourIndices; //! Data about neighbouring fluid sites.
-				std::vector<site_t> interfacialSites; //! List of interfacial sites.
 				std::vector<site_t> streamingIndicesForReceivedDistributions; //! The indices to stream to for distributions received from other processors.
 				neighbouring::NeighbouringLatticeData *neighbouringData;
 				const net::IOCommunicator& comms;

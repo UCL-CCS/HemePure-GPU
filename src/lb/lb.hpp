@@ -286,6 +286,7 @@ namespace hemelb
 
 				// 	f Distr. - To do!!!
 				// Convert from method_a (CPU) to method_b to be send to the GPU
+#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = firstIndex; i < (firstIndex + siteCount); i++)
@@ -3128,6 +3129,7 @@ template<class LatticeType>
 				}
 
 				// 	f_old - Done!!!
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3137,6 +3139,7 @@ template<class LatticeType>
 				}
 
 				// 	f_new - Done!!!
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3224,6 +3227,7 @@ template<class LatticeType>
 				}
 
 				// Re-arrange the neighbouring data - organised by index LB
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3312,6 +3316,7 @@ template<class LatticeType>
 				}
 
 				// Fill the array Data_uint32_WallIntersect
+				#pragma omp parallel for 
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
 				{
 					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_Index);
@@ -3407,6 +3412,7 @@ template<class LatticeType>
 				}
 
 				// Fill the array Data_uint32_IoletIntersect
+				#pragma omp parallel for 
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
 				{
 					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_Index);
@@ -4367,6 +4373,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_Inlet_Edge;
 						site_t siteCount = site_Count_Inlet_Edge;
+
+						#pragma omp parallel for 
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 			  		{
 							// Save the coords to Data_int64_Coords_iolets
@@ -4430,6 +4438,8 @@ template<class LatticeType>
 
 							site_t firstIndex = start_Index_InletWall_Edge;
 							site_t siteCount = site_Count_InletWall_Edge;
+
+							#pragma omp parallel for 
 							for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 				  		{
 								// Save the coords to Data_int64_Coords_iolets
@@ -4496,6 +4506,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_Inlet_Inner;
 						site_t siteCount = site_Count_Inlet_Inner;
+	
+						#pragma omp parallel for
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 			  		{
 							// Save the coords to Data_int64_Coords_iolets
@@ -4559,6 +4571,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_InletWall_Inner;
 						site_t siteCount = site_Count_InletWall_Inner;
+
+						#pragma omp parallel for
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 						{
 							// Save the coords to Data_int64_Coords_iolets

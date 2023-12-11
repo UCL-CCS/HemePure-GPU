@@ -208,19 +208,28 @@ namespace hemelb
 						computeComms.Rank(), preambleInfo);
 			}
 			timings[hemelb::reporting::Timers::fileRead].Stop();
-			log::Logger::Log<log::Info, log::Singleton>("----> read blocks (end)");
 
+			log::Logger::Log<log::Info, log::Singleton>("----> read blocks (end)");
+		
 			timings[hemelb::reporting::Timers::domainDecomposition].Start();
 			// Having done an initial decomposition of the geometry, and read in the data, we optimise the
 			// domain decomposition.
 			if (participateInTopology)
 			{
 				OptimiseDomainDecomposition(geometry, *principalProcForEachBlock, *principalProcForEachBlockFiltered);
+
+				for( auto kv : *principalProcForEachBlockFiltered ) {
+					site_t blockID = kv.first;
+					proc_t proc = kv.second;
+					geometry.Blocks[blockID].principalProcForBlock = ConvertTopologyRankToGlobalRank(proc);	
+				}
+
 				file.Close();
 			}
 			// Finish up - close the file, set the timings, deallocate memory.
 			HEMELB_MPI_CALL(MPI_Info_free, (&fileInfo));
 			timings[hemelb::reporting::Timers::domainDecomposition].Stop();
+
 
 			delete principalProcForEachBlock;
 			delete principalProcForEachBlockFiltered;
@@ -313,6 +322,8 @@ namespace hemelb
 
 			size_t recordsRead = 0;
 			MPI_Offset fileReadOffset = preambleInfo.HeaderOffset;
+
+	
 			while( recordsRead < preambleInfo.NonEmptyBlocks ) {
 				size_t blocksToReadThisRound = preambleInfo.NonEmptyBlocks - recordsRead;
 				if( blocksToReadThisRound > nElemPerRead ) blocksToReadThisRound = nElemPerRead;
@@ -335,9 +346,10 @@ namespace hemelb
 #ifdef HEMELB_USE_GMYPLUS
  				    // 'Computational weight' of this block.
 					blockWeights[block] = headerBlocks[i].weights;
-#endif
+#endif	
 				}
 			}
+			
 		}
 
 		/**
@@ -426,11 +438,13 @@ namespace hemelb
 			}
 			// In the regular read, readBlock() and blockInformation would clear
 			blockFileOffsets.clear();
-			
+
+				
 			// blockInformation.clear(); -- don't clear this we can use it in optimizing the decomposition.
 
 			timings[hemelb::reporting::Timers::readBlocksAll].Stop();
 			log::Logger::Log<log::Debug, log::OnePerCore>("----> ReadInBlocks() (end)");
+			
 		}
 
 		void GeometrySGMYReader::ReadInBlock(MPI_Offset offsetSoFar, Geometry& geometry,

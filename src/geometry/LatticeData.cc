@@ -14,6 +14,9 @@
 #include "geometry/neighbouring/NeighbouringLatticeData.h"
 #include "util/utilityFunctions.h"
 
+#include <omp.h>
+#include <algorithm>
+
 #ifdef HEMELB_USE_GPU
 /* Set the pointers to null so we don't do any accidental freeing at the end */
 #define GPU_INITIALIZERS     , GPUDataAddr_dbl_fOld_b_mLatDat(nullptr),\
@@ -46,9 +49,16 @@ namespace hemelb
 		LatticeData::LatticeData(const lb::lattices::LatticeInfo& latticeInfo, const Geometry& readResult, const net::IOCommunicator& comms_) :
 			latticeInfo(latticeInfo), neighbouringData(new neighbouring::NeighbouringLatticeData(latticeInfo)), comms(comms_) GPU_INITIALIZERS
 		{
+
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: sorting Nonempty blocks");
+			nonEmptyBlocks.reserve(readResult.Blocks.size());
+		    for( auto kv : readResult.Blocks )  nonEmptyBlocks.push_back(kv.first);
+			std::sort(nonEmptyBlocks.begin(), nonEmptyBlocks.end());
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: setting basic Details");
 			SetBasicDetails(readResult.GetBlockDimensions(),
 					readResult.GetBlockSize());
 
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: processing read sites");
 			ProcessReadSites(readResult);
 
 			// If debugging then output beliefs regarding geometry and neighbour list.
@@ -64,11 +74,15 @@ namespace hemelb
 							itNeighProc->SharedDistributionCount);
 				}
 			}
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: Collect Fluid Distributions");
 
 			CollectFluidSiteDistribution();
-			CollectGlobalSiteExtrema();
+			CollectGlobalSiteExtrema(); 
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: Initialize Neighbor lookups");
 
 			InitialiseNeighbourLookups();
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> LatticeDataInitializer: done");
+
 		}
 
 		void LatticeData::SetBasicDetails(util::Vector3D<site_t> blocksIn,
@@ -83,12 +97,16 @@ namespace hemelb
 
 		void LatticeData::ProcessReadSites(const Geometry & readResult)
 		{
+			double stime=omp_get_wtime();
+
 			// This represents an empty block.
 			// Necessary for map object.
 			blocks[-1] = Block(0);
 
 			totalSharedFs = 0;
 
+
+			// Global ones
 			std::vector<SiteData> domainEdgeSiteData[COLLISION_TYPES];
 			std::vector<SiteData> midDomainSiteData[COLLISION_TYPES];
 			std::vector<site_t> domainEdgeBlockNumber[COLLISION_TYPES];
@@ -100,58 +118,93 @@ namespace hemelb
 			std::vector<float> domainEdgeWallDistance[COLLISION_TYPES];
 			std::vector<float> midDomainWallDistance[COLLISION_TYPES];
 
-			proc_t localRank = comms.Rank();
-			// Iterate over all blocks in site units.
-			for (BlockTraverser blockTraverser(*this); blockTraverser.CurrentLocationValid(); blockTraverser.TraverseOne())
-			{
-				site_t blockId = blockTraverser.GetCurrentIndex();
+			// Per thread onea
+{
 
-				if (readResult.Blocks.find(blockId) == readResult.Blocks.end())
+			const size_t MT = omp_get_max_threads();
+			std::vector<SiteData> domainEdgeSiteDataT[COLLISION_TYPES][ MT ];
+			std::vector<SiteData> midDomainSiteDataT[COLLISION_TYPES][ MT ];
+			std::vector<site_t> domainEdgeBlockNumberT[COLLISION_TYPES][ MT ];
+			std::vector<site_t> midDomainBlockNumberT[COLLISION_TYPES][ MT ];
+			std::vector<site_t> domainEdgeSiteNumberT[COLLISION_TYPES][ MT ];
+			std::vector<site_t> midDomainSiteNumberT[COLLISION_TYPES][ MT ] ;
+			std::vector<util::Vector3D<float> > domainEdgeWallNormalsT[COLLISION_TYPES][ MT ];
+			std::vector<util::Vector3D<float> > midDomainWallNormalsT[COLLISION_TYPES][ MT ];
+			std::vector<float> domainEdgeWallDistanceT[COLLISION_TYPES][ MT ];
+			std::vector<float> midDomainWallDistanceT[COLLISION_TYPES][ MT ];
+			std::vector<LatticeForceVector> forceAtSiteT[MT];
+
+			std::map< size_t , std::pair< size_t, size_t > > neighbourRankMap;
+
+			proc_t localRank = comms.Rank();
+			util::Vector3D<site_t> GeomDims = (*this).GetBlockDimensions();
+			const site_t numBlocks = GeomDims.x * GeomDims.y * GeomDims.z;
+			const site_t numNonEmptyBlocks = nonEmptyBlocks.size();
+			const site_t numSites = blockSize*blockSize*blockSize;
+	
+			#pragma omp parallel for
+            for( uint64_t bb=0; bb < numNonEmptyBlocks; bb++) {
+                site_t blockId = nonEmptyBlocks[bb];
+				#pragma omp critical
 				{
+                    blocks[blockId] = Block(GetSitesPerBlockVolumeUnit());
+                }
+            }
+
+			
+			#pragma omp parallel for 
+			for( uint64_t bs=0; bs < numNonEmptyBlocks*numSites; bs++) { 
+				uint64_t bb = bs / numSites;
+				uint64_t localSiteId = bs % numSites;
+				site_t blockId = nonEmptyBlocks[bb];
+				const BlockReadResult & blockReadIn = readResult.Blocks.at(blockId);
+				blocks.at(blockId).SetProcessorRankForSite(localSiteId, blockReadIn.Sites[localSiteId].targetProcessor);
+			}
+
+		
+			#pragma omp parallel for reduction(+:totalSharedFs)
+			for( int bb=0; bb < nonEmptyBlocks.size(); bb++) {
+				site_t blockId = nonEmptyBlocks[bb];
+				int tid = omp_get_thread_num();
+
+				const BlockReadResult & blockReadIn = readResult.Blocks.at(blockId);
+				if( blockReadIn.principalProcForBlock != localRank ) {
 					continue;
 				}
 
-				const BlockReadResult & blockReadIn = readResult.Blocks.at(blockId);
+				util::Vector3D<site_t> currentBlockLocation = GetBlockCoordsFromBlockID( blockId );
 
-				// Iterate over all sites within the current block.
-				for (SiteTraverser siteTraverser = blockTraverser.GetSiteTraverser(); siteTraverser.CurrentLocationValid();
-						siteTraverser.TraverseOne())
+				for( site_t localSiteId = 0; localSiteId < numSites; localSiteId++ ) 
 				{
-					site_t localSiteId = siteTraverser.GetCurrentIndex();
-
-					if (blocks.find(blockId) == blocks.end())
-					{
-						blocks[blockId] = Block(GetSitesPerBlockVolumeUnit());
-					}
-
-					blocks.at(blockId).SetProcessorRankForSite(localSiteId, blockReadIn.Sites[localSiteId].targetProcessor);
-
-					// If the site is not on this processor, continue.
+					// If the site is a solid continue 
 					if (localRank != blockReadIn.Sites[localSiteId].targetProcessor)
 					{
 						continue;
 					}
-
 					bool isMidDomainSite = true;
+
 					// Iterate over all non-zero direction vectors.
 					for (unsigned int l = 1; l < latticeInfo.GetNumVectors(); l++)
 					{
 						// Find the neighbour site co-ords in this direction.
-						util::Vector3D<site_t> neighbourGlobalCoords = blockTraverser.GetCurrentLocation()
-							* readResult.GetBlockSize() + siteTraverser.GetCurrentLocation()
+						util::Vector3D<site_t> neighbourGlobalCoords = currentBlockLocation
+							* blockSize + GetSiteCoordsFromSiteID(localSiteId)
 							+ util::Vector3D<site_t>(latticeInfo.GetVector(l));
 
+						// If the neighbor is outside the Geometry domain skip.
 						if (neighbourGlobalCoords.x < 0 || neighbourGlobalCoords.y < 0 || neighbourGlobalCoords.z < 0
-								|| neighbourGlobalCoords.x >= readResult.GetBlockDimensions().x * readResult.GetBlockSize()
-								|| neighbourGlobalCoords.y >= readResult.GetBlockDimensions().y * readResult.GetBlockSize()
-								|| neighbourGlobalCoords.z >= readResult.GetBlockDimensions().z * readResult.GetBlockSize())
+								|| neighbourGlobalCoords.x >= readResult.GetBlockDimensions().x * blockSize 
+								|| neighbourGlobalCoords.y >= readResult.GetBlockDimensions().y * blockSize
+								|| neighbourGlobalCoords.z >= readResult.GetBlockDimensions().z * blockSize)
 						{
 							continue;
 						}
 
-						// ... (that is actually being simulated and not a solid)...
-						util::Vector3D<site_t> neighbourBlock = neighbourGlobalCoords / readResult.GetBlockSize();
-						util::Vector3D<site_t> neighbourSite  = neighbourGlobalCoords % readResult.GetBlockSize();
+						// Reduce the Global Neighbor coordinate to a Block coordinate and a site coordinate
+						util::Vector3D<site_t> neighbourBlock = neighbourGlobalCoords / blockSize;
+						util::Vector3D<site_t> neighbourSite  = neighbourGlobalCoords % blockSize;
+
+					    // Get the neighbor block ID 
 						site_t neighbourBlockId = readResult.GetBlockIdFromBlockCoordinates(neighbourBlock.x,
 								neighbourBlock.y,
 								neighbourBlock.z);
@@ -177,13 +230,30 @@ namespace hemelb
 						{
 							continue;
 						}
+
+						// This is a local value
 						isMidDomainSite = false;
-						totalSharedFs++;
 
-						// Keep count of interfacial sites.
-						if (std::find(interfacialSites.begin(), interfacialSites.end(), neighbourSiteId) == interfacialSites.end())
-							interfacialSites.push_back(neighbourSiteId);
+						// This is shared and the loop here is essentially a reduction over this
+						totalSharedFs+=1;
 
+						// direction blocksite index for sorting
+						size_t map_idx = l + latticeInfo.GetNumVectors()*( localSiteId + numSites*bb );
+
+						#pragma omp critical
+						{
+						auto it = neighbourRankMap.find( neighbourProc );
+			
+						if( it != neighbourRankMap.end() ) {
+							(*it).second.first++;
+						}
+						else {
+							// Won't make duplicate entries but then if it is a duplicate we should find it
+							neighbourRankMap[ neighbourProc ] = std::make_pair(1, map_idx);
+						}
+						}; // critical
+
+#if 0	
 						// The first time, net_neigh_procs = 0, so
 						// the loop is not executed.
 						bool flag = true;
@@ -199,19 +269,23 @@ namespace hemelb
 							if (neighbourProc == neigh_proc_p->Rank)
 							{
 								flag = false;
-								++neigh_proc_p->SharedDistributionCount;
+								neigh_proc_p->SharedDistributionCount += 1;
 								break;
 							}
 						}
 
 						// If flag is 1, we didn't find a neighbour-proc with the neighbour-site on it
-						// so we need a new neighbouring processor.
+						// so we need a new neighbouring processor. We push back on a shared list
+						// If every thread kept its own list of neighboring processors we could
+						// avoid the lock. and the atomic above. But then we would need to merge 
+						// the lists at the end.
 						if (flag)
 						{
 							// Store rank of neighbour in >neigh_proc[neigh_procs].
 							NeighbouringProcessor lNewNeighbour;
 							lNewNeighbour.SharedDistributionCount = 1;
 							lNewNeighbour.Rank = neighbourProc;
+
 							neighbouringProcs.push_back(lNewNeighbour);
 
 							// If debugging then output decisions with reasoning for all neighbour processors.
@@ -226,7 +300,8 @@ namespace hemelb
 									latticeInfo.GetVector(l).y,
 									latticeInfo.GetVector(l).z);
 						}
-					}
+    #endif
+					} // directions
 
 					// Set the collision type data. map_block site data is renumbered according to
 					// fluid site numbers within a particular collision type.
@@ -258,35 +333,70 @@ namespace hemelb
 						blockReadIn.Sites[localSiteId].wallNormal :
 						util::Vector3D<float>(NO_VALUE);
 
-					forceAtSite.push_back(LatticeForceVector(0, 0, 0));
+					forceAtSiteT[tid].push_back(LatticeForceVector(0, 0, 0));
 
-					if (isMidDomainSite)
+					if ( isMidDomainSite ) 
 					{
-						midDomainBlockNumber[l].push_back(blockId);
-						midDomainSiteNumber[l].push_back(localSiteId);
-						midDomainSiteData[l].push_back(siteData);
-						midDomainWallNormals[l].push_back(normal);
+						midDomainBlockNumberT[l][tid].push_back(blockId);
+						midDomainSiteNumberT[l][tid].push_back(localSiteId);
+						midDomainSiteDataT[l][tid].push_back(siteData);
+						midDomainWallNormalsT[l][tid].push_back(normal);
 						for (Direction direction = 1; direction < latticeInfo.GetNumVectors(); direction++)
 						{
-							midDomainWallDistance[l].push_back(blockReadIn.Sites[localSiteId].links[direction - 1].distanceToIntersection);
+							midDomainWallDistanceT[l][tid].push_back(blockReadIn.Sites[localSiteId].links[direction - 1].distanceToIntersection);
 						}
 					}
 					else
 					{
-						domainEdgeBlockNumber[l].push_back(blockId);
-						domainEdgeSiteNumber[l].push_back(localSiteId);
-						domainEdgeSiteData[l].push_back(siteData);
-						domainEdgeWallNormals[l].push_back(normal);
+						domainEdgeBlockNumberT[l][tid].push_back(blockId);
+						domainEdgeSiteNumberT[l][tid].push_back(localSiteId);
+						domainEdgeSiteDataT[l][tid].push_back(siteData);
+						domainEdgeWallNormalsT[l][tid].push_back(normal);
 						for (Direction direction = 1; direction < latticeInfo.GetNumVectors(); direction++)
 						{
-							domainEdgeWallDistance[l].push_back(blockReadIn.Sites[localSiteId].links[direction - 1].distanceToIntersection);
+							domainEdgeWallDistanceT[l][tid].push_back(blockReadIn.Sites[localSiteId].links[direction - 1].distanceToIntersection);
 						}
 					}
+				} // sites
+			} // blocks
+
+			for(int tid =0; tid < MT; ++tid) {
+				forceAtSite.insert( forceAtSite.end(), forceAtSiteT[tid].begin(), forceAtSiteT[tid].end());
+			}
+
+			for(int l=0; l < COLLISION_TYPES; l++)  {
+				for(int tid=0; tid < MT; ++tid) { 
+					midDomainBlockNumber[l].insert( midDomainBlockNumber[l].end(), midDomainBlockNumberT[l][tid].begin(), midDomainBlockNumberT[l][tid].end() );
+					midDomainSiteNumber[l].insert( midDomainSiteNumber[l].end(), midDomainSiteNumberT[l][tid].begin(), midDomainSiteNumberT[l][tid].end() );
+					midDomainSiteData[l].insert( midDomainSiteData[l].end(),  midDomainSiteDataT[l][tid].begin(),  midDomainSiteDataT[l][tid].end() );
+					midDomainWallNormals[l].insert( midDomainWallNormals[l].end(), midDomainWallNormalsT[l][tid].begin(), midDomainWallNormalsT[l][tid].end());
+					midDomainWallDistance[l].insert( midDomainWallDistance[l].end(), midDomainWallDistanceT[l][tid].begin(), midDomainWallDistanceT[l][tid].end());
+ 
+
+					domainEdgeBlockNumber[l].insert( domainEdgeBlockNumber[l].end(), domainEdgeBlockNumberT[l][tid].begin(), domainEdgeBlockNumberT[l][tid].end() );
+					domainEdgeSiteNumber[l].insert( domainEdgeSiteNumber[l].end(), domainEdgeSiteNumberT[l][tid].begin(), domainEdgeSiteNumberT[l][tid].end() );
+					domainEdgeSiteData[l].insert( domainEdgeSiteData[l].end(),  domainEdgeSiteDataT[l][tid].begin(),  domainEdgeSiteDataT[l][tid].end() );
+					domainEdgeWallNormals[l].insert( domainEdgeWallNormals[l].end(), domainEdgeWallNormalsT[l][tid].begin(), domainEdgeWallNormalsT[l][tid].end());
+					domainEdgeWallDistance[l].insert( domainEdgeWallDistance[l].end(), domainEdgeWallDistanceT[l][tid].begin(), domainEdgeWallDistanceT[l][tid].end());
 				}
 			}
 
-			log::Logger::Log<log::Debug, log::OnePerCore>("----> interfacialSites.size(): %d", interfacialSites.size());
+			// Sort out the neighbor procs
+			std::map<site_t, NeighbouringProcessor  > tmpmap;
+			for( auto kv : neighbourRankMap ) {
+				proc_t rank = static_cast<proc_t>(kv.first);
+				site_t shared_fs = static_cast<site_t>(kv.second.first);
+				size_t bs = kv.second.second;
+				NeighbouringProcessor np; 
+				np.Rank = rank; np.SharedDistributionCount = shared_fs;
+				tmpmap[bs] = np ;
+			}
+			for( auto kv : tmpmap) {
+				neighbouringProcs.push_back( kv.second );
+			}
 
+} // threaded things go out of scpoe
+			
 			PopulateWithReadData(midDomainBlockNumber,
 					midDomainSiteNumber,
 					midDomainSiteData,
@@ -304,6 +414,8 @@ namespace hemelb
 			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> gathering lattice information (start)");
 			fluidSitesOnEachProcessor = comms.AllGather(localFluidSites);
 			totalFluidSites = 0;
+
+#pragma omp parallel for reduction(+:totalFluidSites)
 			for (proc_t ii = 0; ii < comms.Size(); ++ii)
 			{
 				totalFluidSites += fluidSitesOnEachProcessor[ii];
@@ -311,41 +423,45 @@ namespace hemelb
 			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> gathering lattice information (end)");
 		}
 
+
+		// In reality this is a reduction ( mins over 3D and maxes over 3D)
 		void LatticeData::CollectGlobalSiteExtrema()
 		{
-			std::vector<site_t> localMins(3);
-			std::vector<site_t> localMaxes(3);
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> collecting site extrema (start)");
+			site_t localMin0 = std::numeric_limits<site_t>::max();
+			site_t localMin1 = std::numeric_limits<site_t>::max();
+			site_t localMin2 = std::numeric_limits<site_t>::max();
+			site_t localMax0 = 0;
+			site_t localMax1 = 0;
+			site_t localMax2 = 0;
 
-			for (unsigned dim = 0; dim < 3; ++dim)
-			{
-				localMins[dim] = std::numeric_limits<site_t>::max();
-				localMaxes[dim] = 0;
-			}
+			//for (geometry::BlockTraverser blockSet(*this); blockSet.CurrentLocationValid(); blockSet.TraverseOne())
+			//{
+				// const geometry::Block& block = blockSet.GetCurrentBlockData();
+			const site_t numSites = blockSize*blockSize*blockSize;
 
-			for (geometry::BlockTraverser blockSet(*this); blockSet.CurrentLocationValid(); blockSet.TraverseOne())
-			{
-				const geometry::Block& block = blockSet.GetCurrentBlockData();
-				if (block.IsEmpty())
-				{
-					continue;
-				}
-				for (geometry::SiteTraverser siteSet = blockSet.GetSiteTraverser(); siteSet.CurrentLocationValid();
-						siteSet.TraverseOne())
-				{
-					if (block.GetProcessorRankForSite(siteSet.GetCurrentIndex())
-							== comms.Rank())
-					{
-						util::Vector3D<site_t> globalCoords = blockSet.GetCurrentLocation() * GetBlockSize()
-							+ siteSet.GetCurrentLocation();
+			#pragma omp parallel for reduction( max : localMax0, localMax1, localMax2) reduction( min : localMin0, localMin1, localMin2 ) collapse(2)
+			for( size_t bb = 0; bb < nonEmptyBlocks.size(); bb++ ) { 
+				for(site_t siteId=0; siteId < numSites; siteId++)  {
+					site_t blockId = nonEmptyBlocks[bb];
+					util::Vector3D<site_t> currentBlockCoords = GetBlockCoordsFromBlockID( blockId );
+				    const geometry::Block& block = blocks.at(blockId);
+					if (block.GetProcessorRankForSite(siteId) == comms.Rank()) {
 
-						for (unsigned dim = 0; dim < 3; ++dim)
-						{
-							localMins[dim]  = hemelb::util::NumericalFunctions::min(localMins[dim], globalCoords[dim]);
-							localMaxes[dim] = hemelb::util::NumericalFunctions::max(localMaxes[dim], globalCoords[dim]);
-						}
+						util::Vector3D<site_t> globalCoords = currentBlockCoords * GetBlockSize()
+							+ GetSiteCoordsFromSiteID(siteId);
+
+						localMin0 = hemelb::util::NumericalFunctions::min(localMin0, globalCoords[0]);
+						localMin1 = hemelb::util::NumericalFunctions::min(localMin1, globalCoords[1]);
+						localMin2 = hemelb::util::NumericalFunctions::min(localMin2, globalCoords[2]);
+						localMax0 = hemelb::util::NumericalFunctions::max(localMax0, globalCoords[0]);
+						localMax1 = hemelb::util::NumericalFunctions::max(localMax1, globalCoords[1]);
+						localMax2 = hemelb::util::NumericalFunctions::max(localMax2, globalCoords[2]);
 					}
 				}
 			}
+			std::vector<site_t> localMins{ localMin0, localMin1, localMin2 };
+			std::vector<site_t> localMaxes{ localMax0, localMax1, localMax2 };
 
 			std::vector<site_t> siteMins = comms.AllReduce(localMins, MPI_MIN);
 			std::vector<site_t> siteMaxes = comms.AllReduce(localMaxes, MPI_MAX);
@@ -355,14 +471,16 @@ namespace hemelb
 				globalSiteMins[ii] = siteMins[ii];
 				globalSiteMaxes[ii] = siteMaxes[ii];
 			}
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> collecting site extrema (end)");
 		}
 
 		void LatticeData::InitialiseNeighbourLookups()
 		{
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> initializing neighbour lookups (start)");
 			// Allocate the index in which to put the distribution functions received from the other
 			// process.
-			std::vector<std::vector<site_t> > sharedDistributionLocationForEachProc =
-				std::vector<std::vector<site_t> >(comms.Size());
+			std::vector< std::vector<site_t> > sharedDistributionLocationForEachProc(comms.Size());
+
 			site_t totalSharedDistributionsSoFar = 0;
 			// Set the remaining neighbouring processor data.
 			for (size_t neighbourId = 0; neighbourId < neighbouringProcs.size(); neighbourId++)
@@ -373,15 +491,28 @@ namespace hemelb
 					* latticeInfo.GetNumVectors() + 1 + totalSharedDistributionsSoFar;
 				totalSharedDistributionsSoFar += neighbouringProcs[neighbourId].SharedDistributionCount;
 			}
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> initializing neighbour lookups: NLookup");
 			InitialiseNeighbourLookup(sharedDistributionLocationForEachProc);
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> initializing neighbour lookups: Point to Point comms");
 			InitialisePointToPointComms(sharedDistributionLocationForEachProc);
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> initializing neighbour lookups: Receive Lookup");
 			InitialiseReceiveLookup(sharedDistributionLocationForEachProc);
+			hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----> initializing neighbour lookups (end)");
 		}
 
 		void LatticeData::InitialiseNeighbourLookup(std::vector<std::vector<site_t> >& sharedFLocationForEachProc)
 		{
 			const proc_t localRank = comms.Rank();
 			neighbourIndices.resize(latticeInfo.GetNumVectors() * localFluidSites);
+
+			// These will be private to each thread
+			std::vector< std::vector< std::vector< site_t > > > threadLocalSharedDistributionLocations(omp_get_max_threads());
+			#pragma omp parallel 
+			{
+				auto tid = omp_get_thread_num();
+				threadLocalSharedDistributionLocations[ tid ].resize(comms.Size());
+			}
+#if 0
 			for (BlockTraverser blockTraverser(*this); blockTraverser.CurrentLocationValid(); blockTraverser.TraverseOne())
 			{
 				const Block& map_block_p = blockTraverser.GetCurrentBlockData();
@@ -389,26 +520,42 @@ namespace hemelb
 				{
 					continue;
 				}
+#endif
+
+			// This should split the loop so that each thread is responsible for  
+			// a contiguous number of blocks. So at the end we can concatenate the results.
+			#pragma omp parallel for 
+			for( site_t bb = 0; bb < nonEmptyBlocks.size(); bb++) {
+				int tid = omp_get_thread_num();
+
+				site_t blockId = nonEmptyBlocks[bb];
+				const Block& map_block_p = blocks.at( blockId );
+#if 0
 				for (SiteTraverser siteTraverser = blockTraverser.GetSiteTraverser();
 						siteTraverser.CurrentLocationValid(); siteTraverser.TraverseOne())
-				{
-					if (localRank != map_block_p.GetProcessorRankForSite(siteTraverser.GetCurrentIndex()))
+#endif
+				const util::Vector3D<site_t> currBlockCoords = GetBlockCoordsFromBlockID( blockId );
+
+				const site_t numSites = blockSize* blockSize * blockSize;
+
+				for( site_t siteID = 0 ; siteID  < numSites; siteID++)  {
+					const util::Vector3D<site_t> currSite = GetSiteCoordsFromSiteID(siteID);
+
+					if (localRank != map_block_p.GetProcessorRankForSite(siteID))
 					{
 						continue;
 					}
 					// Get site data, which is the number of the fluid sites on this proc.
-					site_t localIndex =
-						map_block_p.GetLocalContiguousIndexForSite(siteTraverser.GetCurrentIndex());
+					site_t localIndex = map_block_p.GetLocalContiguousIndexForSite(siteID);
+
 					// Set neighbour location for the distribution component at the centre of
 					// this site.
 					SetNeighbourLocation(localIndex, 0, localIndex * latticeInfo.GetNumVectors() + 0);
 					for (Direction direction = 1; direction < latticeInfo.GetNumVectors(); direction++)
 					{
-						util::Vector3D<site_t> currentLocationCoords = blockTraverser.GetCurrentLocation()
-							* blockSize + siteTraverser.GetCurrentLocation();
+						util::Vector3D<site_t> currentLocationCoords = currBlockCoords * blockSize +  currSite;
 						// Work out positions of neighbours.
-						util::Vector3D<site_t> neighbourCoords = currentLocationCoords
-							+ util::Vector3D<site_t>(latticeInfo.GetVector(direction));
+						util::Vector3D<site_t> neighbourCoords = currentLocationCoords + util::Vector3D<site_t>(latticeInfo.GetVector(direction));
 						if (!IsValidLatticeSite(neighbourCoords))
 						{
 							// Set the neighbour location to the rubbish site.
@@ -423,7 +570,7 @@ namespace hemelb
 							SetNeighbourLocation(localIndex, direction, GetLocalFluidSiteCount() * latticeInfo.GetNumVectors());
 							continue;
 						}
-						else
+						else {
 							// If on the same proc, set f_id of the
 							// current site and direction to the
 							// site and direction that it sends to.
@@ -447,15 +594,29 @@ namespace hemelb
 								// its neighbours which say which sites
 								// on this process are shared with the
 								// neighbour.
-								sharedFLocationForEachProc[proc_id_p].push_back(currentLocationCoords.x);
-								sharedFLocationForEachProc[proc_id_p].push_back(currentLocationCoords.y);
-								sharedFLocationForEachProc[proc_id_p].push_back(currentLocationCoords.z);
-								sharedFLocationForEachProc[proc_id_p].push_back(direction);
+
+								threadLocalSharedDistributionLocations[ tid ][ proc_id_p ].push_back( currentLocationCoords.x);
+								threadLocalSharedDistributionLocations[ tid ][ proc_id_p ].push_back( currentLocationCoords.y);
+								threadLocalSharedDistributionLocations[ tid ][ proc_id_p ].push_back( currentLocationCoords.z);
+								threadLocalSharedDistributionLocations[ tid ][ proc_id_p ].push_back( direction );
 							}
+						}
 					}
 				}
+			}// loop over blocks
+
+			// now concatenate the blocks
+			// We can parallelize this over the processors
+			#pragma omp parallel for 
+			for(unsigned int proc = 0; proc < comms.Size(); proc++) {
+				sharedFLocationForEachProc[proc].clear();
+				for(unsigned int tid=0; tid < omp_get_max_threads(); tid++) { 
+				  sharedFLocationForEachProc[proc].insert( sharedFLocationForEachProc[proc].end(), threadLocalSharedDistributionLocations[ tid ][ proc ].begin(), threadLocalSharedDistributionLocations[ tid ][ proc ].end() );
+				}
 			}
-		}
+	
+			
+		}// function
 
 		void LatticeData::InitialisePointToPointComms(std::vector<std::vector<site_t> >& sharedFLocationForEachProc)
 		{

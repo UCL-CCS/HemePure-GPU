@@ -353,6 +353,11 @@ namespace hemelb
 			if (participateInTopology)
 			{
 				OptimiseDomainDecomposition(geometry, *principalProcForEachBlock, *principalProcForEachBlockFiltered);
+ 				for( auto kv : *principalProcForEachBlockFiltered ) {
+                    site_t blockID = kv.first;
+                    proc_t proc = kv.second;
+                   geometry.Blocks[blockID].principalProcForBlock = ConvertTopologyRankToGlobalRank(proc);
+                }
 				file.Close();
 			}
 			// Finish up - close the file, set the timings, deallocate memory.
