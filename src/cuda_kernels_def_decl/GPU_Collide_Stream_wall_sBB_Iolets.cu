@@ -17,10 +17,6 @@
 
 #ifdef HEMELB_USE_GPU
 #include "cuda_kernels_def_decl/cuda_params.h"
-//#include <thrust/host_vector.h>
-//#include <thrust/device_vector.h>
-//#include <thrust/copy.h>
-//#include <thrust/fill.h>
 #endif
 
 

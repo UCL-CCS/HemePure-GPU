@@ -86,6 +86,12 @@ namespace hemelb
          */
         util::Vector3D<PhysicalStress> GetTraction() const;
 
+	/**
+	 * Returns a pointer to the velocity distribution of a site.
+	 * @return pointer to a velocity distribution
+	 */
+	const distribn_t* GetDistribution() const;
+
         /**
          * Returns the projection of the traction vector on the tangential plane of a wall site.
          * @return projected traction vector
@@ -137,6 +143,12 @@ namespace hemelb
         bool IsInletSite(const util::Vector3D<site_t>& location) const;
 
         bool IsOutletSite(const util::Vector3D<site_t>& location) const;
+
+	/**
+	 * Returns the number of components in a velocity distribution	 
+	 * @return
+	 */
+	unsigned GetNumVectors() const;
 
       private:
         /**

@@ -8,6 +8,9 @@
 
 #include "io/writers/xdr/XdrMemWriter.h"
 #include "lb/lb.h"
+#include "util/unique.h"
+#include "lb/InitialCondition.h"
+#include "lb/InitialCondition.hpp"
 
 #ifdef HEMELB_USE_GPU
 #ifndef HEMELB_USE_HIP
@@ -134,8 +137,8 @@ namespace hemelb
 
 				InitCollisions();
 
-				SetInitialConditions();
-
+				// IZ Nov 2023 - Commented out after bringing in Checkpointing functionality (following Jon's approach)
+				// SetInitialConditions();
 			}
 
 		template<class LatticeType>
@@ -968,7 +971,7 @@ namespace hemelb
 		template<class LatticeType>
 			//bool LBM<LatticeType>::Read_Macrovariables_GPU_to_CPU(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache, kernels::HydroVars<LB_KERNEL>& hydroVars(geometry::Site<geometry::LatticeData>&_site)) // Is it necessary to use lb::MacroscopicPropertyCache& propertyCache or just propertyCache, as it is being initialised with the LBM constructor???
 			bool LBM<LatticeType>::Read_Macrovariables_GPU_to_CPU(int64_t firstIndex, int64_t siteCount, lb::MacroscopicPropertyCache& propertyCache)
-			{
+			{				
 				/**
 				Remember to address the following point in the future - Only valid for the LBGK collision kernel:
 				Need to make it more general - Pass the Collision Kernel Impl. typename - To do!!!
@@ -976,44 +979,41 @@ namespace hemelb
 				*/
 				
 				bool res_Read_MacroVars = true;
-
-			  // Total number of fluid sites
-			  uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
+				
+      				// Total number of fluid sites
+				uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
 
 				//--------------------------------------------------------------------------
-			  //	a. Density
-
-			  distribn_t* dens_GPU = new distribn_t[siteCount];
-
-			  if(dens_GPU==0){
+				// a. Density
+      				distribn_t* dens_GPU = new distribn_t[siteCount];
+      
+				if(dens_GPU==0){
 					printf("Density Memory allocation failure");
 					res_Read_MacroVars = false;
 					//return false;
 				}
 
-			  unsigned long long MemSz = siteCount*sizeof(distribn_t);
+      				unsigned long long MemSz = siteCount*sizeof(distribn_t);
 
-			  //cudaStatus = deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), MemSz, memcpyDeviceToHost);
-			  bool status = deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), 
+				//cudaStatus = deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), MemSz, memcpyDeviceToHost);
+			  	bool status = deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), 
 			  					MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
-			  if(!status){
-			    printf("GPU memory transfer for density failed\n");
-			    delete[] dens_GPU;
-					res_Read_MacroVars = false;
-			    //return res_Read_MacroVars;
-			  }
+				
+	      			if(!status){
+		    			printf("GPU memory transfer for density failed\n");
+	    				delete[] dens_GPU;
+					res_Read_MacroVars = false;    //return res_Read_MacroVars;				       
+				}
 
-			  // b. Velocity
-			  distribn_t* vx_GPU = new distribn_t[siteCount];
-			  distribn_t* vy_GPU = new distribn_t[siteCount];
-			  distribn_t* vz_GPU = new distribn_t[siteCount];
+				// b. Velocity
+      				distribn_t* vx_GPU = new distribn_t[siteCount];
+      				distribn_t* vy_GPU = new distribn_t[siteCount];
+      				distribn_t* vz_GPU = new distribn_t[siteCount];
 
-			  if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){
+      				if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){	
 					printf("Memory allocation failure");
-					res_Read_MacroVars = false;
-			    //return res_Read_MacroVars;
-					//return false;
+					res_Read_MacroVars = false;    //return res_Read_MacroVars; //return false;
 				}
 
 			  status = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz, 
@@ -1101,6 +1101,9 @@ namespace hemelb
 				*/
 				distribn_t *WallShearStressMagn_Edge_Type2_GPU, *WallShearStressMagn_Edge_Type5_GPU, *WallShearStressMagn_Edge_Type6_GPU;
 				distribn_t *WallShearStressMagn_Inner_Type2_GPU, *WallShearStressMagn_Inner_Type5_GPU, *WallShearStressMagn_Inner_Type6_GPU;
+				
+				// Restrict the frequency to the specified through the input file
+				if (propertyCache.wallShearStressMagnitudeCache.RequiresRefresh()){
 				//-----------------------------------------------------
 				// I. Domain Edge:
 				// I.1.
@@ -1234,6 +1237,7 @@ namespace hemelb
 							delete[] WallShearStressMagn_Inner_Type6_GPU;
 							res_Read_MacroVars = false;
 						}
+				}
 				}
 				//-----------------------------------------------------
 				//======================================================================
@@ -1400,7 +1404,7 @@ namespace hemelb
 
 
 			//=================================================================================================
-				/** Check the following!!! TODO!!!
+			/** Check the following!!! TODO!!!
 				Function for reading:
 							a. the Distribution Functions post-collision, fNew,
 							b. Density [nFluid nodes]
@@ -1414,7 +1418,7 @@ namespace hemelb
 				// Remember that from the host perspective the mem copy is synchronous, i.e. blocking
 				// so the host will wait the data transfer to complete and then proceed to the next function call
 				//=================================================================================================
-				*/
+			*/
 		template<class LatticeType>
 			bool LBM<LatticeType>::Read_DistrFunctions_GPU_to_CPU_FluidSites()
 			{
@@ -1441,7 +1445,7 @@ namespace hemelb
 				if(!fNew_GPU_b){ std::cout << "Memory allocation error - ReadGPU_distr" << std::endl; return false;}
 
 				//cudaStatus = deviceMemcpyAsync(fNew_GPU_b, &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost, stream_Read_distr_Data_GPU);
-				bool status = deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)GPUDataAddr_dbl_fNew_b)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost);
+				bool status = deviceMemcpy(&(fNew_GPU_b[0]), &(((distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat)[0]), TotalMem_dbl_fNew_b, memcpyDeviceToHost);
 				if(!status){
 					const char * eStr = deviceGetErrorString();
 					printf("GPU memory transfer for ReadGPU_distr failed with error: \"%s\" at proc# %i\n", eStr, myPiD);
@@ -6737,6 +6741,17 @@ template<class LatticeType>
 #endif
 
 
+
+	// IZ- Nov 2023 - Added for the Checkpointing functionality
+	template<class LatticeType>
+		void LBM<LatticeType>::SetInitialConditions(const net::IOCommunicator& ioComms)
+		{
+			auto icond = InitialCondition::FromConfig(mSimConfig->GetInitialCondition());
+			icond.SetFs<LatticeType>(mLatDat, ioComms);
+			icond.SetTime(mState);
+		}
+
+/** JM Method before trying to bring Checkpointing in
 		template<class LatticeType>
 			void LBM<LatticeType>::SetInitialConditions()
 			{
@@ -6760,6 +6775,7 @@ template<class LatticeType>
 					}
 				}
 			}
+**/
 
 
 		template<class LatticeType>
@@ -8704,14 +8720,21 @@ template<class LatticeType>
 					// Check whether the hemeLB picks up the macroVariables at the EndIteration step???
 					// Only the data in propertyCache, i.e. propertyCache.densityCache and propertyCache.velocityCache
 					lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
-
 					if(myPiD!=0){
 						//Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache, kernels::HydroVars<LB_KERNEL> hydroVars(const geometry::Site<geometry::LatticeData>& _site)); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.
-						Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache); // Practicaly in a synchronous way... Check if it can be modified in the future.
-
-						// Think about sending the distribution functions in fNew GPU global memory to fOld in CPU host memory
-						//Read_DistrFunctions_GPU_to_CPU_FluidSites();
+						bool res_Read_MacroVars_FromGPU = Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache); // Practicaly in a synchronous way... Check if it can be modified in the future.
+						if (!res_Read_MacroVars_FromGPU) printf("Rank: %d - Time: %ld - Error getting macroVars from GPU ... \n", myPiD, mState->GetTimeStep());
 					}
+				}
+
+				//----------------------------
+
+				// If checkpointing  functionality is required
+				if(mLatDat->checkpointing_Get_Distr_To_Host)
+				{
+					// printf("Time: %ld, Boolean Checkpointing_Get_Distr_To_Host: %d\n", mState->GetTimeStep(), mLatDat->checkpointing_Get_Distr_To_Host );
+					// Send the distribution functions (fNew GPU global memory) to fOld in CPU host memory
+					if(myPiD!=0) Read_DistrFunctions_GPU_to_CPU_FluidSites();
 				}
 				//========================================================================================================
 

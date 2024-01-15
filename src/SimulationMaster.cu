@@ -231,6 +231,7 @@ void SimulationMaster::Initialise() {
 			*unitConverter);
 
 	latticeBoltzmannModel->Initialise(inletValues, outletValues, unitConverter);
+	latticeBoltzmannModel->SetInitialConditions(ioComms); //JM Checkpoint addition
 
 	//=======================================================================================
 	// Check for GPU capabilities
@@ -304,8 +305,8 @@ void SimulationMaster::Initialise() {
 	stepManager->RegisterCommsForAllPhases(*netConcern);
 
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
-	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
-	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
+	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
 }
 
 
@@ -467,6 +468,12 @@ void SimulationMaster::RecalculatePropertyRequirements() {
 
 	propertyCache.ResetRequirements();
 
+	// IZ - Dec 2023
+	// Reseting boolean checkpointing_Get_Distr_To_Host required for the Checkpointing functionality for the GPU code
+#ifdef HEMELB_USE_GPU
+	latticeData->checkpointing_Get_Distr_To_Host=false;
+#endif
+
 	if (monitoringConfig->doIncompressibilityCheck) {
 		propertyCache.densityCache.SetRefreshFlag();
 		propertyCache.velocityCache.SetRefreshFlag();
@@ -474,7 +481,7 @@ void SimulationMaster::RecalculatePropertyRequirements() {
 
 	// If extracting property results, check what's required by them.
 	if (propertyExtractor != NULL) {
-		propertyExtractor->SetRequiredProperties(propertyCache);
+		propertyExtractor->SetRequiredProperties(propertyCache, latticeData);
 	}
 }
 

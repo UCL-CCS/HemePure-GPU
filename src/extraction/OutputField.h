@@ -24,7 +24,10 @@ namespace hemelb
           StressTensor,
           Traction,
           TangentialProjectionTraction,
-          MpiRank
+          NormalProjectionTraction,
+          WallExtension,
+          Distributions,
+	  MpiRank
         };
 
         std::string name;
