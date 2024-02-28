@@ -39,7 +39,7 @@ namespace hemelb
          * Set which properties will be required this iteration.
          * @param propertyCache
          */
-        void SetRequiredProperties(lb::MacroscopicPropertyCache& propertyCache);
+        void SetRequiredProperties(lb::MacroscopicPropertyCache& propertyCache, geometry::LatticeData* latDat);
 
         /**
          * Override the iterated actor end of iteration method to perform writing.

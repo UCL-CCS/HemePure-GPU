@@ -28,7 +28,9 @@ add_library(hemelb_lb
 	lattices/D3Q15i.cc
 	MacroscopicPropertyCache.cc
 	SimulationState.cc
-	StabilityTester.cc)
+	StabilityTester.cc
+	InitialCondition.cc
+	)
 target_include_directories(hemelb_lb PUBLIC ${CMAKE_SOURCE_DIR})
 
 if( USE_HIP )
@@ -36,5 +38,6 @@ if( USE_HIP )
 			iolets/BoundaryValues.cc 
 			IncompressibilityChecker.cc
 			MacroscopicPropertyCache.cc  
+			InitialCondition.cc
 			StabilityTester.cc PROPERTIES LANGUAGE HIP)
 endif()

@@ -117,7 +117,7 @@ namespace hemelb
 
 
           // Propagate this info every 1000 timesteps - Check again in the future!!! To do!!!
-          if(this->mSimState->GetTimeStep() % 1000 == 0){
+          if(this->mSimState->GetTimeStep() % 10000 == 0){
             //printf("Rank: %d, PhasedBroadcastRegular -> PostReceive, Time: %lu, iCycleNumber: %lu, firstAscent: %lu, traversalLength: %lu  \n\n", this->mNet->GetCommunicator().Rank(), \
               this->mSimState->GetTimeStep(), iCycleNumber, firstAscent, traversalLength);
 

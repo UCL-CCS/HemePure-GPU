@@ -42,6 +42,9 @@ namespace hemelb
 		template<class LatticeType>
 			class LBM : public net::IteratedAction
 		{
+				// IZ - Nov 2023 - Added for the Checkpointing functionality
+				friend class extraction::PropertyActor; //! Give access to the boolean variable checkpointing_Get_Distr_To_Host
+								//
 			private:
 				// Use the kernel specified through the build system. This will select one of the above classes.
 				typedef typename HEMELB_KERNEL<LatticeType>::Type LB_KERNEL;
@@ -95,6 +98,8 @@ namespace hemelb
 				void Initialise(iolets::BoundaryValues* iInletValues,
 						iolets::BoundaryValues* iOutletValues,
 						const util::UnitConverter* iUnits);
+
+				void SetInitialConditions(const net::IOCommunicator& ioComms);
 
 				hemelb::lb::LbmParameters *GetLbmParams();
 				lb::MacroscopicPropertyCache& GetPropertyCache();

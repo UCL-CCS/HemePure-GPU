@@ -9,6 +9,7 @@
 
 #include "extraction/IterableDataSource.h"
 #include "extraction/PropertyOutputFile.h"
+#include "lb/lattices/Lattices.h"
 #include "net/mpi.h"
 #include "net/MpiFile.h"
 
@@ -57,6 +58,11 @@ namespace hemelb
          * iteration number
          */
         void Write(unsigned long timestepNumber, unsigned long max_timestepNumber );
+
+	/**
+	 * Write the offset file
+	 */
+	void WriteOffsetFile();
 
       private:
         /**
@@ -113,10 +119,17 @@ namespace hemelb
          */
         std::vector<char> buffer;
 
+	/**
+         * The MPI file to write the offsets into.
+         */
+        net::MpiFile offsetFile;
+
         /**
          * Type of written values
          */
         typedef float WrittenDataType;
+
+	typedef hemelb::lb::lattices:: HEMELB_LATTICE latticeType;
     };
   }
 }

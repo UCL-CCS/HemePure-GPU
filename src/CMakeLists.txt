@@ -14,20 +14,20 @@ option(HEMELB_IMAGES_TO_NULL "write images to null" ON)
 option(HEMELB_STATIC_ASSERT "use simple compile-time assertions" ON)
 option(HEMELB_TRACER_PARTICLES "use particles as tracers" ON)
 option(HEMELB_USE_ALL_WARNINGS_GNU "show all compiler warnings on development builds (gnu-style-compilers)" OFF)
-option(HEMELB_USE_SSE3 "use SSE3 intrinsics" ON)
+option(HEMELB_USE_SSE3 "use SSE3 intrinsics" OFF)
 option(HEMELB_USE_VELOCITY_WEIGHTS_FILE "use velocity weights file" ON)
 option(HEMELB_USE_GMYPLUS "use GMY+ format" OFF)
 option(HEMELB_USE_MPI_CALL "use standard MPI functions when reading blocks" OFF)
 option(HEMELB_USE_MPI_WIN "" OFF)
-option(HEMELB_USE_MPI_PARALLEL_IO "Use MPI Parallel I/O for reading geometries" OFF)
+option(HEMELB_USE_MPI_PARALLEL_IO "Use MPI Parallel I/O for reading geometries" ON)
 option(HEMELB_USE_BIGMPI "use BigMPI to read data from file" OFF)
 option(HEMELB_USE_PARMETIS "use ParMETIS" OFF)
 option(HEMELB_USE_ZOLTAN "use Zoltan" OFF)
 #option(HEMELB_VALIDATE_GEOMETRY "validate geometry" OFF)
 
 option(HEMELB_USE_GPU "use GPU accel" ON)
-option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" OFF)
-set(HEMELB_GPU_BACKEND CUDA CACHE STRING "GPU backend")
+option(HEMELB_CUDA_AWARE_MPI "use CUDA-AWARE MPI" ON)
+set(HEMELB_GPU_BACKEND HIP_ROCM CACHE STRING "GPU backend")
 set(HEMELB_GPU_BACKENDS CUDA HIP_CUDA HIP_ROCM)
 set_property(CACHE HEMELB_GPU_BACKEND PROPERTY STRINGS ${HEMELB_GPU_BACKENDS})
 
@@ -64,13 +64,13 @@ set(HEMELB_KERNEL "LBGK"
 	CACHE STRING "kernel: 'LBGK','EntropicAnsumali','EntropicChik','MRT','TRT','NNCY','NNCYMOUSE','NNC','NNTPL'")
 set(HEMELB_WALL_BOUNDARY "SIMPLEBOUNCEBACK"
 	CACHE STRING "boundary conditions to be used at the walls: 'BFL','GZS','SIMPLEBOUNCEBACK','JUNKYANG'")
-set(HEMELB_INLET_BOUNDARY "NASHZEROTHORDERPRESSUREIOLET"
+set(HEMELB_INLET_BOUNDARY "LADDIOLET"
 	CACHE STRING "boundary conditions to be used at the inlet: 'NASHZEROTHORDERPRESSUREIOLET','LADDIOLET'")
 set(HEMELB_OUTLET_BOUNDARY "NASHZEROTHORDERPRESSUREIOLET"
 	CACHE STRING "boundary conditions to be used at the outlets: 'NASHZEROTHORDERPRESSUREIOLET','LADDIOLET'")
 set(HEMELB_COMPUTE_ARCHITECTURE "NEUTRAL"
 	CACHE STRING "architecture of the machine being used 'INTELSANDYBRIDGE','AMDBULLDOZER','NEUTRAL','ISBFILEVELOCITYINLET'")
-set(HEMELB_WALL_INLET_BOUNDARY "NASHZEROTHORDERPRESSURESBB"
+set(HEMELB_WALL_INLET_BOUNDARY "LADDIOLETSBB"
 	CACHE STRING "boundary conditions to be used at corners between walls and inlets: 'NASHZEROTHORDERPRESSURESBB','NASHZEROTHORDERPRESSUREBFL','LADDIOLETSBB','LADDIOLETBFL'")
 set(HEMELB_WALL_OUTLET_BOUNDARY "NASHZEROTHORDERPRESSURESBB"
 	CACHE STRING "boundary conditions to be used at corners between walls and outlets: 'NASHZEROTHORDERPRESSURESBB','NASHZEROTHORDERPRESSUREBFL','LADDIOLETSBB','LADDIOLETBFL'")
@@ -335,12 +335,16 @@ if(HAVE_RUSAGE)
 	add_definitions(-DHAVE_RUSAGE)
 endif()
 
-# without the standard names for the xdr functions, create aliases for the existing ones
-if(NOT HAVE_XDRUINTXX_T)
-	add_definitions(-Dxdr_uint16_t=xdr_u_int16_t)
-	add_definitions(-Dxdr_uint32_t=xdr_u_int32_t)
-	add_definitions(-Dxdr_uint64_t=xdr_u_int64_t)
-endif()
+#---------------------------
+# IZ - Jan 2024 
+# Remove the following
+## without the standard names for the xdr functions, create aliases for the existing ones
+#if(NOT HAVE_XDRUINTXX_T)
+#	add_definitions(-Dxdr_uint16_t=xdr_u_int16_t)
+#	add_definitions(-Dxdr_uint32_t=xdr_u_int32_t)
+#	add_definitions(-Dxdr_uint64_t=xdr_u_int64_t)
+#endif()
+#--------------------------
 
 include(mpi)
 include(dependencies)
@@ -479,6 +483,7 @@ target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
   ${Boost_LIBRARIES}
   ${CTEMPLATE_LIBRARY}
   ${ZLIB_LIBRARIES}
+  ${TIRPC_LIBRARY}
   ${CUDA_LINK_LIBRARIES_KEYWORD})
 
 
@@ -513,6 +518,7 @@ if(HEMELB_BUILD_TESTS_UNIT)
 		${Boost_LIBRARIES}
 		${CTEMPLATE_LIBRARY}
 		${ZLIB_LIBRARIES}
+		${TIRPC_LIBRARY}
 		${CMAKE_DL_LIBS})
 	install(TARGETS unittests_hemelb RUNTIME DESTINATION bin)
 	list(APPEND RESOURCES
