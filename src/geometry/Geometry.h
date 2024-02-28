@@ -84,6 +84,14 @@ namespace hemelb
 					return (siteI * blockSize + siteJ) * blockSize + siteK;
 				}
 
+				util::Vector3D<site_t> GetSiteCoordinatesFromSiteId(site_t siteId) const
+                {
+                    site_t siteZ = siteId % blockSize;
+                    site_t remainder = siteId / blockSize;
+                    site_t siteY = remainder % blockSize;
+                    site_t siteX = remainder / blockSize;
+                    return util::Vector3D<site_t>(siteX, siteY, siteZ);
+                }
 				/**
 				 * True if the given block coordinates are within the geometry bounding-box.
 				 */
@@ -169,7 +177,6 @@ namespace hemelb
 				const site_t sitesPerBlock;
 
 			public:
-			  //std::vector<BlockReadResult> Blocks;                //! Array of Block models
 				std::unordered_map<site_t, BlockReadResult> Blocks; //! Array of Block models
 		};
 	}

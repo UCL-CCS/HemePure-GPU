@@ -8,6 +8,7 @@ add_library(hemelb_geometry
 	BlockTraverser.cc
 	BlockTraverserWithVisitedBlockTracker.cc
 	GeometryReader.cc
+	GeometrySGMYReader.cc
 	LatticeData.cc
 	SiteData.cc
 	SiteDataBare.cc
@@ -25,6 +26,7 @@ if( USE_HIP )
 	set_source_files_properties(BlockTraverser.cc 
 		BlockTraverserWithVisitedBlockTracker.cc
 		GeometryReader.cc
+		GeometrySGMYReader.cc
 		LatticeData.cc
 		SiteTraverser.cc
 		decomposition/OptimisedDecomposition.cc

@@ -835,6 +835,8 @@ namespace hemelb
 
 			void BasicDecomposition::Decompose(std::unordered_map<site_t, proc_t>& procAssignedToEachBlock)
 			{
+
+#if 0
 				// Keep a count of the number of non-empty blocks that haven't yet been assigned
 				// a processor.
 				site_t unvisitedFluidBlockCount = 0;
@@ -849,7 +851,15 @@ namespace hemelb
 #endif
 					}
 				}
-
+#else
+				// If we use GMYPLUS we need to sum the blockWeights
+#ifdef HEMELB_USE_GMYPLUS
+				site_t unvisitedFluidBlockCount = 0;
+				for( auto kvPair : blockWeights ) unvisitedFluidBlockCount += kvPair.second;
+#else
+				site_t unvisitedFluidBlockCount = blockInformation.size();
+#endif
+#endif
 				DivideBlocks(procAssignedToEachBlock,
 						unvisitedFluidBlockCount,
 						geometry,
@@ -906,6 +916,7 @@ namespace hemelb
 				site_t blockNumber = -1;
 				site_t blocksOnCurrentProc = 0;
 
+#if 0
 				// Iterate over all blocks.
 				for (site_t blockCoordI = 0; blockCoordI < geometry.GetBlockDimensions().x; blockCoordI++)
 				{
@@ -913,13 +924,21 @@ namespace hemelb
 					{
 						for (site_t blockCoordK = 0; blockCoordK < geometry.GetBlockDimensions().z; blockCoordK++)
 						{
-							// Block number is the number of the block we're currently on.
-							blockNumber++;
+
+							site_t unvisitedFluidBlockCount = 0;
+
 
 							if (blockInformation.find(blockNumber) == blockInformation.end())
 							{
 								continue;
 							}
+#endif
+
+
+				for( auto it = blockInformation.begin(); it != blockInformation.end(); it++) {
+
+							blockNumber = it->first;  // The block number is the key...
+							util::Vector3D<site_t> thisBlockCoords = geometry.GetBlockCoordinatesFromBlockId(blockNumber);
 
 							// Alternatively, if this block has already been assigned, move on.
 							if (blockAssigned.find(blockNumber) != blockAssigned.end())
@@ -939,7 +958,7 @@ namespace hemelb
 
 							// Record the location of this initial block.
 							currentEdge.clear();
-							BlockLocation lNew(blockCoordI, blockCoordJ, blockCoordK);
+							BlockLocation lNew(thisBlockCoords.x, thisBlockCoords.y, thisBlockCoords.z);
 							currentEdge.push_back(lNew);
 
 							// The subdomain can grow.
@@ -992,10 +1011,13 @@ namespace hemelb
 							}
 							// If not, we have to start growing a different region for the same rank:
 							// region expansions could get trapped.
+
+						} // end of iterator loop.
+#if 0
 						} // Block co-ord k
 					} // Block co-ord j
 				} // Block co-ord i
-
+#endif
 				//blockNumber = -1;
 				//// Check which ranks own the neighbouring blocks of each block.
 				//for (site_t blockCoordI = 0; blockCoordI < geometry.GetBlockDimensions().x; blockCoordI++)
@@ -1059,8 +1081,10 @@ namespace hemelb
 				std::vector<sitedata_t> totalBlockWeights(communicator.Size(), 0);
 
 				// Iterate over all blocks (again).
-				for (site_t blockNumber = 0; blockNumber < geometry.GetBlockCount(); ++blockNumber)
+//				for (site_t blockNumber = 0; blockNumber < geometry.GetBlockCount(); ++blockNumber)
+			    for( auto b : blockInformation) 
 				{
+					blockNumber = b.first;
 					// Weight of all blocks on partition.
 					if (unitForEachBlock.find(blockNumber) != unitForEachBlock.end())
 #ifdef HEMELB_USE_GMYPLUS

@@ -5,7 +5,7 @@
 
 #ifndef HEMELB_LB_LB_HPP
 #define HEMELB_LB_LB_HPP
-
+#include <omp.h>
 #include "io/writers/xdr/XdrMemWriter.h"
 #include "lb/lb.h"
 #include "util/unique.h"
@@ -289,6 +289,7 @@ namespace hemelb
 
 				// 	f Distr. - To do!!!
 				// Convert from method_a (CPU) to method_b to be send to the GPU
+#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = firstIndex; i < (firstIndex + siteCount); i++)
@@ -3339,7 +3340,7 @@ template<class LatticeType>
 				const hemelb::net::Net& rank_Com = *mNet;	// Needs the constructor and be initialised
 				int myPiD = rank_Com.Rank();
 				// std::printf("Local Rank = %i and local fluid sites = %i \n\n", myPiD, mLatDat->GetLocalFluidSiteCount());
-
+				
 				//======================================================================
 				// Preliminary check -
 				// Compare: a) available GPU mem. and
@@ -3438,6 +3439,7 @@ template<class LatticeType>
 				}
 
 				// 	f_old - Done!!!
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3447,6 +3449,7 @@ template<class LatticeType>
 				}
 
 				// 	f_new - Done!!!
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3508,6 +3511,7 @@ template<class LatticeType>
 				//=================================================================================================================================
 
 
+
 				//=================================================================================================================================
 				// Neighbouring indices - necessary for the STREAMING STEP
 
@@ -3533,6 +3537,7 @@ template<class LatticeType>
 				}
 
 				// Re-arrange the neighbouring data - organised by index LB
+				#pragma omp parallel for collapse(2)
 				for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++)
 				{
 					for (site_t i = 0; i < mLatDat->GetLocalFluidSiteCount(); i++)
@@ -3598,7 +3603,6 @@ template<class LatticeType>
 				//=================================================================================================================================
 
 
-
 				//***********************************************************************************************************************************
 				// Fluid-Wall links
 				// Access the information for the fluid-wall links:
@@ -3622,6 +3626,7 @@ template<class LatticeType>
 				}
 
 				// Fill the array Data_uint32_WallIntersect
+				#pragma omp parallel for 
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
 				{
 					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_Index);
@@ -3685,6 +3690,7 @@ template<class LatticeType>
 				//----------------------------------------------------------------------
 				//***********************************************************************************************************************************
 
+
 				//***********************************************************************************************************************************
 				// Fluid-Inlet links
 				// Access the information for the fluid-inlet links:
@@ -3716,6 +3722,7 @@ template<class LatticeType>
 				}
 
 				// Fill the array Data_uint32_IoletIntersect
+				#pragma omp parallel for 
 				for (int64_t site_Index = 0; site_Index < mLatDat->GetLocalFluidSiteCount(); site_Index++) // for (int64_t site_Index = 0; site_Index < 10; site_Index++){
 				{
 					geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(site_Index);
@@ -3768,7 +3775,6 @@ template<class LatticeType>
 
 				// Delete - Free-up memory here... (Not at the end of the function)
 				//***********************************************************************************************************************************
-
 
 				//***********************************************************************************************************************************
 				// Iolets BCs:
@@ -4201,6 +4207,7 @@ template<class LatticeType>
 				*/
 				//=============================================================================================================================================================
 
+
 				//=============================================================================================================================================================
 				// Examine the type of Iolets BCs:
 				//----------------------------------------------------------------------
@@ -4416,6 +4423,8 @@ template<class LatticeType>
 				}
 				//----------------------------------------------------------------------
 
+			
+			
 				//----------------------------------------------------------------------
 				// Normal vectors to Iolets
 				// Inlets:
@@ -4676,6 +4685,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_Inlet_Edge;
 						site_t siteCount = site_Count_Inlet_Edge;
+
+						#pragma omp parallel for 
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 			  		{
 							// Save the coords to Data_int64_Coords_iolets
@@ -4739,6 +4750,8 @@ template<class LatticeType>
 
 							site_t firstIndex = start_Index_InletWall_Edge;
 							site_t siteCount = site_Count_InletWall_Edge;
+
+							#pragma omp parallel for 
 							for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 				  		{
 								// Save the coords to Data_int64_Coords_iolets
@@ -4805,6 +4818,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_Inlet_Inner;
 						site_t siteCount = site_Count_Inlet_Inner;
+	
+						#pragma omp parallel for
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 			  		{
 							// Save the coords to Data_int64_Coords_iolets
@@ -4868,6 +4883,8 @@ template<class LatticeType>
 
 						site_t firstIndex = start_Index_InletWall_Inner;
 						site_t siteCount = site_Count_InletWall_Inner;
+
+						#pragma omp parallel for
 						for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
 						{
 							// Save the coords to Data_int64_Coords_iolets
@@ -5730,6 +5747,7 @@ template<class LatticeType>
 				//***********************************************************************************************************************************
 
 
+
 				//***********************************************************************************************************************************
 				// Allocate memory for streamingIndicesForReceivedDistributions on the GPU constant Memory
 				// From geometry/LatticeData.h:	std::vector<site_t> streamingIndicesForReceivedDistributions; //! The indices to stream to for distributions received from other processors.
@@ -5854,7 +5872,7 @@ template<class LatticeType>
 				// Add a check whether the memory on the GPU global memory is sufficient!!! Abort if not or split the domain into smaller subdomains and pass info gradually! To do!!!
 				// unsigned long long TotalMem_req = (TotalMem_dbl_fOld * 4 +  TotalMem_dbl_MacroVars + TotalMem_int64_Neigh *4 + TotalMem_uint32_WallIntersect + TotalMem_uint32_IoletIntersect + TotalMem_int64_streamInd); //
 				unsigned long long TotalMem_req = (TotalMem_dbl_fOld * 2 +  TotalMem_dbl_MacroVars + TotalMem_int64_Neigh + TotalMem_uint32_WallIntersect + TotalMem_uint32_IoletIntersect + TotalMem_int64_streamInd); //
-				printf("Rank: %d - Total requested global memory %.2fGB \n\n", myPiD, ((double)TotalMem_req/1073741824.0));
+				// printf("Rank: %d - Total requested global memory %.2fGB \n\n", myPiD, ((double)TotalMem_req/1073741824.0));
 				//***********************************************************************************************************************************
 
 				//=================================================================================================================================

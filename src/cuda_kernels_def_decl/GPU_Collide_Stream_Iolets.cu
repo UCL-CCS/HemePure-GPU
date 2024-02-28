@@ -174,7 +174,7 @@ __global__ void GPU_CollideStream_Iolets_Ladd_VelBCs(distribn_t* GMem_dbl_fOld_b
 #pragma unroll 19
 	for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 	{
-		unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+		 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 		bool is_Iolet_link = (Iolet_Intersect & mask);
 
 		if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -467,7 +467,7 @@ __global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMe
 #pragma unroll 19
 	for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 	{
-		unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+        unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0;
 		bool is_Iolet_link = (Iolet_Intersect & mask);
 
 		if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -747,7 +747,8 @@ inletNormal_z = GMem_inletNormal[3*IdInlet+2];
 #pragma unroll 19
 for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 {
-	unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+
+	 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; ; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 	bool is_Iolet_link = (Iolet_Intersect & mask);
 
 	if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1012,7 +1013,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1275,7 +1276,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1533,7 +1534,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1790,7 +1791,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -2048,7 +2049,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			  unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -2304,7 +2305,7 @@ if (write_GlobalMem){
 		// fNew (dev_fn) populations:
 		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
 		{
-			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
+			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
 
 			if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);

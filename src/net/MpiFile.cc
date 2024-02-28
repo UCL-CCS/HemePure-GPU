@@ -77,6 +77,14 @@ namespace hemelb
           (*filePtr, disp, etype, filetype, MpiConstCast(datarep.c_str()), info)
       );
     }
+
+	void MpiFile::ReadAt(MPI_Offset offset, char *buffer, size_t nbytes, MPI_Status* stat)
+    {
+      HEMELB_MPI_CALL(
+          MPI_File_read_at,
+          (*filePtr, offset, &buffer[0], nbytes, MpiDataType<char>(), stat)
+      );
+    }
   }
 }
 

@@ -9,7 +9,8 @@
 #include "extraction/LbDataSourceIterator.h"
 #include "io/writers/xdr/XdrFileWriter.h"
 #include "util/utilityFunctions.h"
-#include "geometry/GeometryReader.h"
+//#include "geometry/GeometryReader.h"
+#include "geometry/GeometrySGMYReader.h"
 #include "geometry/LatticeData.h"
 #include "util/fileutils.h"
 #include "log/Logger.h"
@@ -28,6 +29,7 @@
 #include <map>
 #include <limits>
 #include <cstdlib>
+
 
 /**
  * Constructor for the SimulationMaster class
@@ -141,9 +143,16 @@ void SimulationMaster::Initialise() {
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----------");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("--> loading input and decomposing geometry");
-	hemelb::geometry::GeometryReader reader(
+#if 1
+	hemelb::geometry::GeometrySGMYReader reader(
 		latticeType::GetLatticeInfo(),
 		timings, ioComms);
+	
+#else
+	hemelb::geometry::GeometryReader reader(
+        latticeType::GetLatticeInfo(),
+        timings, ioComms);
+#endif
 	hemelb::geometry::Geometry readGeometryData =
 		reader.LoadAndDecompose(simConfig->GetDataFilePath());
 
@@ -237,22 +246,31 @@ void SimulationMaster::Initialise() {
 	// Check for GPU capabilities
 	#ifdef HEMELB_USE_GPU
 		check_GPU_capabilities();
-
+		
 		if(communicationNet.Rank()!=0) {
+			bool res_InitGPU = true;
+		   try {
 			bool res_InitGPU = latticeBoltzmannModel->Initialise_GPU(inletValues, outletValues, unitConverter);
+			fflush(stdout);
+		   }
+		   catch(std::bad_alloc) {
+				printf("Rank: %d, Initialize GPU threw bad alloc exception\n", communicationNet.Rank());
+		   }
+		   catch(...) {
+				printf("Rank: %d, CAUGHT UNKNOWN EXCEPTION\n", communicationNet.Rank());
+				abort();
+		   }
 			if (!res_InitGPU){
 				printf("Rank: %d, Initialising the GPU failed... Abort... \n\n",communicationNet.Rank());
 				Abort();	// Abort if initialiing the GPUs fail...
 			}
+		    
 		}
 	#endif
+
 	//=======================================================================================
-
-
-
 	neighbouringDataManager->ShareNeeds();
 	neighbouringDataManager->TransferNonFieldDependentInformation();
-
 	propertyDataSource =
 		new hemelb::extraction::LbDataSourceIterator(latticeBoltzmannModel->GetPropertyCache(),
 				*latticeData,
@@ -306,7 +324,10 @@ void SimulationMaster::Initialise() {
 
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
+<<<<<<< HEAD
+=======
 	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
+>>>>>>> HIP-CUDA-ROCM
 }
 
 
@@ -339,13 +360,23 @@ void SimulationMaster::check_GPU_capabilities()
 
 
 	// Set the current GPU device	
+#if 0
 	if(dev_count>1 && localRank!=0){
-		bool status = deviceAttach((localRank-1)%dev_count);		//Set GPU - Rank 0 does not participate	
+		bool status = deviceAttach((localRank)%dev_count);		//Set GPU - Rank 0 does not participate	
 		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
 		}	
 	}
+#else
+	bool status = deviceAttach(0);
+	if (!status) {
+      fprintf(stderr, "GPU device setting failed\n");
+      Abort();
+    } 
+#endif
+
+
 }
 	
 #endif

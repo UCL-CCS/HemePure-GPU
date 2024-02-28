@@ -21,6 +21,7 @@ namespace hemelb
     struct BlockReadResult
     {
       public:
+		proc_t principalProcForBlock;
         std::vector<GeometrySite> Sites;
     };
   }
