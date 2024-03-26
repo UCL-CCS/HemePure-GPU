@@ -324,10 +324,7 @@ void SimulationMaster::Initialise() {
 
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE FINISHED");
-<<<<<<< HEAD
-=======
 	//hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::OnePerCore>("INITIALISE FINISHED");
->>>>>>> HIP-CUDA-ROCM
 }
 
 
