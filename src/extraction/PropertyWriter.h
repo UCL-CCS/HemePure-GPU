@@ -36,8 +36,10 @@ namespace hemelb
          *
          * An iterationNumber of 0 will write all files.
          * @param iterationNumber
+         * IZ - Feb 2024 -
+         * Considers the checkponting case (seccond argument - starting simulation from initial_iterationNumber)
          */
-        void Write(unsigned long iterationNumber, unsigned long max_iterationNumber ) const;
+        void Write(unsigned long iterationNumber,unsigned long initial_iterationNumber, unsigned long max_iterationNumber ) const;
 
         /**
          * Returns a vector of all the LocalPropertyOutputs.

@@ -249,10 +249,19 @@ HemeLB-GPU version 2.2.d
 //------------------------------------------------------------------------------
 Dec 2023
 HemeLB-GPU version 2.3
-   Implementing the checkpointing functionality 
-	i.e. add the option for restarting the simulations 
-//------------------------------------------------------------------------------
+   Implementing the checkpointing functionality
+	i.e. add the option for restarting the simulations
 
+	Fixed a bug for:
+	a. reading the restart time from the input file.
+	b. passing that restart time to the simulation so that the correct time-dependent value (e.g. max velocity) is applied to iolets
+
+	There are now 2 options when restarting the simulation:
+	1. If the restart time is not specified, the simulation will read from the XTR checkpointing file
+			the last time the distribution functions were saved.
+	2. The user can specify the restart time
+		2.1. Then a search will be performed in the XTR checkpointing file (if the specific time or the next available greater timestep is available)
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 General things:
@@ -855,7 +864,7 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 																	int n_arr_elementsInCurrentInlet_weightsTable,
 																	site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
 																	site_t lower_limit, site_t upper_limit,
-																	unsigned long time_Step, unsigned long total_TimeSteps)
+																	unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time)
 {
 	unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -970,7 +979,7 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 						vel_weight = vel_weight_2;
 						//------------------------------------------------------------------
 
-						max_vel = GMem_Inlet_velocityTable[inlet_ID *(total_TimeSteps+1) + time_Step]; // index_inlet*(total_TimeSteps+1)+timeStep
+						max_vel = GMem_Inlet_velocityTable[inlet_ID *(total_TimeSteps+1) + time_Step - start_time]; // index_inlet*(total_TimeSteps+1)+timeStep
 
 						wallMom_x = inletNormal_x * vel_weight * max_vel;
 						wallMom_y = inletNormal_y * vel_weight * max_vel;
@@ -1402,7 +1411,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 											distribn_t* GMem_Inlet_velocityTable,
 											site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
 											site_t lower_limit, site_t upper_limit,
-											unsigned long time_Step, unsigned long total_TimeSteps)
+											unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time)
 {
 	unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1454,7 +1463,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 
 					// Just multiply with max Velocity(IdInlet,t) from velocityTable
 					// 	Load max Vel
-					distribn_t max_vel = GMem_Inlet_velocityTable[IdInlet *(total_TimeSteps+1) + time_Step]; // index_inlet*(total_TimeSteps+1)+timeStep
+					distribn_t max_vel = GMem_Inlet_velocityTable[IdInlet *(total_TimeSteps+1) + time_Step - start_time]; // index_inlet*(total_TimeSteps+1)+timeStep
 
 					// B. Step: Evaluate the single correction term as
 					distribn_t correction = prefactor_correction * max_vel;
@@ -1964,7 +1973,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			// Add here an if wallShearStressMagn_Eval as well
 			// Evaluate the wall shear stress magnitude if this is a wall site
 			// The first approach should be faster (Is it ?)
-			
+
 			//if (((site_t)Ind - upper_limit_Wall +1) * ((site_t)Ind - lower_limit_Wall) <= 0){		// When the upper_limit is NOT included
 			if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
 					distribn_t stress;
@@ -1972,7 +1981,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 					//printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
 					//			lower_limit_MidFluid, upper_limit_MidFluid,
 					//			lower_limit_Wall, upper_limit_Wall);
-								
+
 					// Load the wall normal components from the GPU global memory
 					site_t shifted_Ind = Ind-lower_limit_Wall;
 					distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
@@ -1984,15 +1993,15 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 						f_neq,
 						wall_normal_x, wall_normal_y, wall_normal_z,
 						_iStressParameter);
-					
+
 					//stress=0.001;
 
-					/*if(shifted_Ind==9099 && MPI_Rank==206)	
+					/*if(shifted_Ind==9099 && MPI_Rank==206)
 						printf("Rank: %d, Time: %ld, Site: %ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", MPI_Rank, time_Step, Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
 					*/
 					//if(shifted_Ind==9099)
 					//		printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e, _iStressParameter = %5.5e \n",shifted_Ind, stress, _iStressParameter );
-					
+
 					GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
 			}
 			//------------------------------------------------------------------------

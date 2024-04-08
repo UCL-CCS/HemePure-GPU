@@ -46,6 +46,24 @@ namespace hemelb
     {
       return timeStep;
     }
+    
+    //----------------------------------------------------------------
+    // IZ Jan 2024 - Testing
+    void SimulationState::SetTimeStep(unsigned long time_Set_value)
+    {
+      timeStep = time_Set_value;
+    }
+
+    void SimulationState::SetInitTimeStep(unsigned long time_Set_value)
+    {
+      InitTimeStep = time_Set_value;
+    }
+
+    unsigned long SimulationState::GetInitTimeStep() const
+    {
+      return InitTimeStep;
+    }
+    //----------------------------------------------------------------
 
     unsigned long SimulationState::Get0IndexedTimeStep() const
     {

@@ -33,35 +33,47 @@ namespace hemelb {
 
       mutable boost::optional<LatticeTimeStep> initial_time;
     };
-    
+
     struct EquilibriumInitialCondition : InitialConditionBase {
-      
+
       EquilibriumInitialCondition();
-      
+
       EquilibriumInitialCondition(boost::optional<LatticeTimeStep> t0,
 				  distribn_t rho,
 				  distribn_t mx = 0.0, distribn_t my = 0.0, distribn_t mz = 0.0);
-      
+
       template<class LatticeType>
-      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms) const;
-      
+      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms, SimulationState* sim) const;
+
+      void SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const;
+
+      // IZ 2024
+      void SetTime(SimulationState* sim) const;
+      //
+
     private:
       distribn_t density;
       distribn_t mom_x;
       distribn_t mom_y;
       distribn_t mom_z;
     };
-    
+
     struct CheckpointInitialCondition : InitialConditionBase {
       CheckpointInitialCondition(boost::optional<LatticeTimeStep> t0, const std::string& cp);
-      
+
+      // IZ 2024
+      void SetTime(SimulationState* sim) const;
+      //
+
       template<class LatticeType>
-      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms) const;
+      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms, SimulationState* sim) const;
+
+      void SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const;
 
     private:
       std::string cpFile;
     };
-    
+
     class InitialCondition : boost::variant<EquilibriumInitialCondition, CheckpointInitialCondition> {
       // Alias for private base
       using ICVar = boost::variant<EquilibriumInitialCondition, CheckpointInitialCondition>;
@@ -73,15 +85,17 @@ namespace hemelb {
 
       // Factory function for InitialCondition
       static InitialCondition FromConfig(const configuration::ICConfig&);
-      
-      void SetTime(SimulationState* sim) const;
+
+
+      //void SetTime(SimulationState* sim) const;
+      void SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const;
       template<class LatticeType>
-      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms) const;
+      void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms, SimulationState* sim) const;
     private:
-      
+
       //ICVar ic;
     };
-    
+
   }
 
 }

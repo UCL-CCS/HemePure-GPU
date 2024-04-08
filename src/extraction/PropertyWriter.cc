@@ -34,11 +34,11 @@ namespace hemelb
       return localPropertyOutputs;
     }
 
-    void PropertyWriter::Write(unsigned long iterationNumber, unsigned long max_iterationNumber) const
+    void PropertyWriter::Write(unsigned long iterationNumber, unsigned long initial_iterationNumber, unsigned long max_iterationNumber) const
     {
       for (unsigned outputNumber = 0; outputNumber < localPropertyOutputs.size(); ++outputNumber)
       {
-        localPropertyOutputs[outputNumber]->Write((uint64_t) iterationNumber, (uint64_t) max_iterationNumber);
+        localPropertyOutputs[outputNumber]->Write((uint64_t) iterationNumber, (uint64_t) initial_iterationNumber, (uint64_t) max_iterationNumber);
       }
     }
   }

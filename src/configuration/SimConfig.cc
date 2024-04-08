@@ -15,6 +15,10 @@
 #include "util/fileutils.h"
 #include "lb/InitialCondition.h"
 
+// IZ Feb 2024 - For outputting boost::optional value (NOt necessary - debugging phase)
+#include <boost/optional/optional_io.hpp>
+//
+
 namespace hemelb
 {
 	namespace configuration
@@ -541,43 +545,56 @@ namespace hemelb
 		}
 		**/
 
-		    void SimConfig::DoIOForInitialConditions(io::xml::Element initialconditionsEl)
-		    {
-		      // The <time> element may be present - if so, it will set the
-		      // initial timestep value
-		      boost::optional<LatticeTimeStep> t0;
-		      if (auto timeEl = initialconditionsEl.GetChildOrNull("time")) {
-			LatticeTimeStep tmp;
-			GetDimensionalValue(timeEl, "lattice", tmp);
-			t0 = tmp;
-		      }
+		void SimConfig::DoIOForInitialConditions(io::xml::Element initialconditionsEl)
+		{
+			// The <time> element may be present - if so, it will set the
+			// initial timestep value
+			// NOTE: It must be GREATER than zero (initial_time>=1).
 
-		      // Exactly one of {<pressure>, <checkpoint>} must be present
-		      // TODO: use something other than an if-tree
-		      auto pressureEl = initialconditionsEl.GetChildOrNull("pressure");
-		      auto checkpointEl = initialconditionsEl.GetChildOrNull("checkpoint");
-		      if (pressureEl) {
-			if (checkpointEl) {
-			  // Both are present - this is an error
-			  throw Exception()
-			    << "XML contains both <pressure> and <checkpoint> sub elements of <initialconditions>";
-			} else {
-			  // Only pressure
-			  io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
-			  PhysicalPressure p0_mmHg;
-			  GetDimensionalValue(uniformEl, "mmHg", p0_mmHg);
-			  icConfig = EquilibriumIC(unitConverter, t0, p0_mmHg);
+			boost::optional<LatticeTimeStep> t0;
+			auto timeEl = initialconditionsEl.GetChildOrNull("initial_time");
+			if (timeEl)
+			{
+				LatticeTimeStep tmp;
+				GetDimensionalValue(timeEl, "lattice", tmp);
+				t0 = tmp;
+
+				// IZ Feb 2024 - Debugging (checkpointing) - Remove later
+				//std::cout << "Initial time set to t0 = " << t0 << " with tmp = " << tmp << std::endl;
+				//
+				if (tmp<1) {
+					throw Exception()
+					<< "Initial time specified (input file - value initial_time): " <<  tmp << " - Should be greater than 0 !!!";
+				}
 			}
-		      } else {
-			if (checkpointEl) {
-			  // Only checkpoint
-			  icConfig = CheckpointIC(unitConverter, t0, checkpointEl.GetAttributeOrThrow("file"));
-			} else {
-			  // No IC!
-			  throw Exception() << "XML <initialconditions> element contains no known initial condition type";
+
+			// Exactly one of {<pressure>, <checkpoint>} must be present
+			// TODO: use something other than an if-tree
+			auto pressureEl = initialconditionsEl.GetChildOrNull("pressure");
+			auto checkpointEl = initialconditionsEl.GetChildOrNull("checkpoint");
+			if (pressureEl) {
+				if (checkpointEl) {
+					// Both are present - this is an error
+					throw Exception()
+					<< "XML contains both <pressure> and <checkpoint> sub elements of <initialconditions>";
+				} else {
+					// Only pressure
+					io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
+					PhysicalPressure p0_mmHg;
+					GetDimensionalValue(uniformEl, "mmHg", p0_mmHg);
+					icConfig = EquilibriumIC(unitConverter, t0, p0_mmHg);
+				}
 			}
-		      }
-		    }
+			else {
+				if (checkpointEl) {
+					// Only checkpoint
+					icConfig = CheckpointIC(unitConverter, t0, checkpointEl.GetAttributeOrThrow("file"));
+				} else {
+					// No IC!
+					throw Exception() << "XML <initialconditions> element contains no known initial condition type";
+				}
+			}
+		}
 
 		lb::iolets::InOutLetCosine* SimConfig::DoIOForCosinePressureInOutlet(
 				const io::xml::Element& ioletEl)

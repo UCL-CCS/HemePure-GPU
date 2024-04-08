@@ -129,6 +129,14 @@ namespace hemelb
         {
           return totalTimeSteps;
         }
+
+        //Get the initial_timeStep
+        LatticeTimeStep GetInitTimeStep() const
+        {
+          return initial_timeStep;
+        }
+        //
+
         LatticeTimeStep GetWarmUpSteps() const
         {
           return warmUpSteps;
@@ -300,8 +308,6 @@ namespace hemelb
         std::string mapFilePath;
         int latticeId;
 
-
-
         float maxVelocity;
         float maxStress;
         lb::StressTypes stressType;
@@ -321,6 +327,7 @@ namespace hemelb
         std::vector<lb::iolets::InOutLet*> outlets;
         PhysicalTime timeStepSeconds;
         unsigned long totalTimeSteps;
+        unsigned long initial_timeStep;
         unsigned long warmUpSteps;
         PhysicalDistance voxelSizeMetres;
         PhysicalPosition geometryOriginMetres;

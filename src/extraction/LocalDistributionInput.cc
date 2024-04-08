@@ -72,54 +72,85 @@ namespace hemelb
       // Now read offset file.
       ReadOffsets(fmt::offset::ExtractionToOffset(filePath));
 
-      // Figure out how many checkpoints are in the XTR file and
+      // Figure out how many checkpoints (nTimes) are in the XTR file and
       // therefore the position to start at.
       auto nTimes = [&](){
-	uint64_t fileSize = inputFile.GetSize();
-	auto dataSize = fileSize - totalXtrHeaderLength;
-	if (dataSize % allCoresWriteLength)
-	  throw Exception() << "Checkpoint file length not consistent with integer number of checkpoints";
-	return dataSize / allCoresWriteLength;
+        uint64_t fileSize = inputFile.GetSize();
+        auto dataSize = fileSize - totalXtrHeaderLength;
+        if (dataSize % allCoresWriteLength)
+          throw Exception() << "Checkpoint file length not consistent with integer number of checkpoints";
+        return dataSize / allCoresWriteLength;
       }();
 
       auto ReadTimeByIndex = [&](uint64_t iTS) {
-	uint64_t ans;
-	std::vector<char> tsbuf(8);
-	inputFile.ReadAt(localStart + iTS*allCoresWriteLength, tsbuf);
-	xdr::XdrMemReader dataReader(tsbuf);
-	dataReader.read(ans);
-	return ans;
+        uint64_t ans;
+        std::vector<char> tsbuf(8);
+        inputFile.ReadAt(localStart + iTS*allCoresWriteLength, tsbuf);
+        xdr::XdrMemReader dataReader(tsbuf);
+        dataReader.read(ans);
+        return ans;
       };
+
 
       uint64_t iTS;
       if (comms.OnIORank()) {
-	if (targetTime) {
-	  // We have a target time - look for it in the file
-	  iTS = 0;
-	  uint64_t len = nTimes;
-	  while(len != 0) {
-	    auto l2 = len/2;
-	    auto m = iTS + l2;
-	    timestep = ReadTimeByIndex(m);
-	    if (timestep < *targetTime) {
-	      iTS = m + 1;
-	      len -= l2 + 1;
-	    } else {
-	      len = l2;
-	    }
-	  }
+        // IZ - March 2024
+        // TODO: Think which approach to follow if the target time is not found in the XTR checkpointing file
+        //    1. Either call abort - exit the simulation - This is currently used.
+        //    2. or Use the last time found in the XTR checkpointing file
+        if (targetTime) {
+          // We have a target time - look for it in the file
+          // TODO - Bug below - does not detect the correct target time. Fixed now!!!
+          iTS = 0;
+          uint64_t len = nTimes;
 
-	  if (timestep != *targetTime)
-	    throw Exception() << "Target timestep " << *targetTime << " not found in checkpoint file.";
-	} else {
-	  // initial time unspecified, use the last one
-	  iTS = nTimes - 1;
-	  timestep = ReadTimeByIndex(iTS);
-	}
+          while(len != 0) {
+            auto l2 = len/2;
+            auto m = iTS + l2;
+            timestep = ReadTimeByIndex(m);
+
+            if (timestep < *targetTime) {
+              iTS = m + 1;
+              len -= l2 + 1;
+            }
+            else {
+              len = l2;
+            }
+            //printf("nTimes = %ld, len = %ld, m = %ld, iTS = %ld \n", nTimes, len, m, iTS);
+          }
+          timestep = ReadTimeByIndex(iTS);
+
+          //printf("Specified Initial Time - From Inside Local Distr. Input (0a) - index iTS: %ld initial_time in checkpoint file = %ld - targetTime = %ld \n\n", iTS, timestep, *targetTime);
+
+          //if (timestep != *targetTime)
+          if (iTS >=nTimes){
+            printf("Target timestep %ld not found in checkpoint file... Aborting the sim - assertion (iTS<nTimes)... \n\n", *targetTime);
+            //throw Exception() << "Target timestep " << *targetTime << " not found in checkpoint file.";
+            // If the input-file-specified targetTime does not match any value in the XTR checkpointing file
+            assert(iTS<nTimes);
+          }
+
+	      }
+        else {
+          // initial time unspecified, use the last one
+          // This is essentially the one used...
+          iTS = nTimes - 1;
+          timestep = ReadTimeByIndex(iTS);
+          printf("Unspecified Initial Time - From Inside Local Distr. Input (0b) - Last initial_time in checkpoint file = %ld \n\n", timestep);
+        }
       }
+
+      // The restart time is NOT available yet here on all MPI ranks.. Only on MPI rank 0. Must Broadcast the value!!!
       comms.Broadcast(timestep, comms.GetIORank());
       comms.Broadcast(iTS, comms.GetIORank());
+
+      // IZ - Jan 2024
+      restart_Time_Checkpointing = timestep;
+
+      // The restart time is available now on all ranks..
+      //printf("From Inside Local Distr. Input (2) - targetTime = %ld, initial_time = %ld \n\n", targetTime, timestep);
       log::Logger::Log<log::Info, log::Singleton>("Reading checkpoint from timestep %d with index %d", timestep, iTS);
+
       // Read the local part of the checkpoint
       const auto readLength = localStop - localStart;
       const auto timeStart = iTS * allCoresWriteLength;
@@ -130,7 +161,7 @@ namespace hemelb
 
       // Read the timestep
       if (comms.OnIORank()) {
-	dataReader.read(timestep);
+	       dataReader.read(timestep);
       }
 
       site_t iSite = 0;
@@ -179,6 +210,14 @@ namespace hemelb
 	throw Exception() << "Read " << iSite
 			  << " sites but expected " << latDat->GetLocalFluidSiteCount();
     }
+
+
+    // IZ - Jan 2024
+    const uint64_t LocalDistributionInput::Get_restart_Time_Checkpointing() const
+    {
+      return restart_Time_Checkpointing;
+    }
+    //
 
     void LocalDistributionInput::ReadExtractionHeaders(net::MpiFile& inputFile) {
       if (comms.OnIORank()) {

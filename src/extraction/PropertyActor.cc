@@ -79,16 +79,16 @@ namespace hemelb
               case OutputField::MpiRank:
                 // We don't actually have to cache anything to get the rank.
                 break;
-              case OutputField::Distributions:
+	            case OutputField::Distributions:
 #ifdef HEMELB_USE_GPU
                 // IZ Dec2023 - Used for the checkpointing functionality - Needs to have the distributions on the host
                 // printf("Time: %ld - Needs to output distribution functions to the host !!!\n", simulationState.GetTimeStep());
                 // Cannot be called without an object: LocalDistributionInput::Set_checkpointing_Get_Distr_To_Host();
                 latDat->checkpointing_Get_Distr_To_Host=true;
 #endif
-		// CPU code: We don't actually have to cache anything to get the distribution
-		break;
-	      default:
+		            // CPU code: We don't actually have to cache anything to get the distribution
+		            break;
+              default:
                 // This assert should never trip. It only occurs when someone adds a new field to OutputField
                 // and forgets adding a new case to the switch
                 assert(false);
@@ -102,7 +102,10 @@ namespace hemelb
     {
       timers[reporting::Timers::extractionWriting].Start();
 
-      propertyWriter->Write(simulationState.GetTimeStep(), simulationState.GetTotalTimeSteps() );
+      // Case t_start=1
+      //propertyWriter->Write(simulationState.GetTimeStep(), simulationState.GetTotalTimeSteps() );
+      // Case t_start=t_restart (Checkpointing)
+      propertyWriter->Write(simulationState.GetTimeStep(), simulationState.GetInitTimeStep() , simulationState.GetTotalTimeSteps() );
 
       timers[reporting::Timers::extractionWriting].Stop();
     }

@@ -52,6 +52,8 @@ namespace hemelb
         // IZ Dec 2023 - Checkpointing functionality GPU
         //void Set_checkpointing_Get_Distr_To_Host(geometry::LatticeData* latDat);
         bool Set_checkpointing_Get_Distr_To_Host();
+        uint64_t restart_Time_Checkpointing;
+        const uint64_t Get_restart_Time_Checkpointing() const;
 #endif
 //--------------------------
 

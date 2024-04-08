@@ -147,7 +147,7 @@ void SimulationMaster::Initialise() {
 	hemelb::geometry::GeometrySGMYReader reader(
 		latticeType::GetLatticeInfo(),
 		timings, ioComms);
-	
+
 #else
 	hemelb::geometry::GeometryReader reader(
         latticeType::GetLatticeInfo(),
@@ -225,6 +225,12 @@ void SimulationMaster::Initialise() {
 		incompressibilityChecker = NULL;
 	}
 
+	// Feb 2024 - Move here so that the starting time of the simulation is available
+	//	Useful for the velocityTable construction that requires the actual simulation time = starting time + total TimeSteps (that the currect sim will run)
+	//	Case of time-dependent boundary conditions (Either Vel or Pressure)
+	latticeBoltzmannModel->SetInitialConditions(ioComms); //JM Checkpoint addition
+	//
+
 	inletValues = new hemelb::lb::iolets::BoundaryValues(hemelb::geometry::INLET_TYPE,
 			latticeData,
 			simConfig->GetInlets(),
@@ -240,13 +246,13 @@ void SimulationMaster::Initialise() {
 			*unitConverter);
 
 	latticeBoltzmannModel->Initialise(inletValues, outletValues, unitConverter);
-	latticeBoltzmannModel->SetInitialConditions(ioComms); //JM Checkpoint addition
+	//latticeBoltzmannModel->SetInitialConditions(ioComms); //JM Checkpoint addition
 
 	//=======================================================================================
 	// Check for GPU capabilities
 	#ifdef HEMELB_USE_GPU
 		check_GPU_capabilities();
-		
+
 		if(communicationNet.Rank()!=0) {
 			bool res_InitGPU = true;
 		   try {
@@ -264,7 +270,7 @@ void SimulationMaster::Initialise() {
 				printf("Rank: %d, Initialising the GPU failed... Abort... \n\n",communicationNet.Rank());
 				Abort();	// Abort if initialiing the GPUs fail...
 			}
-		    
+
 		}
 	#endif
 
@@ -356,26 +362,26 @@ void SimulationMaster::check_GPU_capabilities()
 	}
 
 
-	// Set the current GPU device	
+	// Set the current GPU device
 #if 0
 	if(dev_count>1 && localRank!=0){
-		bool status = deviceAttach((localRank)%dev_count);		//Set GPU - Rank 0 does not participate	
+		bool status = deviceAttach((localRank)%dev_count);		//Set GPU - Rank 0 does not participate
 		if (!status) {
 			fprintf(stderr, "GPU device setting failed\n");
 			Abort();
-		}	
+		}
 	}
 #else
 	bool status = deviceAttach(0);
 	if (!status) {
       fprintf(stderr, "GPU device setting failed\n");
       Abort();
-    } 
+    }
 #endif
 
 
 }
-	
+
 #endif
 // =============================================================================================
 
@@ -409,7 +415,16 @@ void SimulationMaster::RunSimulation() {
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("-------------------");
 	timings[hemelb::reporting::Timers::simulation].Start();
 
-	while (simulationState->GetTimeStep() <= simulationState->GetTotalTimeSteps()) {
+	//---------------
+	// IZ Jan 2024
+	// Testing (Checkpointing case) - Remove later
+	// int localRank  = communicationNet.Rank(); // Gives the local rank - change type to proc_t
+	//	printf("Rank: %d, Current Time-Step: %ld, Initial Time Step: %ld, Total Time Steps: %ld \n",localRank, simulationState->GetTimeStep(), simulationState->GetInitTimeStep(), simulationState->GetTotalTimeSteps());
+	//---------------
+
+	// IZ - Jan 2024
+	//	Note - consider the case of restarting the simulation (t_start = simulationState->GetInitTimeStep() !=1 )
+	while (( simulationState->GetTimeStep() - simulationState->GetInitTimeStep() +1 ) <= simulationState->GetTotalTimeSteps() ) {
 		DoTimeStep();
 
 		if (simulationState->IsTerminating()) {
@@ -449,11 +464,11 @@ void SimulationMaster::Finalise() {
 
 
 void SimulationMaster::DoTimeStep() {
-	bool writeImage = ((simulationState->GetTimeStep() % imagesPeriod) == 0) ?
+	bool writeImage = (((simulationState->GetTimeStep() - simulationState->GetInitTimeStep() +1) % imagesPeriod) == 0) ?
 					true :
 					false;
 
-	if (simulationState->GetTimeStep() % 200 == 0) {
+	if ((simulationState->GetTimeStep() - simulationState->GetInitTimeStep() +1) % 200 == 0) {
 		hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("time step %07i :: write_image_to_disk %i",
 				simulationState->GetTimeStep(),
 				writeImage);
@@ -483,7 +498,7 @@ void SimulationMaster::DoTimeStep() {
 	//if ((simulationState->GetTimeStep() % 100 == 0) && colloidController != NULL)
 	//	colloidController->OutputInformation(simulationState->GetTimeStep());
 
-	if (simulationState->GetTimeStep() % FORCE_FLUSH_PERIOD == 0 && IsCurrentProcTheIOProc()) {
+	if ((simulationState->GetTimeStep() - simulationState->GetInitTimeStep() +1) % FORCE_FLUSH_PERIOD == 0 && IsCurrentProcTheIOProc()) {
 		fflush(NULL);
 	}
 

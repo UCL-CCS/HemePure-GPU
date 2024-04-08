@@ -170,7 +170,7 @@ __global__ void GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress( distribn_
 																		distribn_t* GMem_Inlet_velocityTable,
 																		site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
 																		site_t lower_limit, site_t upper_limit,
-																		unsigned long time_Step, unsigned long total_TimeSteps);
+																		unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time);
 
 //============================================================================
 // Testing:
@@ -221,7 +221,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 																											distribn_t* GMem_Inlet_velocityTable,
 																											int n_arr_elementsInCurrentInlet_weightsTable,
 																											site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
-																											site_t lower_limit, site_t upper_limit, unsigned long time_Step, unsigned long total_TimeSteps);
+																											site_t lower_limit, site_t upper_limit, unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time);
 
 
 	__global__ void GPU_CalcMacroVars_Swap(distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars, unsigned int nArr_dbl, long long lower_limit, long long upper_limit, int time_Step);
@@ -491,18 +491,18 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 
 		double *SecMomDistrFunc;
 		//--------------------------------------------------------------------------
-		/*	
+		/*
 		// Approach 1: Using a pointer to the array
 		double *SecMomDistrFunc_returned;
 		SecMomDistrFunc_returned = _CalculatePiTensor(f_neq);
 		SecMomDistrFunc = SecMomDistrFunc_returned;
 		*/
-		
+
 		// Approach 2: Using a struct and array declared in that struct
 		struct structSecMomDistrFun SecMomDistrFunc_returned;
 		SecMomDistrFunc_returned = _structCalculatePiTensor(f_neq);
 		SecMomDistrFunc = SecMomDistrFunc_returned.arr;
-		
+
 		//--------------------------------------------------------------------------
 
 		// Does not need the following - Use symmetry

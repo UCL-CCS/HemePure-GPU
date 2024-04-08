@@ -33,7 +33,9 @@ namespace hemelb
 				return copy;
 			}
 
-			void InOutLetFileVelocity::CalculateTable(LatticeTimeStep totalTimeSteps, PhysicalTime timeStepLength)
+			// Note that totalTimeSteps refers to the steps the simulation will run
+			// For the Checkpointing case, this will not be the actual total simulation time-steps (InitTimeStep not being accounted for)
+			void InOutLetFileVelocity::CalculateTable(LatticeTimeStep totalTimeSteps, LatticeTimeStep InitTimeStep, PhysicalTime timeStepLength)
 			{
 				// first read in values from file
 				std::map<PhysicalTime, PhysicalSpeed> timeValuePairs;
@@ -42,6 +44,7 @@ namespace hemelb
 
 				util::check_file(velocityFilePath.c_str());
 				std::ifstream datafile(velocityFilePath.c_str());
+				log::Logger::Log<log::Debug, log::OnePerCore>("Before Reading iolet values - Initial Simulation Time: %ld", InitTimeStep);
 				log::Logger::Log<log::Debug, log::OnePerCore>("Reading iolet values from file:");
 				while (datafile.good())
 				{
@@ -60,16 +63,17 @@ namespace hemelb
 				{
 
 					// If the time value in the input file stretches BEYOND the end of the simulation, then insert an interpolated end value and exit the loop.
-					if (entry->first > totalTimeSteps*timeStepLength) {
+					//	Feb 2024 TODO: Adjust for the checkpointing case (restarting the simulation)
+					if (entry->first > (InitTimeStep-1 + totalTimeSteps) *timeStepLength) {
 
-						PhysicalTime time_diff = totalTimeSteps*timeStepLength - times.back();
+						PhysicalTime time_diff = (InitTimeStep-1 + totalTimeSteps)*timeStepLength - times.back();
 
 						PhysicalTime time_diff_ratio = time_diff / (entry->first - times.back());
 						PhysicalSpeed vel_diff = entry->second - values.back();
 
 						PhysicalSpeed final_velocity = values.back() + time_diff_ratio * vel_diff;
 
-						times.push_back(totalTimeSteps*timeStepLength);
+						times.push_back((InitTimeStep-1 + totalTimeSteps)*timeStepLength);
 						values.push_back(final_velocity);
 						break;
 					}
@@ -87,13 +91,16 @@ namespace hemelb
 				//		<< velocityFilePath;
 
 				// Extend the table to one past the total time steps, so that the table is valid in the end-state, where the zero indexed time step is equal to the limit.
-				velocityTable.resize(totalTimeSteps + 1);
+				velocityTable.resize(InitTimeStep-1 + totalTimeSteps + 1);
 				// now convert these vectors into arrays using linear interpolation
-				for (unsigned int timeStep = 0; timeStep <= totalTimeSteps; timeStep++)
+
+				//for (unsigned int timeStep = 0; timeStep <= totalTimeSteps; timeStep++)
+				// Case Checkpointing -  Restart simulation - Shall I have all the values in the velocityTable??? ie start from 0 to end
+				for (unsigned int timeStep = 0; timeStep <= (InitTimeStep-1 + totalTimeSteps); timeStep++)
 				{
 					// the "% TimeStepsInInletVelocityProfile" here is to prevent profile stretching (it will loop instead)
 					double point = times.front()
-						+ (static_cast<double>(timeStep % TimeStepsInInletVelocityProfile) / static_cast<double>(totalTimeSteps))
+						+ (static_cast<double>(timeStep % TimeStepsInInletVelocityProfile) / static_cast<double>(InitTimeStep-1 + totalTimeSteps))
 						* (times.back() - times.front());
 
 					PhysicalSpeed vel = util::NumericalFunctions::LinearInterpolate(times, values, point);
@@ -101,7 +108,8 @@ namespace hemelb
 					velocityTable[timeStep] = units->ConvertVelocityToLatticeUnits(vel);
 
 					// Debugging - Remove later
-					//printf("velocityTable[timeStep = %d] = %0.4e \n", timeStep, velocityTable[timeStep]);
+					//if (timeStep>=20000 && timeStep<20011 )
+					//printf("PhysicalSpeed_Vel = %0.4e, velocityTable[timeStep = %d] = %0.4e \n", vel, timeStep, velocityTable[timeStep]);
 
 				}
 			}

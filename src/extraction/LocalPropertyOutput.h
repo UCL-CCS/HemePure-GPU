@@ -56,13 +56,17 @@ namespace hemelb
         /**
          * Write this core's section of the data file. Only writes if appropriate for the current
          * iteration number
+         @timestepNumber: refers to the current timeStep
+         @initial_timestepNumber: refers to the initial timeStep the simulation was started from (case of checkpointing)
+         @max_timestepNumber: refer to the steps that the current simulation will run (NOT the actual total timeSteps of the simulation when restarting
+                              - This is the number of timeSteps  to be run)
          */
-        void Write(unsigned long timestepNumber, unsigned long max_timestepNumber );
+        void Write(unsigned long timestepNumber, unsigned long initial_timestepNumber, unsigned long max_timestepNumber );
 
-	/**
-	 * Write the offset file
-	 */
-	void WriteOffsetFile();
+        /**
+	       * Write the offset file
+	       */
+	      void WriteOffsetFile();
 
       private:
         /**
@@ -119,9 +123,9 @@ namespace hemelb
          */
         std::vector<char> buffer;
 
-	/**
-         * The MPI file to write the offsets into.
-         */
+        /**
+          * The MPI file to write the offsets into.
+        	*/
         net::MpiFile offsetFile;
 
         /**
@@ -129,7 +133,7 @@ namespace hemelb
          */
         typedef float WrittenDataType;
 
-	typedef hemelb::lb::lattices:: HEMELB_LATTICE latticeType;
+        typedef hemelb::lb::lattices:: HEMELB_LATTICE latticeType;
     };
   }
 }
