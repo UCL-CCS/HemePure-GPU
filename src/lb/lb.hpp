@@ -8757,16 +8757,18 @@ template<class LatticeType>
 
 				// Dec 2023
 				// TODO: Another option would be to use (in Read_Macrovariables_GPU_to_CPU) the variables:
+				// Actually the first 2 RequiresRefresh at every time-step... Not useful then.. 
 				// 1. Density/Pressure: 	propertyCache.densityCache.RequiresRefresh()
 				// 2. Velocity: 					propertyCache.velocityCache.RequiresRefresh()
 				// 3. Wall Shear Stress: propertyCache.wallShearStressMagnitudeCache.RequiresRefresh()
-				//if (mState->GetTimeStep() % frequency_WriteGlobalMem == 0)
+
 				lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
-				bool requires_MacroVars = (propertyCache.densityCache.RequiresRefresh() ||
+				/*bool requires_MacroVars = (propertyCache.densityCache.RequiresRefresh() ||
 																		propertyCache.velocityCache.RequiresRefresh() ||
 																		propertyCache.velocityCache.RequiresRefresh()
 																	) ? 1 : 0;
-				if(requires_MacroVars)
+				if(requires_MacroVars)*/
+				if (mState->GetTimeStep() % frequency_WriteGlobalMem == 0)
 				{
 					// Check whether the hemeLB picks up the macroVariables at the EndIteration step???
 					// Only the data in propertyCache, i.e. propertyCache.densityCache and propertyCache.velocityCache
