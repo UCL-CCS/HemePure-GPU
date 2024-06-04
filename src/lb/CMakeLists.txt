@@ -31,12 +31,18 @@ add_library(hemelb_lb
 	StabilityTester.cc)
 target_include_directories(hemelb_lb PUBLIC ${CMAKE_SOURCE_DIR})
 
-if( USE_HIP )
-	set_source_files_properties(iolets/BoundaryComms.cc 
-			iolets/BoundaryValues.cc 
-			IncompressibilityChecker.cc
-			MacroscopicPropertyCache.cc  
-			StabilityTester.cc PROPERTIES LANGUAGE HIP)
+if( USE_CUDA )
+  set_source_files_properties(iolets/BoundaryComms.cc
+      iolets/BoundaryValues.cc
+      IncompressibilityChecker.cc
+      MacroscopicPropertyCache.cc
+      StabilityTester.cc PROPERTIES LANGUAGE CUDA)
+elseif( USE_HIP )
+   set_source_files_properties(iolets/BoundaryComms.cc
+      iolets/BoundaryValues.cc
+      IncompressibilityChecker.cc
+      MacroscopicPropertyCache.cc
+      StabilityTester.cc PROPERTIES LANGUAGE HIP)
 elseif( USE_SYCL )
 	set_source_files_properties(iolets/BoundaryComms.cc 
 			iolets/BoundaryValues.cc 

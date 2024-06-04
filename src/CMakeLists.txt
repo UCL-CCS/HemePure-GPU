@@ -181,6 +181,7 @@ if (USE_CUDA)
     message("gnu COMPILER")
 
     set(CMAKE_CUDA_FLAGS "-rdc true -ccbin g++ --compiler-options '-msse3'")
+    #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_35,code=sm_35")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_60,code=sm_60")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")
@@ -441,10 +442,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 if(USE_CUDA)
   set(cuda_sources SimulationMaster.cu
-		cuda_kernels_def_decl/cuda/deviceAPI_cuda.cc
-    cuda_kernels_def_decl/cuda_params.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
-    cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu)
+		cuda_kernels_def_decl/cuda/deviceAPI_cuda.cu)	
   add_library(gpu_objs ${cuda_sources})
   set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
@@ -515,9 +513,11 @@ target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
   ${DECOMPOSE_LIBRARIES}
   ${TINYXML_LIBRARY}
   ${Boost_LIBRARIES}
-  ${CTEMPLATE_LIBRARY}
+  ${CTEMPLATE_LIBRARY} 
+  ${CUDA_LINK_LIBRARIES_KEYWORD}
   ${ZLIB_LIBRARIES}
-  ${CUDA_LINK_LIBRARIES_KEYWORD})
+  ${TIRPC_LIBRARIES})
+  
 
 install(TARGETS ${HEMELB_EXECUTABLE} RUNTIME DESTINATION bin)
 list(APPEND RESOURCES resources/report.txt.ctp resources/report.xml.ctp)

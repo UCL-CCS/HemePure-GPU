@@ -8,7 +8,7 @@
 #include "cuda_kernels_def_decl/deviceLaunch.h"
 
 #define local_iolets_MaxSIZE 90 // This is the max array size with the iolet info (Iolet ID and fluid sites range, min and max, i.e. size = 3*local number of iolets). Assume that maximum number of iolets per RANK = local_iolets_MaxSIZE/3, i.e 30 here
-#define frequency_WriteGlobalMem 100 // Frequency to write macroVariables to GPU global memory
+#define frequency_WriteGlobalMem 1000 // Frequency to write macroVariables to GPU global memory
 
 namespace hemelb
 {
