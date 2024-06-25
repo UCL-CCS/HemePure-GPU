@@ -34,7 +34,7 @@ namespace hemelb {
       mutable boost::optional<LatticeTimeStep> initial_time;
     };
 
-    struct EquilibriumInitialCondition : InitialConditionBase {
+    struct EquilibriumInitialCondition : public InitialConditionBase {
 
       EquilibriumInitialCondition();
 
@@ -48,7 +48,7 @@ namespace hemelb {
       void SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const;
 
       // IZ 2024
-      void SetTime(SimulationState* sim) const;
+      //void SetTime(SimulationState* sim) const;
       //
 
     private:
@@ -58,11 +58,11 @@ namespace hemelb {
       distribn_t mom_z;
     };
 
-    struct CheckpointInitialCondition : InitialConditionBase {
+    struct CheckpointInitialCondition : public InitialConditionBase {
       CheckpointInitialCondition(boost::optional<LatticeTimeStep> t0, const std::string& cp);
 
       // IZ 2024
-      void SetTime(SimulationState* sim) const;
+      //void SetTime(SimulationState* sim) const;
       //
 
       template<class LatticeType>
@@ -74,7 +74,7 @@ namespace hemelb {
       std::string cpFile;
     };
 
-    class InitialCondition : boost::variant<EquilibriumInitialCondition, CheckpointInitialCondition> {
+    class InitialCondition : public boost::variant<EquilibriumInitialCondition, CheckpointInitialCondition> {
       // Alias for private base
       using ICVar = boost::variant<EquilibriumInitialCondition, CheckpointInitialCondition>;
     public:
@@ -87,7 +87,7 @@ namespace hemelb {
       static InitialCondition FromConfig(const configuration::ICConfig&);
 
 
-      //void SetTime(SimulationState* sim) const;
+      void SetTime(SimulationState* sim) const;
       void SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const;
       template<class LatticeType>
       void SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms, SimulationState* sim) const;

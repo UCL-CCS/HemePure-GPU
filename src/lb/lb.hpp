@@ -1031,7 +1031,7 @@ namespace hemelb
 						res_Read_MacroVars = false;
 					}
 
-					status = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz,
+					bool status = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz,
 			  				memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 					//cudaStatus = deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
@@ -1125,7 +1125,7 @@ namespace hemelb
 						}
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
-						status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type2_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type2,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type2_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type2,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 						if(!status){
@@ -1147,7 +1147,7 @@ namespace hemelb
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
 
-						status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type5_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type5,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type5_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type5,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 						if(!status){
@@ -1169,7 +1169,7 @@ namespace hemelb
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
 
-						status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type6_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type6,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Edge_Type6_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type6,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 						if(!status){
@@ -1192,7 +1192,7 @@ namespace hemelb
 						}
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
-						status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type2_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type2,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type2_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type2,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 						//&(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex])
 
@@ -1215,7 +1215,7 @@ namespace hemelb
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
 
-						status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type5_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type5,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type5_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type5,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 						if(!status){
@@ -1237,7 +1237,7 @@ namespace hemelb
 
 						MemSz = site_count_WallShearStress*sizeof(distribn_t);
 
-						status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type6_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type6,
+						bool status = deviceMemcpyAsync(WallShearStressMagn_Inner_Type6_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type6,
 							MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
 						if(!status){
@@ -3144,7 +3144,7 @@ namespace hemelb
 					const hemelb::net::Net& rank_Com = *mNet;
 					int myPiD = rank_Com.Rank();
 					status = deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
-					if(!status){ fprintf(stderr, "Rank: %d deviceFree Velocity Table failed ptr=%xu  file: %s, line %s\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
+					if(!status){ fprintf(stderr, "Rank: %d deviceFree Velocity Table failed ptr=%xu  file: %s, line %d\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
 				}
 
 				// Prefactor Wall Momemtum Correction
@@ -6085,7 +6085,8 @@ template<class LatticeType>
 				delete[] Data_int64_Neigh_d;
 				//delete[] Data_uint32_WallIntersect;
 				delete[] Data_uint32_IoletIntersect;
-				delete[] h_inletNormal, h_outletNormal;
+				delete[] h_inletNormal;
+			        delete[] h_outletNormal;
 
 				if (hemeIoletBC_Inlet == "LADDIOLET") {
 					// if subtype Case: b. File
@@ -6785,9 +6786,16 @@ template<class LatticeType>
 	template<class LatticeType>
 		void LBM<LatticeType>::SetInitialConditions(const net::IOCommunicator& ioComms)
 		{
+			//InitialCondition icond = InitialCondition::FromConfig(mSimConfig->GetInitialCondition());
 			auto icond = InitialCondition::FromConfig(mSimConfig->GetInitialCondition());
-			icond.SetFs<LatticeType>(mLatDat, ioComms);
-			icond.SetTime(mState);
+			icond.SetFs<LatticeType>(mLatDat, ioComms, mState);
+			//icond.SetTime(mState);
+
+			//---------------
+			// Testing - Remove later
+			uint64_t time_currentStep = mState->GetTimeStep();
+			printf("Current Time-Step as set in SetInitialConditions (lb.hpp) %ld \n", time_currentStep);
+			//---------------	
 		}
 
 /** JM Method before trying to bring Checkpointing in

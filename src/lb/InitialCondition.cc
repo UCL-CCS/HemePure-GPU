@@ -63,19 +63,19 @@ namespace hemelb {
     struct TSetter {
       using result_type = void;
       template <typename T>
-      void operator()(T t) const {
+      void operator()(T& t) const {
         t.SetTime(ss);
       }
       SimulationState* ss;
     };
 
 
-    /*
+    
     void InitialCondition::SetTime(SimulationState* sim) const {
       const ICVar* self = this;
       boost::apply_visitor(TSetter{sim}, *self);
     }
-    */
+    
 
     // IZ - Jan 2024
     /*

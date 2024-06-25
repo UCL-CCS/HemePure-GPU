@@ -394,13 +394,14 @@ set(package_subdirs
 	configuration
 	extraction
 	reporting
-	geometry
 	lb
 	net
 	util
 	io
 	log
-	colloids)
+	colloids
+	geometry
+	)
 
 foreach(subdir ${package_subdirs})
 	set(lib "hemelb_${subdir}")
@@ -466,12 +467,12 @@ if (USE_HIP)
     target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC CUDA::cudart -lstdc++)
   endif()
 
-  add_executable(io_tool io_tool.cc)
-  target_link_options(io_tool PUBLIC "-fgpu-rdc")
-  target_link_libraries(io_tool PUBLIC gpu_objs)
-  target_link_options(io_tool PUBLIC
-    $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
-    $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
+  #add_executable(io_tool io_tool.cc)
+  #target_link_options(io_tool PUBLIC "-fgpu-rdc")
+  #target_link_libraries(io_tool PUBLIC gpu_objs)
+  #target_link_options(io_tool PUBLIC
+  #  $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
+  #  $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
 
 endif()
 
@@ -486,6 +487,11 @@ target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
   ${TIRPC_LIBRARY}
   ${CUDA_LINK_LIBRARIES_KEYWORD})
 
+add_executable(io_tool io_tool.cc)
+target_link_libraries(io_tool PUBLIC gpu_objs)
+target_link_options(io_tool PUBLIC
+    $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
+    $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
 
 target_link_libraries(io_tool PUBLIC
   ${HEMELB_LIBRARIES}
@@ -495,6 +501,7 @@ target_link_libraries(io_tool PUBLIC
   ${Boost_LIBRARIES}
   ${CTEMPLATE_LIBRARY}
   ${ZLIB_LIBRARIES}
+  ${TIRPC_LIBRARY}
   ${CUDA_LINK_LIBRARIES_KEYWORD})
 
 install(TARGETS ${HEMELB_EXECUTABLE} RUNTIME DESTINATION bin)

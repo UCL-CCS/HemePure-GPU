@@ -852,19 +852,19 @@ __global__ void GPU_WallMom_correction_File_Weights(int64_t *GMem_Coords_iolets,
 */
 //**************************************************************
 __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coords_iolets,
-																	int64_t **GMem_pp_int_weightsTable_coord,
-																	distribn_t **GMem_pp_dbl_weightsTable_wei,
-																	int64_t* GMem_index_key_weightTable,
-																	distribn_t* GMem_weightTable,
-																	distribn_t *GMem_dbl_WallMom,
-																	float* GMem_ioletNormal,
-																	uint32_t* GMem_uint32_Iolet_Link,
-																	int inlet_ID,
-																	distribn_t* GMem_Inlet_velocityTable,
-																	int n_arr_elementsInCurrentInlet_weightsTable,
-																	site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
-																	site_t lower_limit, site_t upper_limit,
-																	unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time)
+		int64_t **GMem_pp_int_weightsTable_coord,
+		distribn_t **GMem_pp_dbl_weightsTable_wei,
+		int64_t* GMem_index_key_weightTable,
+		distribn_t* GMem_weightTable,
+		distribn_t *GMem_dbl_WallMom,
+		float* GMem_ioletNormal,
+		uint32_t* GMem_uint32_Iolet_Link,
+		int inlet_ID,
+		distribn_t* GMem_Inlet_velocityTable,
+		int n_arr_elementsInCurrentInlet_weightsTable,
+		site_t start_Fluid_ID_givenColStreamType, site_t site_Count_givenColStreamType,
+		site_t lower_limit, site_t upper_limit,
+		unsigned long time_Step, unsigned long total_TimeSteps, unsigned long start_time)
 {
 	unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
 

@@ -482,7 +482,7 @@ void SimulationMaster::DoTimeStep() {
 
 	// Check the stability of the code
 	if (simulationState->GetStability() == hemelb::lb::Unstable) {
-		printf("Time: %d - Rank: %d, Unstable simulation!!! Need to Abort \n", simulationState->GetTimeStep(), communicationNet.Rank());
+		printf("Time: %lu - Rank: %d, Unstable simulation!!! Need to Abort \n", simulationState->GetTimeStep(), communicationNet.Rank());
 		OnUnstableSimulation();
 	}
 
