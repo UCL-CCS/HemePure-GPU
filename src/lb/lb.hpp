@@ -1178,7 +1178,7 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 				if (propertyCache.wallShearStressMagnitudeCache.RequiresRefresh()) {
 						distribn_t stress;
 
-						auto copyWallShearStress = [&](distribn_t* stressArray, site_t start_Index, site_t total_numElements) {
+						auto copyWallShearStress_to_propertyCache = [&](distribn_t* stressArray, site_t start_Index, site_t total_numElements) {
 								for (site_t siteIndex = start_Index; siteIndex < (start_Index + total_numElements); siteIndex++) {
 										geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
 										stress = stressArray[siteIndex - start_Index];
@@ -1186,7 +1186,9 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 								}
 						};
 
-						// Domain Edge
+						//--------------------
+						// Site limits
+						// A. Domain Edge
 						site_t start_Index_Edge_Type2 = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0);
 						site_t total_numElements_Edge_Type2 = mLatDat->GetDomainEdgeCollisionCount(1);
 						site_t start_Index_Edge_Type5 = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0) + mLatDat->GetDomainEdgeCollisionCount(1)
@@ -1196,7 +1198,7 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 																						+ mLatDat->GetDomainEdgeCollisionCount(2) + mLatDat->GetDomainEdgeCollisionCount(3) + mLatDat->GetDomainEdgeCollisionCount(4);
 						site_t total_numElements_Edge_Type6 = mLatDat->GetDomainEdgeCollisionCount(5);
 
-						// Inner Domain
+						// B. Inner Domain
 						site_t start_Index_Inner_Type2 = mLatDat->GetMidDomainCollisionCount(0);
 						site_t total_numElements_Inner_Type2 = mLatDat->GetMidDomainCollisionCount(1);
 						site_t start_Index_Inner_Type5 = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2) + mLatDat->GetMidDomainCollisionCount(3);
@@ -1204,13 +1206,9 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 						site_t start_Index_Inner_Type6 = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2)
 																						 + mLatDat->GetMidDomainCollisionCount(3) + mLatDat->GetMidDomainCollisionCount(4);
 						site_t total_numElements_Inner_Type6 = mLatDat->GetMidDomainCollisionCount(5);
+						//--------------------
 
-
-						/*static distribn_t *WallShearStressMagn_Edge_Type2_GPU = nullptr, *WallShearStressMagn_Edge_Type5_GPU = nullptr, *WallShearStressMagn_Edge_Type6_GPU = nullptr;
-						static distribn_t *WallShearStressMagn_Inner_Type2_GPU = nullptr, *WallShearStressMagn_Inner_Type5_GPU = nullptr, *WallShearStressMagn_Inner_Type6_GPU = nullptr;
-						*/
-
-						auto allocateAndCopy = [&](distribn_t*& stressArray, void* GPUDataAddr, site_t total_numElements) {
+						auto allocateAndCopyD2H = [&](distribn_t*& stressArray, void* GPUDataAddr, site_t total_numElements) {
 								if (total_numElements != 0) {
 
 									// Allocate only the first time
@@ -1223,6 +1221,8 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 												res_Read_MacroVars = false;
 										}
 									}
+
+									// D2H mem. copy  wall shear stress magnitudes
 									MemSz = total_numElements * sizeof(distribn_t);
 									bool status = deviceMemcpyAsync(stressArray, GPUDataAddr, MemSz, memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 									if(!status){
@@ -1236,42 +1236,27 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 							};
 
 						// Domain Edge
-						allocateAndCopy(WallShearStressMagn_Edge_Type2_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type2, total_numElements_Edge_Type2);
-						allocateAndCopy(WallShearStressMagn_Edge_Type5_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type5, total_numElements_Edge_Type5);
-						allocateAndCopy(WallShearStressMagn_Edge_Type6_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type6, total_numElements_Edge_Type6);
+						allocateAndCopyD2H(WallShearStressMagn_Edge_Type2_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type2, total_numElements_Edge_Type2);
+						allocateAndCopyD2H(WallShearStressMagn_Edge_Type5_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type5, total_numElements_Edge_Type5);
+						allocateAndCopyD2H(WallShearStressMagn_Edge_Type6_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type6, total_numElements_Edge_Type6);
 
 						// Inner Domain
-						allocateAndCopy(WallShearStressMagn_Inner_Type2_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type2, total_numElements_Inner_Type2);
-						allocateAndCopy(WallShearStressMagn_Inner_Type5_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type5, total_numElements_Inner_Type5);
-						allocateAndCopy(WallShearStressMagn_Inner_Type6_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type6, total_numElements_Inner_Type6);
-
+						allocateAndCopyD2H(WallShearStressMagn_Inner_Type2_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type2, total_numElements_Inner_Type2);
+						allocateAndCopyD2H(WallShearStressMagn_Inner_Type5_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type5, total_numElements_Inner_Type5);
+						allocateAndCopyD2H(WallShearStressMagn_Inner_Type6_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type6, total_numElements_Inner_Type6);
 
 						// Ensure that the memory allocations and copies above have completed
 						deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
 
 
-						if (WallShearStressMagn_Edge_Type2_GPU) copyWallShearStress(WallShearStressMagn_Edge_Type2_GPU, start_Index_Edge_Type2, total_numElements_Edge_Type2);
-						if (WallShearStressMagn_Edge_Type5_GPU) copyWallShearStress(WallShearStressMagn_Edge_Type5_GPU, start_Index_Edge_Type5, total_numElements_Edge_Type5);
-						if (WallShearStressMagn_Edge_Type6_GPU) copyWallShearStress(WallShearStressMagn_Edge_Type6_GPU, start_Index_Edge_Type6, total_numElements_Edge_Type6);
+						if (WallShearStressMagn_Edge_Type2_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type2_GPU, start_Index_Edge_Type2, total_numElements_Edge_Type2);
+						if (WallShearStressMagn_Edge_Type5_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type5_GPU, start_Index_Edge_Type5, total_numElements_Edge_Type5);
+						if (WallShearStressMagn_Edge_Type6_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type6_GPU, start_Index_Edge_Type6, total_numElements_Edge_Type6);
 
-						if (WallShearStressMagn_Inner_Type2_GPU) copyWallShearStress(WallShearStressMagn_Inner_Type2_GPU, start_Index_Inner_Type2, total_numElements_Inner_Type2);
-						if (WallShearStressMagn_Inner_Type5_GPU) copyWallShearStress(WallShearStressMagn_Inner_Type5_GPU, start_Index_Inner_Type5, total_numElements_Inner_Type5);
-						if (WallShearStressMagn_Inner_Type6_GPU) copyWallShearStress(WallShearStressMagn_Inner_Type6_GPU, start_Index_Inner_Type6, total_numElements_Inner_Type6);
-
-						// Clean up wall shear stress magnitude arrays
-						//if (WallShearStressMagn_Edge_Type2_GPU) cudaFreeHost(WallShearStressMagn_Edge_Type2_GPU);
-						//if (WallShearStressMagn_Edge_Type5_GPU) cudaFreeHost(WallShearStressMagn_Edge_Type5_GPU);
-						//if (WallShearStressMagn_Edge_Type6_GPU) cudaFreeHost(WallShearStressMagn_Edge_Type6_GPU);
-						//if (WallShearStressMagn_Inner_Type2_GPU) cudaFreeHost(WallShearStressMagn_Inner_Type2_GPU);
-						//if (WallShearStressMagn_Inner_Type5_GPU) cudaFreeHost(WallShearStressMagn_Inner_Type5_GPU);
-						//if (WallShearStressMagn_Inner_Type6_GPU) cudaFreeHost(WallShearStressMagn_Inner_Type6_GPU);
+						if (WallShearStressMagn_Inner_Type2_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type2_GPU, start_Index_Inner_Type2, total_numElements_Inner_Type2);
+						if (WallShearStressMagn_Inner_Type5_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type5_GPU, start_Index_Inner_Type5, total_numElements_Inner_Type5);
+						if (WallShearStressMagn_Inner_Type6_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type6_GPU, start_Index_Inner_Type6, total_numElements_Inner_Type6);
 				}
-
-				// Clean up density and velocity arrays
-				//if (dens_GPU) cudaFreeHost(dens_GPU);
-				//if (vx_GPU) cudaFreeHost(vx_GPU);
-				//if (vy_GPU) cudaFreeHost(vy_GPU);
-				//if (vz_GPU) cudaFreeHost(vz_GPU);
 
 				return res_Read_MacroVars;
 			}
