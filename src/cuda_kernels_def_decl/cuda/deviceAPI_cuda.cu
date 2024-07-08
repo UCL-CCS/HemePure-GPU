@@ -55,13 +55,25 @@ bool deviceMalloc(void **ptr, size_t MemSz)
 	if( cudaStatus == cudaSuccess) {
 	  	return true;
 	}
-	else { 
+	else {
 		return false;
 	}
 }
 
-bool deviceMemcpyToSymbol( const void* symbol, const void* src, 
-							size_t count, size_t offset, 
+bool deviceHostAlloc(void **ptr, size_t MemSz)
+{
+  cudaError_t cudaStatus = cudaHostAlloc(ptr,MemSz, cudaHostAllocDefault);
+	if( cudaStatus == cudaSuccess) {
+	  	return true;
+	}
+	else {
+		return false;
+	}
+}
+
+
+bool deviceMemcpyToSymbol( const void* symbol, const void* src,
+							size_t count, size_t offset,
 							memcpyKind kind)
 {
 	cudaMemcpyKind cudaKind = kind == memcpyHostToDevice ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost ;
@@ -73,8 +85,8 @@ bool deviceMemcpyToSymbol( const void* symbol, const void* src,
 }
 
 bool deviceStreamCreate(Stream_t* streamPtr)
-{   
-    
+{
+
 	cudaError_t status = cudaStreamCreate((cudaStream_t *)streamPtr);
 	if (status != cudaSuccess ) {
 		return false;
@@ -92,7 +104,7 @@ void deviceStreamDestroy(Stream_t stream)
 	cudaStreamDestroy((cudaStream_t)stream);
 }
 
-bool deviceFree(void *devPtr) 
+bool deviceFree(void *devPtr)
 {
 	cudaError_t ret = cudaFree(devPtr);
 	if( ret == cudaSuccess) {
@@ -102,6 +114,18 @@ bool deviceFree(void *devPtr)
 		return false;
 	}
 }
+
+bool deviceFreeHost(void *devPtr)
+{
+	cudaError_t ret = cudaFreeHost(devPtr);
+	if( ret == cudaSuccess) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 
 size_t deviceGetProperties(int myProc)
 {
@@ -129,7 +153,7 @@ size_t deviceGetProperties(int myProc)
 		fflush(stdout);
   }
 	return dev_prop.totalGlobalMem;
-	
+
 }
 
 int deviceGetCount()
@@ -144,7 +168,6 @@ bool deviceAttach(int device)
 	cudaError_t cudaStatus = cudaSetDevice(device);
 	if (cudaStatus != cudaSuccess) {
 		return false;
-	}	
+	}
 	return true;
 }
-

@@ -21,11 +21,12 @@ enum memcpyKind { memcpyHostToDevice , memcpyDeviceToHost };
 
 bool deviceMalloc(void **ptr, size_t MemSz);
 bool deviceFree(void *devPtr);
+bool deviceFreeHost(void *devPtr);
 
 bool deviceMemcpyAsync( void* dst, const void* src, size_t count, memcpyKind kind, Stream_t stream = 0);
 bool deviceMemcpy( void* dst, const void* src, size_t count, memcpyKind kind);
-bool deviceMemcpyToSymbol( const void* symbol, const void* src, 
-							size_t count, size_t offset = 0, 
+bool deviceMemcpyToSymbol( const void* symbol, const void* src,
+							size_t count, size_t offset = 0,
 							memcpyKind kind = memcpyHostToDevice);
 
 bool deviceStreamCreate(Stream_t* streamPtr);
@@ -35,5 +36,7 @@ size_t deviceGetProperties(int myPiD);
 
 int deviceGetCount();
 bool deviceAttach(int device);
+
+bool deviceHostAlloc(void **ptr, size_t MemSz);
 
 #endif
