@@ -42,7 +42,14 @@ bool deviceAttach(int device);
 
 //char pointerSpace(const void *p);
 
+// IZ July 2024
+// TODO: For consistency with Balint's previous efforts - Consider whether these should be transfered in namespace hemelb
+bool deviceHostAlloc(void **ptr, size_t MemSz);
+bool deviceFreeHost(void *devPtr);
+
+
 }   // namespace GPU
+
 }   // Namespace hemelb
 
 #endif

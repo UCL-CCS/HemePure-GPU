@@ -18,6 +18,7 @@ namespace hemelb {
 #if 0
 GPU_INLINE_FUNCTION  void
 _determine_Iolet_ID(int num_local_Iolets, site_t *iolets_ID_range, site_t fluid_Ind, int *IdInlet) {
+  printf("(GPU_BaseKernels) - Enters _determine_Iolet_ID !!! \n");
   // Loop over the number of local iolets (num_local_Iolets) and determine whether the fluid ID (fluid_Ind) falls whithin the range
   for (int i_local_iolet = 0; i_local_iolet < num_local_Iolets; i_local_iolet++) {
     // iolet range: [lower_limit,upper_limit)
@@ -34,14 +35,15 @@ _determine_Iolet_ID(int num_local_Iolets, site_t *iolets_ID_range, site_t fluid_
 #endif
 //==============================================================================
 
+
 #if 0
 template<typename LatticeType>
 GPU_INLINE_FUNCTION double *
-_CalculatePiTensor(const distribn_t *const f, 
-	 	   const std::array<int, c.NUMVECTORS>& c.CX, 
+_CalculatePiTensor(const distribn_t *const f,
+	 	   const std::array<int, c.NUMVECTORS>& c.CX,
 		   const std::array<int, c.NUMVECTORS>& c.CY,
 		   const std::array<int, c.NUMVECTORS>& c.CZ) {
-  // static 
+  // static
   double ret_SecMomDistrFunc[6];
 
   // Explicitly calculate the elements (0,0) (1,0) (1,1) (2,0) (2,1) (2,2)
@@ -1015,9 +1017,9 @@ template <typename LatticeType> struct GPU_Check_Stability_Functor {
     if (Ind >= upper_limit)
       return;
 
-	
+
     bool Stability_GPU = true;
-	
+
     // printf("Site ID = %lld - Stability flag: %d \n\n", Ind, Stability_GPU);
 
     /** At first, follow the same approach as in the CPU version of hemeLB,
@@ -1053,24 +1055,26 @@ template <typename LatticeType> struct GPU_Check_Stability_Functor {
         Stability_GPU = false; // This will break the loop on the next direction
 
         *d_Stability_flag = 0; // This can become a race (of writes)  but it is sort of OK because only unstable places will set to 0. No one tests d_Stability_flag
-							   // in the kernel, and it doesn't matter which write succeeds because no other thread will write a different value (they will just leave the flag untouched). 
+							   // in the kernel, and it doesn't matter which write succeeds because no other thread will write a different value (they will just leave the flag untouched).
 							   // Still, I would prefer:
 							   //   - an atomic set to zero
-							   //   - a reduction? 
+							   //   - a reduction?
         return;
       }
-     
-	  // Remove this: it was there because of a need for a nested break in the CPU version. 
+
+	  // Remove this: it was there because of a need for a nested break in the CPU version.
 	  // if (!Stability_GPU) return; //  I don't think this can ever return, since we would have returned already
-									
+
     }   // Ends the loop over the LB-directions
 
-    // Debugging test: Explicitly sets the flag. 
+    // Debugging test: Explicitly sets the flag.
     // if(time_Step%200 ==0) *d_Stability_flag = 0;
 
   }   // Ends the kernel GPU_Check_Stability
 
 };    // End of functor
+
+
 
 template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_Functor {
 
@@ -1186,7 +1190,7 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
 
     // Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
     // Option 1:
-    if (dev_NeighInd == index_wall)  // When setting up dev_NeighInd 'rubbish sites' (non-Fluid?) were set to nArr_dbl*NUMVECTORS  
+    if (dev_NeighInd == index_wall)  // When setting up dev_NeighInd 'rubbish sites' (non-Fluid?) were set to nArr_dbl*NUMVECTORS
     {
       // Simple Bounce Back case:
       GMem_dbl_fNew_b[(unsigned long long) c.INVERSEDIRECTIONS[LB_Dir] * nArr_dbl + Ind] = dev_ff[LB_Dir];   // Bounce Back - Same fluid ID - Reverse LB_Dir
@@ -1211,10 +1215,185 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
     GMem_dbl_MacroVars[3ULL * nArr_dbl + Ind] = velz;
   }
 
-#endif 
+#endif
     //==========================================================================================
   }    // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
 };    // End of functor
+
+
+
+template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress_Functor {
+
+  distribn_t *GMem_dbl_fOld_b;       // read
+  distribn_t *GMem_dbl_fNew_b;       // write
+  distribn_t *GMem_dbl_MacroVars;    // write
+  site_t *GMem_int64_Neigh;          // read
+  uint32_t *GMem_uint32_Wall_Link;   // unused
+  site_t nArr_dbl;
+  site_t lower_limit_MidFluid;
+  site_t upper_limit_MidFluid;
+  site_t lower_limit_Wall;
+  site_t upper_limit_Wall;
+  site_t totalSharedFs;
+  bool write_GlobalMem;
+  distribn_t* GMem_dbl_WallShearStressMagn; // write
+  distribn_t* GMem_dbl_WallNormal;          // read
+  distribn_t iStressParameter;
+  double minusInvTau;
+  int myPiD;
+
+  GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress_Functor(distribn_t *GMem_dbl_fOld_b_,       // read
+                                                                  distribn_t *GMem_dbl_fNew_b_,       // write
+                                                                  distribn_t *GMem_dbl_MacroVars_,    // write
+                                                                  site_t *GMem_int64_Neigh_,          // read
+                                                                  uint32_t *GMem_uint32_Wall_Link_,   // unused
+                                                                  site_t nArr_dbl_, site_t lower_limit_MidFluid_, site_t upper_limit_MidFluid_,
+                                                                  site_t lower_limit_Wall_, site_t upper_limit_Wall_, site_t totalSharedFs_, bool write_GlobalMem_,
+                                                                  distribn_t* GMem_dbl_WallShearStressMagn_, distribn_t* GMem_dbl_WallNormal_, distribn_t iStressParameter_,
+                                                                  double minusInvTau_, int myPiD_)
+      : GMem_dbl_fOld_b(GMem_dbl_fOld_b_),               // read
+        GMem_dbl_fNew_b(GMem_dbl_fNew_b_),               // write
+        GMem_dbl_MacroVars(GMem_dbl_MacroVars_),         // write
+        GMem_int64_Neigh(GMem_int64_Neigh_),             // read
+        GMem_uint32_Wall_Link(GMem_uint32_Wall_Link_),   // unused
+        nArr_dbl(nArr_dbl_), lower_limit_MidFluid(lower_limit_MidFluid_), upper_limit_MidFluid(upper_limit_MidFluid_), lower_limit_Wall(lower_limit_Wall_),
+        upper_limit_Wall(upper_limit_Wall_), totalSharedFs(totalSharedFs_), write_GlobalMem(write_GlobalMem_),
+        GMem_dbl_WallShearStressMagn(GMem_dbl_WallShearStressMagn_), GMem_dbl_WallNormal(GMem_dbl_WallNormal_), iStressParameter(iStressParameter_),
+        minusInvTau(minusInvTau_),  myPiD(myPiD_){}
+
+  GPU_KERNEL void operator()(unsigned long long Ind) const {
+#if 1
+	const lb::lattices::D3Q19GPUConstants c;
+  	Ind = Ind + lower_limit_MidFluid;
+
+    if (Ind >= upper_limit_Wall) return;
+
+  double dev_ff[19];   //, dev_fEq[19];
+  double nn = 0.0;     // density
+  double momentum_x, momentum_y, momentum_z;
+  momentum_x = momentum_y = momentum_z = 0.0;
+
+  double velx, vely, velz;   // Fluid Velocity
+
+  //-----------------------------------------------------------------------------------------------------------
+  // 1. Read the fOld_GPU_b distr. functions
+  // 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
+  // 		a. Calculate density
+  // 		b. Calculate momentum - Note: No body forces
+
+#pragma unroll 19
+  for (int direction = 0; direction < c.NUMVECTORS; direction++) {
+    double ff = GMem_dbl_fOld_b[(unsigned long long) direction * nArr_dbl + Ind];
+    dev_ff[direction] = ff;
+    nn += ff;
+
+    // Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
+    momentum_x += (double) c.CX[direction] * ff;
+    momentum_y += (double) c.CY[direction] * ff;
+    momentum_z += (double) c.CZ[direction] * ff;
+  }
+
+  double density_1 = 1.0 / nn;
+
+  //-----------------------------------------------------------------------------------------------------------
+  // c. Calculate equilibrium distr. functions
+
+  // double momentumMagnitudeSquared = momentum_x * momentum_x
+  //											+ momentum_y * momentum_y + momentum_z * momentum_z;
+
+  double f_neq[19];
+#pragma unroll 19
+  for (int i = 0; i < c.NUMVECTORS; ++i) {
+    double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
+
+    double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * (momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z) * density_1 +
+                                          (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+    f_neq[i] = dev_ff[i] - dev_fEq;
+    dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+  }
+
+
+  // --------------------------------------------------------------------------------
+  // Streaming Step:
+  // a. Load the streaming indices
+
+	  		// modifies: mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+	  		//  		 GPUDataAddr_dbl_MacroVars
+  // b. If within the limits for the mWallCollision
+  //		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
+  //		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
+
+  site_t index_wall = nArr_dbl * c.NUMVECTORS;   // typedef int64_t site_t;
+
+  // In principle we can pull this out of the loop and save a load and a compare
+  // But for safety maybe I should put it back just now
+#if 0
+  GMem_dbl_fNew_b[Ind] = dev_ff[0];
+
+#pragma unroll 18
+  for (int LB_Dir = 1; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+#else
+
+#pragma unroll 19
+  for (int LB_Dir = 0; LB_Dir < c.NUMVECTORS; LB_Dir++) {
+#endif
+    int64_t dev_NeighInd =
+        GMem_int64_Neigh[(unsigned long long) LB_Dir * nArr_dbl + Ind];   // Neighbouring index refers to the index to be streamed to in the global memory. Here
+                                                                          // it Refers to Data Address NOT THE STREAMING FLUID ID!!!
+
+    // Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
+    // Option 1:
+    if (dev_NeighInd == index_wall)  // When setting up dev_NeighInd 'rubbish sites' (non-Fluid?) were set to nArr_dbl*NUMVECTORS
+    {
+      // Simple Bounce Back case:
+      GMem_dbl_fNew_b[(unsigned long long) c.INVERSEDIRECTIONS[LB_Dir] * nArr_dbl + Ind] = dev_ff[LB_Dir];   // Bounce Back - Same fluid ID - Reverse LB_Dir
+    } else {
+      GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir];                                                      // If neigh_d is selected
+    }
+
+  }
+
+  //=============================================================================================
+  // Write old density and velocity to memory -
+  // if (time_Step%_Send_MacroVars_DtH ==0){
+  if (write_GlobalMem) {
+    GMem_dbl_MacroVars[Ind] = nn;
+
+    velx = momentum_x * density_1;
+    vely = momentum_y * density_1;
+    velz = momentum_z * density_1;
+
+    GMem_dbl_MacroVars[1ULL * nArr_dbl + Ind] = velx;
+    GMem_dbl_MacroVars[2ULL * nArr_dbl + Ind] = vely;
+    GMem_dbl_MacroVars[3ULL * nArr_dbl + Ind] = velz;
+
+    // IZ 9 July 2024
+    // Wall shear stress magnitude calculation 
+    if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
+					distribn_t stress;
+
+					// Load the wall normal components from the GPU global memory
+					site_t shifted_Ind = Ind-lower_limit_Wall;
+					distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
+					distribn_t wall_normal_y = GMem_dbl_WallNormal[3*shifted_Ind + 1];
+					distribn_t wall_normal_z = GMem_dbl_WallNormal[3*shifted_Ind + 2];
+					//printf("Site: % ld, Wall normal components: (%5.5e, %5.5e, %5.5e)\n", Ind, wall_normal_x, wall_normal_y, wall_normal_z);
+
+          stress = _CalculateWallShearStressMagnitude(nn,
+						f_neq,
+						wall_normal_x, wall_normal_y, wall_normal_z,
+						iStressParameter);
+
+					GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
+			}
+  }
+
+#endif
+    //==========================================================================================
+  }    // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
+};    // End of functor
+
 
 //==========================================================================================
 // Save the fNew post-collision distribution functions in the fOld array

@@ -19,7 +19,7 @@ namespace hemelb {
 }
 
 namespace hemelb {
-namespace GPU { 
+namespace GPU {
 
 const char* deviceGetErrorString()
 {
@@ -27,7 +27,7 @@ const char* deviceGetErrorString()
 	return cudaGetErrorString(error);
 }
 
-bool deviceMemcpyAsync( void* dst, const void* src, size_t count, memcpyKind kind, Stream_t stream=0) 
+bool deviceMemcpyAsync( void* dst, const void* src, size_t count, memcpyKind kind, Stream_t stream=0)
 {
 	cudaMemcpyKind cudaKind = kind == memcpyHostToDevice ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost ;
 	cudaError_t cudaStatus = cudaMemcpyAsync(dst, src, count, cudaKind, stream);
@@ -57,13 +57,24 @@ bool deviceMalloc(void **ptr, size_t MemSz)
 	if( cudaStatus == cudaSuccess) {
 	  	return true;
 	}
-	else { 
+	else {
 		return false;
 	}
 }
 
-bool deviceMemcpyToSymbol( const void* symbol, const void* src, 
-							size_t count, size_t offset, 
+bool deviceHostAlloc(void **ptr, size_t MemSz)
+{
+  cudaError_t cudaStatus = cudaHostAlloc(ptr,MemSz, cudaHostAllocDefault);
+	if( cudaStatus == cudaSuccess) {
+	  	return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool deviceMemcpyToSymbol( const void* symbol, const void* src,
+							size_t count, size_t offset,
 							memcpyKind kind)
 {
 	cudaMemcpyKind cudaKind = kind == memcpyHostToDevice ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost ;
@@ -75,8 +86,8 @@ bool deviceMemcpyToSymbol( const void* symbol, const void* src,
 }
 
 bool deviceStreamCreate(Stream_t* streamPtr)
-{   
-    
+{
+
 	cudaError_t status = cudaStreamCreate((cudaStream_t *)streamPtr);
 	if (status != cudaSuccess ) {
 		return false;
@@ -96,9 +107,20 @@ deviceStreamDestroy(Stream_t stream) {
   cudaStreamDestroy((cudaStream_t) stream);
 }
 
-bool deviceFree(void *devPtr) 
+bool deviceFree(void *devPtr)
 {
 	cudaError_t ret = cudaFree(devPtr);
+	if( ret == cudaSuccess) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool deviceFreeHost(void *devPtr)
+{
+	cudaError_t ret = cudaFreeHost(devPtr);
 	if( ret == cudaSuccess) {
 		return true;
 	}
@@ -133,7 +155,7 @@ size_t deviceGetProperties(int myProc)
 		fflush(stdout);
   }
 	return dev_prop.totalGlobalMem;
-	
+
 }
 
 int deviceGetCount()
@@ -148,16 +170,16 @@ bool deviceAttach(int device)
 	cudaError_t cudaStatus = cudaSetDevice(device);
 	if (cudaStatus != cudaSuccess) {
 		return false;
-	}	
+	}
 	return true;
 }
 
-char pointerSpace(const void *p) 
+char pointerSpace(const void *p)
 {
   cudaPointerAttributes attr;
   cudaError_t err = cudaPointerGetAttributes(&attr,p);
- 
-  if ( err == cudaSuccess ) { 
+
+  if ( err == cudaSuccess ) {
 	  if( attr.type == cudaMemoryTypeHost ) {
 	   return 'h';
 	  }
@@ -170,13 +192,13 @@ char pointerSpace(const void *p)
 	  return 'm';
 	 }
 
-	if ( attr.type == cudaMemoryTypeUnregistered ) { 
+	if ( attr.type == cudaMemoryTypeUnregistered ) {
           return 'u';
         }
    }
 
   return 'x';
-   
+
 
 }
 

@@ -367,6 +367,15 @@ namespace hemelb
 				// Pointer to pinned memory
 				distribn_t *Data_H2D_memcpy_totalSharedFs, *Data_D2H_memcpy_totalSharedFs;
 
+				// Declare Static Pointers for pinned memory used in Read_Macrovariables_GPU_to_CPU
+				static distribn_t* dens_GPU;
+				static distribn_t* vx_GPU;
+				static distribn_t* vy_GPU;
+				static distribn_t* vz_GPU;
+
+				static distribn_t *WallShearStressMagn_Edge_Type2_GPU, *WallShearStressMagn_Edge_Type5_GPU, *WallShearStressMagn_Edge_Type6_GPU;
+				static distribn_t *WallShearStressMagn_Inner_Type2_GPU, *WallShearStressMagn_Inner_Type5_GPU, *WallShearStressMagn_Inner_Type6_GPU;
+
 				// Defice Streams
 				GPU::Stream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
 				GPU::Stream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
@@ -426,7 +435,7 @@ namespace hemelb
 				// Debugging Vel BCs case
 				bool compare_CPU_GPU_WallMom_correction(site_t firstIndex, site_t siteCount, std::vector<double>& wallMom_Iolet, void *GPUDataAddr_wallMom);
 
-
+				static void Cleanup_GPU_pinned_Memory();
 #endif
 //========================================================================
 				//IZ

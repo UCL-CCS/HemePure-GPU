@@ -59,6 +59,17 @@ deviceMalloc(void **ptr, size_t MemSz) {
   }
 }
 
+bool deviceHostAlloc(void **ptr, size_t MemSz)
+{
+  hipError_t hipStatus = hipHostMalloc(ptr,MemSz, hipHostMallocDefault);
+	if( hipStatus == hipSuccess) {
+	  	return true;
+	}
+	else {
+		return false;
+	}
+}
+
 bool
 deviceMemcpyToSymbol(const void *symbol, const void *src, size_t count, size_t offset, memcpyKind kind) {
   hipMemcpyKind hipKind = kind == memcpyHostToDevice ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost;
@@ -97,6 +108,17 @@ deviceFree(void *devPtr) {
   } else {
     return false;
   }
+}
+
+bool deviceFreeHost(void *devPtr)
+{
+	hipError_t ret = hipHostFree(devPtr);
+	if( ret == hipSuccess) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 size_t
@@ -145,7 +167,7 @@ __global__ void tmpKernel(float *x, const float *y, int N)
 
 	 if( tid < N ) {
 	 	x[tid] += y[tid];
-	}	
+	}
 }
 
 void dummyLauncher()

@@ -36,17 +36,52 @@ namespace hemelb
 		fprintf(fp, "%s\n", symbol.str().c_str());
 		for(size_t i=0; i < buffer.size(); i += sizeof(T)) {
 		  for(int j=0; j < sizeof(T); j++) {
-		 	 fprintf(fp, "0x%02hhx , ", buffer[i+j]); 
+		 	 fprintf(fp, "0x%02hhx , ", buffer[i+j]);
 		  }
 		  fprintf(fp,"\n");
 	  	}
-		fprintf(fp, "}; // %s_bytes\n", name.c_str() ); 
-		fprintf(fp, "%s* %s = reinterpret_cast<%s*>(%s_bytes);\n", type.c_str(), name.c_str(), type.c_str(),name.c_str()); 
+		fprintf(fp, "}; // %s_bytes\n", name.c_str() );
+		fprintf(fp, "%s* %s = reinterpret_cast<%s*>(%s_bytes);\n", type.c_str(), name.c_str(), type.c_str(),name.c_str());
 		fprintf(fp, "size_t nElem_%s = %lu ; \n", name.c_str(), nElem);
 		fprintf(fp, "\n");
 	}
 
 	namespace lb {
+
+#ifdef HEMELB_USE_GPU
+
+		// Define static variables associated with pinned memory in Read_Macrovariables_GPU_to_CPU
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::dens_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::vx_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::vy_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::vz_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Edge_Type2_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Edge_Type5_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Edge_Type6_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type2_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type5_GPU = nullptr;
+
+		template<class LatticeType>
+		distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
+
+#endif
 
 		template<class LatticeType>
 			hemelb::lb::LbmParameters* LBM<LatticeType>::GetLbmParams()
@@ -331,7 +366,7 @@ RECEIVING rank places these values in fOld (in totalSharedFs): Note that shift +
 
 				for (int LB_ind=0; LB_ind < LatticeType::NUMVECTORS; LB_ind++)
 				{
-					bool status = GPU::deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[(LB_ind*nFluid_nodes)+firstIndex]), 
+					bool status = GPU::deviceMemcpy(&(((distribn_t*)GPUDataAddr_dbl_fOld_b)[(LB_ind*nFluid_nodes)+firstIndex]),
 							&(Data_dbl_fOld_Tr[LB_ind * siteCount]), MemSz, GPU::memcpyHostToDevice);
 					if (!status) fprintf(stderr, "GPU memory copy failed (%d)\n", LB_ind);
 				}
@@ -1000,122 +1035,293 @@ bool LBM<LatticeType>::Read_Macrovariables_GPU_to_CPU(int64_t firstIndex, int64_
 	  Need to make it more general - Pass the Collision Kernel Impl. typename - To do!!!
 	  kernels::HydroVars<lb::kernels::LBGK<lb::lattices::D3Q19> > hydroVars(site);
 	 */
+	 bool res_Read_MacroVars = true;
 
-	bool res_Read_MacroVars = true;
+	 // Total number of fluid sites
+	 uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
 
-	// Total number of fluid sites
-	uint64_t nFluid_nodes = mLatDat->GetLocalFluidSiteCount(); // Actually GetLocalFluidSiteCount returns localFluidSites of type int64_t (site_t)
+	 //static size_t allocatedSize = 0;
+	 unsigned long long MemSz = siteCount * sizeof(distribn_t);
+	 //======================================================================
 
-	//--------------------------------------------------------------------------
-	//	a. Density
+	 // Allocate memory first (if not already allocated)
+	 // a. Density
+	 if (dens_GPU == nullptr){
+		 bool status = GPU::deviceHostAlloc((void**)&dens_GPU, MemSz);
+		 memset(dens_GPU, 0, MemSz);
+		 if(!status){
+					 printf("Density Memory allocation failure...\n");
+					 fflush(stdout);
+					 res_Read_MacroVars = false;
+					 return res_Read_MacroVars;
+			 }
+	 }
 
-	distribn_t* dens_GPU = new distribn_t[siteCount];
+	 // b. Velocity
+	 if (vx_GPU == nullptr){
+		 bool status = GPU::deviceHostAlloc((void**)&vx_GPU, MemSz);
+		 memset(vx_GPU, 0, MemSz);
+		 if(!status){
+					 printf("Vx Memory allocation failure...\n");
+					 fflush(stdout);
+					 res_Read_MacroVars = false;
+					 return res_Read_MacroVars;
+			 }
+	 }
+	 if (vy_GPU == nullptr){
+		 bool status = GPU::deviceHostAlloc((void**)&vy_GPU, MemSz);
+		 memset(vy_GPU, 0, MemSz);
+		 if(!status){
+					 printf("Vy Memory allocation failure...\n");
+					 fflush(stdout);
+					 res_Read_MacroVars = false;
+					 return res_Read_MacroVars;
+			 }
+	 }
+	 if (vz_GPU == nullptr){
+		 bool status = GPU::deviceHostAlloc((void**)&vz_GPU, MemSz);
+		 memset(vz_GPU, 0, MemSz);
+		 if(!status){
+					 printf("Vz Memory allocation failure...\n");
+					 fflush(stdout);
+					 res_Read_MacroVars = false;
+					 return res_Read_MacroVars;
+			 }
+	 }
 
-	if(dens_GPU==0){
-		printf("Density Memory allocation failure");
-		res_Read_MacroVars = false;
-		//return false;
-	}
+	 //--------------------------------------------------------------------------
+	 // Proceed with the memory transfer operations
+	 // a. Density
+	 if (propertyCache.densityCache.RequiresRefresh()) {
 
-	unsigned long long MemSz = siteCount*sizeof(distribn_t);
+		 bool status = GPU::deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]),
+						 MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
-	//cudaStatus = GPU::deviceMemcpy(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), MemSz, GPU::memcpyDeviceToHost);
-	bool status = GPU::deviceMemcpyAsync(dens_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[firstIndex]), 
-			MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+		 if(!status){
+			 printf("GPU memory transfer for density failed\n");
+			 fflush(stdout);
+			 GPU::deviceFreeHost(dens_GPU);
+			 dens_GPU = nullptr;
+			 res_Read_MacroVars = false;
+		 }
+	 }
+	 //--------------------------------------------------------------------------
+	 // b. Velocity
+	 if (propertyCache.velocityCache.RequiresRefresh()) {
 
-	if(!status){
-		printf("GPU memory transfer for density failed\n");
-		delete[] dens_GPU;
-		res_Read_MacroVars = false;
-		//return res_Read_MacroVars;
-	}
+			 if (vx_GPU && vy_GPU && vz_GPU) {
+				 bool status = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz,
+							 GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
-	// b. Velocity
-	distribn_t* vx_GPU = new distribn_t[siteCount];
-	distribn_t* vy_GPU = new distribn_t[siteCount];
-	distribn_t* vz_GPU = new distribn_t[siteCount];
+				 if(!status){
+					 printf("GPU memory transfer Vel(1) failed\n");
+					 fflush(stdout);
+					 GPU::deviceFreeHost(vx_GPU);
+					 vx_GPU = nullptr;
+					 res_Read_MacroVars = false;
+				 }
 
-	if(vx_GPU==0 || vy_GPU==0 || vz_GPU==0){
-		printf("Memory allocation failure");
-		res_Read_MacroVars = false;
-		//return res_Read_MacroVars;
-		//return false;
-	}
+				 status = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes + firstIndex]), MemSz,
+							 GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
-	status = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[1ULL*nFluid_nodes + firstIndex]), MemSz, 
-			GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-	//cudaStatus = GPU::deviceMemcpyAsync(vx_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[1ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
-	if(!status){
-		printf("GPU memory transfer Vel(1) failed\n");
-		delete[] vx_GPU;
-		res_Read_MacroVars = false;
-		//return res_Read_MacroVars;
-		//return false;
-	}
+				 if(!status){
+					 printf("GPU memory transfer Vel(2) failed\n");
+					 fflush(stdout);
+					 GPU::deviceFreeHost(vy_GPU);
+					 vy_GPU = nullptr;
+					 res_Read_MacroVars = false;
+				 }
 
-	status = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[2ULL*nFluid_nodes + firstIndex]), MemSz, 
-			GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-	//cudaStatus = GPU::deviceMemcpyAsync(vy_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[2ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
-	if(!status){
-		printf("GPU memory transfer Vel(2) failed\n");
-		delete[] vy_GPU;
-		res_Read_MacroVars = false;
-		//return res_Read_MacroVars;
-		//return false;
-	}
+				 status = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes + firstIndex]), MemSz,
+							 GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
 
-	status = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GPUDataAddr_dbl_MacroVars)[3ULL*nFluid_nodes + firstIndex]), 
-			MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
-	//cudaStatus = GPU::deviceMemcpyAsync(vz_GPU, &(((distribn_t*)GMem_dbl_MacroVars)[3ULL*nFluid_nodes]), MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Vel);
-	if(!status){
-		printf("GPU memory transfer Vel(3) failed\n");
-		delete[] vz_GPU;
-		res_Read_MacroVars = false;
-		//return res_Read_MacroVars;
-		//return false;
-	}
-	//--------------------------------------------------------------------------
-	//hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // Check for last cuda error: Remember that it is in DEBUG flag
+				 if(!status){
+					 printf("GPU memory transfer Vel(3) failed\n");
+					 fflush(stdout);
+					 GPU::deviceFreeHost(vz_GPU);
+					 vz_GPU = nullptr;
+					 res_Read_MacroVars = false;
+				 }
 
-	GPU::deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
-	//
-	// Read only the density, velocity and fNew[] that needs to be passed to the CPU at the updated sites: The ones that had been updated in the GPU collision kernel
-	for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++)
-	{
-		geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
-		// printf("site.GetIndex() = %lld Vs siteIndex = %lld \n\n", site.GetIndex(), siteIndex); // Works fine - Access to the correct site
+			 }
+	 }
 
-		//
-		// Need to make it more general - Pass the Collision Kernel Impl. typename - To do!!!
-		kernels::HydroVars<LB_KERNEL> hydroVars(site);
-		//kernels::HydroVars<lb::kernels::LBGK<lb::lattices::D3Q19> > hydroVars(site);
-		//kernels::HydroVarsBase<LatticeType> hydroVars(site);
+	 // Synchronize the stream to ensure all memcpy operations (density and velocity) are completed
+	 GPU::deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
 
-		// Pass the density and velocity to the hydroVars and the densityCache, velocityCache
-		hydroVars.density = dens_GPU[siteIndex-firstIndex];
-		hydroVars.velocity.x = vx_GPU[siteIndex-firstIndex];
-		hydroVars.velocity.y = vy_GPU[siteIndex-firstIndex];
-		hydroVars.velocity.z = vz_GPU[siteIndex-firstIndex];
+	 // Copy the density - velocity values in hydroVars and propertyCache
+	 if (propertyCache.densityCache.RequiresRefresh() || propertyCache.velocityCache.RequiresRefresh()) {
+			 for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++) {
+					 geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
 
-		// TODO: I will need to change the following so that it gets updated only
-		// if (propertyCache.densityCache.RequiresRefresh())
-		// if (propertyCache.velocityCache.RequiresRefresh())
-		propertyCache.densityCache.Put(siteIndex, hydroVars.density);		//propertyCache.densityCache.Put(site.GetIndex(), hydroVars.density);
-		propertyCache.velocityCache.Put(siteIndex, hydroVars.velocity);	//propertyCache.velocityCache.Put(site.GetIndex(), hydroVars.velocity);
+					 // Need to make it more general - Pass the Collision Kernel Impl. typename - To do!!!
+					 kernels::HydroVars<LB_KERNEL> hydroVars(site);
 
-		// TODO: Check that the MacroVariables (density etc)  are actually written
-		//printf("Reading Density: %.5f \n\n", dens_GPU[siteIndex-firstIndex]); // Successful !
-		//printf("Reading Density from HydroVars: %.5f \n\n", hydroVars.density);
-	}
+					 // Pass the density and velocity to the hydroVars and the densityCache, velocityCache
+					 if (propertyCache.densityCache.RequiresRefresh()) {
+							 hydroVars.density = dens_GPU[siteIndex - firstIndex];
+							 propertyCache.densityCache.Put(siteIndex, hydroVars.density);
+					 }
+
+					 if (propertyCache.velocityCache.RequiresRefresh()) {
+							 hydroVars.velocity.x = vx_GPU[siteIndex - firstIndex];
+							 hydroVars.velocity.y = vy_GPU[siteIndex - firstIndex];
+							 hydroVars.velocity.z = vz_GPU[siteIndex - firstIndex];
+							 propertyCache.velocityCache.Put(siteIndex, hydroVars.velocity);
+					 }
+			 }
+	 }
+
+	 // Wall Shear Stress Magnitude Case - Fill First the non-adjacent to walls sites
+	 if (propertyCache.wallShearStressMagnitudeCache.RequiresRefresh()) {
+		 for (site_t siteIndex = firstIndex; siteIndex < (firstIndex + siteCount); siteIndex++) {
+			 geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
+			 //
+			 if (!site.IsWall()) {
+					 distribn_t stress = NO_VALUE; // constants.h: const distribn_t NO_VALUE = std::numeric_limits<distribn_t>::max();
+					 propertyCache.wallShearStressMagnitudeCache.Put(site.GetIndex(), stress);
+			 }
+			 //
+		 }
+	 }
+
+	 // Wall Shear Stress Magnitude Case - Fill the adjacent to walls sites
+	 if (propertyCache.wallShearStressMagnitudeCache.RequiresRefresh()) {
+			 distribn_t stress;
+
+			 auto copyWallShearStress_to_propertyCache = [&](distribn_t* stressArray, site_t start_Index, site_t total_numElements) {
+					 for (site_t siteIndex = start_Index; siteIndex < (start_Index + total_numElements); siteIndex++) {
+							 geometry::Site<geometry::LatticeData> site = mLatDat->GetSite(siteIndex);
+							 stress = stressArray[siteIndex - start_Index];
+							 propertyCache.wallShearStressMagnitudeCache.Put(site.GetIndex(), stress);
+					 }
+			 };
+
+			 //--------------------
+			 // Site limits
+			 // A. Domain Edge
+			 site_t start_Index_Edge_Type2 = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0);
+			 site_t total_numElements_Edge_Type2 = mLatDat->GetDomainEdgeCollisionCount(1);
+			 site_t start_Index_Edge_Type5 = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0) + mLatDat->GetDomainEdgeCollisionCount(1)
+																			 + mLatDat->GetDomainEdgeCollisionCount(2) + mLatDat->GetDomainEdgeCollisionCount(3);
+			 site_t total_numElements_Edge_Type5 = mLatDat->GetDomainEdgeCollisionCount(4);
+			 site_t start_Index_Edge_Type6 = mLatDat->GetMidDomainSiteCount() + mLatDat->GetDomainEdgeCollisionCount(0) + mLatDat->GetDomainEdgeCollisionCount(1)
+																			 + mLatDat->GetDomainEdgeCollisionCount(2) + mLatDat->GetDomainEdgeCollisionCount(3) + mLatDat->GetDomainEdgeCollisionCount(4);
+			 site_t total_numElements_Edge_Type6 = mLatDat->GetDomainEdgeCollisionCount(5);
+
+			 // B. Inner Domain
+			 site_t start_Index_Inner_Type2 = mLatDat->GetMidDomainCollisionCount(0);
+			 site_t total_numElements_Inner_Type2 = mLatDat->GetMidDomainCollisionCount(1);
+			 site_t start_Index_Inner_Type5 = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2) + mLatDat->GetMidDomainCollisionCount(3);
+			 site_t total_numElements_Inner_Type5 = mLatDat->GetMidDomainCollisionCount(4);
+			 site_t start_Index_Inner_Type6 = mLatDat->GetMidDomainCollisionCount(0) + mLatDat->GetMidDomainCollisionCount(1) + mLatDat->GetMidDomainCollisionCount(2)
+																				+ mLatDat->GetMidDomainCollisionCount(3) + mLatDat->GetMidDomainCollisionCount(4);
+			 site_t total_numElements_Inner_Type6 = mLatDat->GetMidDomainCollisionCount(5);
+			 //--------------------
+
+			 auto allocateAndCopyD2H = [&](distribn_t*& stressArray, void* GPUDataAddr, site_t total_numElements) {
+					 if (total_numElements != 0) {
+
+						 // Allocate only the first time
+						 if (stressArray == nullptr) {
+							 bool status = GPU::deviceHostAlloc((void**)&stressArray, total_numElements * sizeof(distribn_t));
+							 memset(stressArray, 0, total_numElements * sizeof(distribn_t));
+							 if (stressArray == nullptr) {
+									 printf("Wall Shear Stress magnitude allocation failure");
+									 fflush(stdout);
+									 res_Read_MacroVars = false;
+							 }
+						 }
+
+						 // D2H mem. copy  wall shear stress magnitudes
+						 MemSz = total_numElements * sizeof(distribn_t);
+						 bool status = GPU::deviceMemcpyAsync(stressArray, GPUDataAddr, MemSz, GPU::memcpyDeviceToHost, stream_Read_Data_GPU_Dens);
+						 if(!status){
+							 printf("GPU memory transfer for Wall Shear Stress magnitude failed...\n");
+							 fflush(stdout);
+							 GPU::deviceFreeHost(stressArray);
+							 stressArray = nullptr;
+							 res_Read_MacroVars = false;
+						 }
+					 }
+				 };
+
+			 // Domain Edge
+			 allocateAndCopyD2H(WallShearStressMagn_Edge_Type2_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type2, total_numElements_Edge_Type2);
+			 allocateAndCopyD2H(WallShearStressMagn_Edge_Type5_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type5, total_numElements_Edge_Type5);
+			 allocateAndCopyD2H(WallShearStressMagn_Edge_Type6_GPU, GPUDataAddr_WallShearStressMagn_Edge_Type6, total_numElements_Edge_Type6);
+
+			 // Inner Domain
+			 allocateAndCopyD2H(WallShearStressMagn_Inner_Type2_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type2, total_numElements_Inner_Type2);
+			 allocateAndCopyD2H(WallShearStressMagn_Inner_Type5_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type5, total_numElements_Inner_Type5);
+			 allocateAndCopyD2H(WallShearStressMagn_Inner_Type6_GPU, GPUDataAddr_WallShearStressMagn_Inner_Type6, total_numElements_Inner_Type6);
+
+			 // Ensure that the memory allocations and copies above have completed
+			 GPU::deviceStreamSynchronize(stream_Read_Data_GPU_Dens);
 
 
-	// Free memory once the mem.copies are Completed
-	if(res_Read_MacroVars){
-		delete[] dens_GPU;
-		delete[] vx_GPU, vy_GPU, vz_GPU;
-	}
+			 if (WallShearStressMagn_Edge_Type2_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type2_GPU, start_Index_Edge_Type2, total_numElements_Edge_Type2);
+			 if (WallShearStressMagn_Edge_Type5_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type5_GPU, start_Index_Edge_Type5, total_numElements_Edge_Type5);
+			 if (WallShearStressMagn_Edge_Type6_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Edge_Type6_GPU, start_Index_Edge_Type6, total_numElements_Edge_Type6);
 
-	return res_Read_MacroVars;
+			 if (WallShearStressMagn_Inner_Type2_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type2_GPU, start_Index_Inner_Type2, total_numElements_Inner_Type2);
+			 if (WallShearStressMagn_Inner_Type5_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type5_GPU, start_Index_Inner_Type5, total_numElements_Inner_Type5);
+			 if (WallShearStressMagn_Inner_Type6_GPU) copyWallShearStress_to_propertyCache(WallShearStressMagn_Inner_Type6_GPU, start_Index_Inner_Type6, total_numElements_Inner_Type6);
+	 }
+
+	 return res_Read_MacroVars;
+
+}
+
+
+//=================================================================================================
+// Function for cleaning up the static pointers
+// 	associated with the function Read_Macrovariables_GPU_to_CPU
+// 	A. density, velocity
+// 	B. wall shear stress magnitude
+//=================================================================================================
+template<class LatticeType>
+void LBM<LatticeType>::Cleanup_GPU_pinned_Memory() {
+		if (dens_GPU) {
+				GPU::deviceFreeHost(dens_GPU);
+				dens_GPU = nullptr;
+		}
+		if (vx_GPU) {
+				GPU::deviceFreeHost(vx_GPU);
+				vx_GPU = nullptr;
+		}
+		if (vy_GPU) {
+				GPU::deviceFreeHost(vy_GPU);
+				vy_GPU = nullptr;
+		}
+		if (vz_GPU) {
+				GPU::deviceFreeHost(vz_GPU);
+				vz_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Edge_Type2_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Edge_Type2_GPU);
+				WallShearStressMagn_Edge_Type2_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Edge_Type5_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Edge_Type5_GPU);
+				WallShearStressMagn_Edge_Type5_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Edge_Type6_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Edge_Type6_GPU);
+				WallShearStressMagn_Edge_Type6_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Inner_Type2_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Inner_Type2_GPU);
+				WallShearStressMagn_Inner_Type2_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Inner_Type5_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Inner_Type5_GPU);
+				WallShearStressMagn_Inner_Type5_GPU = nullptr;
+		}
+		if (WallShearStressMagn_Inner_Type6_GPU) {
+				GPU::deviceFreeHost(WallShearStressMagn_Inner_Type6_GPU);
+				WallShearStressMagn_Inner_Type6_GPU = nullptr;
+		}
 }
 
 
@@ -2960,7 +3166,7 @@ bool LBM<LatticeType>::FinaliseGPU()
 
 	status = GPU::deviceFree(mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
 	if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
-	
+
 	status = GPU::deviceFree(GPUDataAddr_int64_Neigh_d);
 	if(!status){ fprintf(stderr, "GPU::deviceFree failed\n"); finalise_GPU_res=false; }
 
@@ -3219,7 +3425,7 @@ bool LBM<LatticeType>::Initialise_GPU(iolets::BoundaryValues* iInletValues,
 			// Calculate its ACTUAL streaming fluid ID index
 			// And then the corresponding address in global memory .
 			// NB: For Non-fluid sites (rubbish sites?) neigh_Index_Heme =  neigbourIndices[] is set to GetLocalFluidSiteCount()*NUMVECTORS
-			// 
+			//
 			if (neigh_Index_Heme < mLatDat->GetLocalFluidSiteCount() * LatticeType::NUMVECTORS )
 			{
 				site_t neigh_Fluid_Index = (neigh_Index_Heme - l)/LatticeType::NUMVECTORS;	// Evaluate the ACTUAL streaming fluid ID index
@@ -6463,14 +6669,34 @@ void LBM<LatticeType>::PreSend()
 	// To access the data in GPU global memory:
 	// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)
 	if(nBlocks_Collide!=0) {
-
+		/*
 		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_Functor<LatticeType> collision_kernel(
-				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 				(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 				(distribn_t*)GPUDataAddr_dbl_MacroVars,
-				(site_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, nFluid_nodes, first_Index,
-				(first_Index + site_Count_MidFluid), (first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), myPiD);
+				(site_t *) GPUDataAddr_int64_Neigh_d,
+				(uint32_t *) GPUDataAddr_uint32_Wall,
+				nFluid_nodes,
+				first_Index, (first_Index + site_Count_MidFluid),
+				(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+				mParams.GetOmega(), myPiD
+			);
+			*/
 
+		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress_Functor<LatticeType> collision_kernel(
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+					(distribn_t*)GPUDataAddr_dbl_MacroVars,
+					(site_t *) GPUDataAddr_int64_Neigh_d,
+					(uint32_t *) GPUDataAddr_uint32_Wall,
+					nFluid_nodes,
+					first_Index, (first_Index + site_Count_MidFluid),
+					(first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+					(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type2,
+					(distribn_t*)GPUDataAddr_WallNormal_Edge_Type2,
+					mParams.GetStressParameter(),
+					mParams.GetOmega(), myPiD
+				);
 		GPU::kernelLaunch(collision_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_1);
 
 
@@ -6802,7 +7028,7 @@ void LBM<LatticeType>::PreSend()
 		if(hemeIoletBC_Inlet == "LADDIOLET"){
 
 			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> kern(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet,
@@ -6819,23 +7045,23 @@ void LBM<LatticeType>::PreSend()
 			if (n_LocalInlets_mInlet_Edge <=(local_iolets_MaxSIZE/3)){
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
-						(int64_t *) GPUDataAddr_int64_Neigh_d, 
-						(uint32_t *) GPUDataAddr_uint32_Iolet, 
-						(distribn_t *) d_ghostDensity, 
+						(int64_t *) GPUDataAddr_int64_Neigh_d,
+						(uint32_t *) GPUDataAddr_uint32_Iolet,
+						(distribn_t *) d_ghostDensity,
 						(float *) d_inletNormal, n_Inlets,
 						(mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalInlets_mInlet_Edge,
 						Inlet_Edge, mParams.GetOmega(), myPiD, __LINE__);
 
-				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3); 
+				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_3);
 
 			}
 			else{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity, (float *) d_inletNormal, n_Inlets,
@@ -6876,12 +7102,12 @@ void LBM<LatticeType>::PreSend()
 		if(hemeIoletBC_Outlet == "LADDIOLET"){
 
   		    hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> collide_kern(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					 (int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet,
-					(mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_Outlet_Edge, 
-					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), 
+					(mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_Outlet_Edge,
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count),
 					mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega());
 
 			GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_4);
@@ -6894,7 +7120,7 @@ void LBM<LatticeType>::PreSend()
 			{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity_out, (float *) d_outletNormal,
@@ -6907,7 +7133,7 @@ void LBM<LatticeType>::PreSend()
 			else{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity_out, (float *) d_outletNormal,
@@ -6946,14 +7172,27 @@ void LBM<LatticeType>::PreSend()
 		// TODO: Choose the appropriate kernel depending on BCs:
 		// Inlets BCs
 		if(hemeIoletBC_Inlet == "LADDIOLET"){
-
+			/*
 			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_Functor<LatticeType> velbc_functor(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
 					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_InletWall_Edge,
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
+			*/
+
+			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress_Functor<LatticeType> velbc_functor(
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+					(distribn_t*)GPUDataAddr_dbl_MacroVars,
+					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
+					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_InletWall_Edge,
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+					(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type5,
+					(distribn_t*)GPUDataAddr_WallNormal_Edge_Type5,
+					mParams.GetStressParameter(),
+					mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch(velbc_functor, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5);
 		}
@@ -6961,27 +7200,54 @@ void LBM<LatticeType>::PreSend()
 
 			if(n_LocalInlets_mInletWall_Edge <=(local_iolets_MaxSIZE/3))
 			{
-
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
 						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
 						Write_GlobalMem, n_LocalInlets_mInletWall_Edge, InletWall_Edge, mParams.GetOmega() );   //
+				*/
 
-				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5); 
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
+						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
+						Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type5,
+						(distribn_t*)GPUDataAddr_WallNormal_Edge_Type5,
+						mParams.GetStressParameter(),
+						n_LocalInlets_mInletWall_Edge, InletWall_Edge, mParams.GetOmega() );   //
+
+				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5);
 
 			}
 			else{
-
-				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_Functor<LatticeType> collide_kern( 
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+				/*
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
 						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
 						Write_GlobalMem, n_LocalInlets_mInletWall_Edge,
+						(site_t *) GPUDataAddr_InletWall_Edge, mParams.GetOmega());   //
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
+						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
+						Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type5,
+						(distribn_t*)GPUDataAddr_WallNormal_Edge_Type5,
+						mParams.GetStressParameter(),
+						n_LocalInlets_mInletWall_Edge,
 						(site_t *) GPUDataAddr_InletWall_Edge, mParams.GetOmega());   //
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_5 );
@@ -7017,14 +7283,27 @@ void LBM<LatticeType>::PreSend()
 		// TODO: Choose the appropriate kernel depending on BCs:
 		// Inlets BCs
 		if(hemeIoletBC_Outlet == "LADDIOLET"){
-
+			/*
 			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_Functor<LatticeType> velbc_functor(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
 					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_OutletWall_Edge,
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
+			*/
+
+			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress_Functor<LatticeType> velbc_functor(
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+					(distribn_t*)GPUDataAddr_dbl_MacroVars,
+					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
+					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_OutletWall_Edge,
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+					(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type6,
+					(distribn_t*)GPUDataAddr_WallNormal_Edge_Type6,
+					mParams.GetStressParameter(),
+					mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch( velbc_functor, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
 
@@ -7032,26 +7311,53 @@ void LBM<LatticeType>::PreSend()
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalOutlets_mOutletWall_Edge<=(local_iolets_MaxSIZE/3))
 			{
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
 						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
 						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalOutlets_mOutletWall_Edge, OutletWall_Edge, mParams.GetOmega());
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
+						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
+						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type6,
+						(distribn_t*)GPUDataAddr_WallNormal_Edge_Type6,
+						mParams.GetStressParameter(),
+						n_LocalOutlets_mOutletWall_Edge, OutletWall_Edge, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
 
 			}
 			else{
-
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
 						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
 						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalOutlets_mOutletWall_Edge, (site_t *) GPUDataAddr_OutletWall_Edge, mParams.GetOmega());
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
+						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
+						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Edge_Type6,
+						(distribn_t*)GPUDataAddr_WallNormal_Edge_Type6,
+						mParams.GetStressParameter(),
+						n_LocalOutlets_mOutletWall_Edge, (site_t *) GPUDataAddr_OutletWall_Edge, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreSend_6);
 			}
@@ -7223,15 +7529,28 @@ void LBM<LatticeType>::PreReceive()
 	// To access the data in GPU global memory:
 	// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)
 	if(nBlocks_Collide!=0) {
-
+		/*
 		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_Functor<LatticeType> collision_kernel(
-				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 				(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 				(distribn_t*)GPUDataAddr_dbl_MacroVars,
 				(site_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, nFluid_nodes, first_Index,
 				(first_Index + site_Count_MidFluid), (first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs,
 				Write_GlobalMem, mParams.GetOmega(),myPiD);   // (int64_t*)GPUDataAddr_int64_Neigh_b
+		*/
 
+		hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress_Functor<LatticeType> collision_kernel(
+				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+				(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+				(distribn_t*)GPUDataAddr_dbl_MacroVars,
+				(site_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, nFluid_nodes, first_Index,
+				(first_Index + site_Count_MidFluid), (first_Index + site_Count_MidFluid), (first_Index + site_Count), mLatDat->totalSharedFs,
+				Write_GlobalMem,
+				(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type2,
+				(distribn_t*)GPUDataAddr_WallNormal_Inner_Type2,
+				mParams.GetStressParameter(),
+				mParams.GetOmega(),myPiD
+			);
 		GPU::kernelLaunch(collision_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_1);
 
 
@@ -7501,7 +7820,7 @@ void LBM<LatticeType>::PreReceive()
 #endif
 			// Adding a printf here.. heled
 			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> c_kern2(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet,
@@ -7510,7 +7829,7 @@ void LBM<LatticeType>::PreReceive()
 
 			GPU::kernelLaunch(c_kern2, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_3);
 
-	#if 0	   
+	#if 0
 			bufferWrite<distribn_t>(fp, "distribn_t", "fNew_result", nElemF, mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat);
 			bufferWrite<distribn_t>(fp, "distribn_t", "MacroVars_result", nElemMacroVars, GPUDataAddr_dbl_MacroVars);
 			fprintf(fp,"}\n");
@@ -7519,14 +7838,14 @@ void LBM<LatticeType>::PreReceive()
 			MPI_Finalize();
 			abort();
 	#endif
-	
+
 		}
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalInlets_mInlet<=(local_iolets_MaxSIZE/3))
 			{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity, (float *) d_inletNormal, n_Inlets,
@@ -7539,7 +7858,7 @@ void LBM<LatticeType>::PreReceive()
 			else{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity, (float *) d_inletNormal, n_Inlets,
@@ -7580,9 +7899,9 @@ void LBM<LatticeType>::PreReceive()
 		// TODO: Choose the appropriate kernel depending on BCs:
 		// Inlets BCs
 		if(hemeIoletBC_Outlet == "LADDIOLET"){
-			
+
 			hemelb::GPU_CollideStream_Iolets_Ladd_VelBCs_Functor<LatticeType> c_kern4(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet,
@@ -7598,19 +7917,19 @@ void LBM<LatticeType>::PreReceive()
 
 				// Call the bad routine
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity_out, (float *) d_outletNormal,
 						n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
 						n_LocalOutlets_mOutlet, Outlet_Inner, mParams.GetOmega(), myPiD, __LINE__);
 
-				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_4);	
+				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_4);
 			}
 			else{
 
 				hemelb::GPU_CollideStream_Iolets_NashZerothOrderPressure_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity_out, (float *) d_outletNormal,
@@ -7653,13 +7972,27 @@ void LBM<LatticeType>::PreReceive()
 		if(hemeIoletBC_Inlet == "LADDIOLET"){
 
 			/******** SOMETHING IS FUNKY HERE *********/
+			/*
 			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_Functor<LatticeType> velbc_kernel(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
 					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_InletWall_Inner,
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
+			*/
+
+			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress_Functor<LatticeType> velbc_kernel(
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+					(distribn_t*)GPUDataAddr_dbl_MacroVars,
+					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
+					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_InletWall_Inner,
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+					(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type5,
+					(distribn_t*)GPUDataAddr_WallNormal_Inner_Type5,
+					mParams.GetStressParameter(),
+					mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch(velbc_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5);
 
@@ -7667,27 +8000,52 @@ void LBM<LatticeType>::PreReceive()
 		else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalInlets_mInletWall<=(local_iolets_MaxSIZE/3))
 			{
-
-
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
 						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
 						Write_GlobalMem, n_LocalInlets_mInletWall, InletWall_Inner, mParams.GetOmega());
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
+						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
+						Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type5,
+						(distribn_t*)GPUDataAddr_WallNormal_Inner_Type5,
+						mParams.GetStressParameter(),
+						n_LocalInlets_mInletWall, InletWall_Inner, mParams.GetOmega());
 
 				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5);
 			}
 			else{
-
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
 						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
 						Write_GlobalMem, n_LocalInlets_mInletWall, (site_t *) GPUDataAddr_InletWall_Inner, mParams.GetOmega());
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet, (distribn_t *) d_ghostDensity,
+						(float *) d_inletNormal, n_Inlets, (mLatDat->GetLocalFluidSiteCount()), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs,
+						Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type5,
+						(distribn_t*)GPUDataAddr_WallNormal_Inner_Type5,
+						mParams.GetStressParameter(),
+						n_LocalInlets_mInletWall, (site_t *) GPUDataAddr_InletWall_Inner, mParams.GetOmega());
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_5  );
 
@@ -7725,40 +8083,80 @@ void LBM<LatticeType>::PreReceive()
 		// TODO: Choose the appropriate kernel depending on BCs:
 		// Inlets BCs
 		if(hemeIoletBC_Outlet == "LADDIOLET"){
-
+			/*
 			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_Functor<LatticeType> velbc_kernel(
-					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 					(distribn_t*)GPUDataAddr_dbl_MacroVars,
 					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
 					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_OutletWall_Inner,
 					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, mParams.GetOmega(), Cs2);
+			*/
+
+			hemelb::GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress_Functor<LatticeType> velbc_kernel(
+					(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+					(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+					(distribn_t*)GPUDataAddr_dbl_MacroVars,
+					(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall,
+					(uint32_t *) GPUDataAddr_uint32_Iolet, (mLatDat->GetLocalFluidSiteCount()), (distribn_t *) GPUDataAddr_wallMom_correction_OutletWall_Inner,
+					site_Count * (LatticeType::NUMVECTORS - 1), first_Index, (first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+					(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type6,
+					(distribn_t*)GPUDataAddr_WallNormal_Inner_Type6,
+					mParams.GetStressParameter(),
+					mParams.GetOmega(), Cs2);
 
 			GPU::kernelLaunch(velbc_kernel, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
 		}
 		else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 			if(n_LocalOutlets_mOutletWall<=(local_iolets_MaxSIZE/3))
 			{
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
 						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
 						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalOutlets_mOutletWall, OutletWall_Inner, mParams.GetOmega());   //
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
+						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
+						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type6,
+						(distribn_t*)GPUDataAddr_WallNormal_Inner_Type6,
+						mParams.GetStressParameter(),
+						n_LocalOutlets_mOutletWall, OutletWall_Inner, mParams.GetOmega());   //
 
 				GPU::kernelLaunch(collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
 
 			}
 			else{
-				
+				/*
 				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_Functor<LatticeType> collide_kern(
-						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 						(double*)GPUDataAddr_dbl_MacroVars,
 						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
 						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
 						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem, n_LocalOutlets_mOutletWall, (site_t *) GPUDataAddr_OutletWall_Inner, mParams.GetOmega());
+				*/
+
+				hemelb::GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress_Functor<LatticeType> collide_kern(
+						(double *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
+						(double*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
+						(double*)GPUDataAddr_dbl_MacroVars,
+						(int64_t *) GPUDataAddr_int64_Neigh_d, (uint32_t *) GPUDataAddr_uint32_Wall, (uint32_t *) GPUDataAddr_uint32_Iolet,
+						(distribn_t *) d_ghostDensity_out, (float *) d_outletNormal, n_Outlets, (mLatDat->GetLocalFluidSiteCount()), first_Index,
+						(first_Index + site_Count), mLatDat->totalSharedFs, Write_GlobalMem,
+						(distribn_t*)GPUDataAddr_WallShearStressMagn_Inner_Type6,
+						(distribn_t*)GPUDataAddr_WallNormal_Inner_Type6,
+						mParams.GetStressParameter(),
+						n_LocalOutlets_mOutletWall, (site_t *) GPUDataAddr_OutletWall_Inner, mParams.GetOmega());
 
 				GPU::kernelLaunch( collide_kern, nBlocks_Collide, nThreadsPerBlock_Collide, 0, Collide_Stream_PreRec_6);
 
@@ -7948,7 +8346,7 @@ void LBM<LatticeType>::PostReceive()
 	if (nBlocks_StreamRecDistr!=0) {
 
 		hemelb::GPU_StreamReceivedDistr_Functor<LatticeType> streaming_kernel(
-				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat, 
+				(distribn_t *) mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 				(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 				(site_t *) GPUDataAddr_int64_streamInd,
 				(mLatDat->GetLocalFluidSiteCount()), totSharedFs);
@@ -8088,16 +8486,12 @@ void LBM<LatticeType>::EndIteration()
 	// Or use the variable frequency_WriteGlobalMem defined in cuda_params.h
 	if (mState->GetTimeStep() % frequency_WriteGlobalMem == 0)
 	{
-		// Check whether the hemeLB picks up the macroVariables at the EndIteration step???
-		// Only the data in propertyCache, i.e. propertyCache.densityCache and propertyCache.velocityCache
 		lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
 
 		if(myPiD!=0){
-			//Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache, kernels::HydroVars<LB_KERNEL> hydroVars(const geometry::Site<geometry::LatticeData>& _site)); // Copy the whole array GPUDataAddr_dbl_fNew_b from the GPU to CPUDataAddr_dbl_fNew_b. Then just read just the elements needed.
-			Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache); // Practicaly in a synchronous way... Check if it can be modified in the future.
+			bool res_Read_MacroVars_FromGPU = Read_Macrovariables_GPU_to_CPU(0, mLatDat->GetLocalFluidSiteCount(), propertyCache); // Practicaly in a synchronous way... Check if it can be modified in the future.
 
-			// Think about sending the distribution functions in fNew GPU global memory to fOld in CPU host memory
-			//Read_DistrFunctions_GPU_to_CPU_FluidSites();
+			if (!res_Read_MacroVars_FromGPU) printf("Rank: %d - Time: %ld - Error getting macroVars from GPU ... \n", myPiD, mState->GetTimeStep());
 		}
 	}
 	//========================================================================================================
@@ -8146,6 +8540,11 @@ LBM<LatticeType>::~LBM()
 	delete mOutletCollision;
 	delete mInletWallCollision;
 	delete mOutletWallCollision;
+
+#ifdef HEMELB_USE_GPU
+	Cleanup_GPU_pinned_Memory();
+#endif
+
 }
 
 	template<class LatticeType>
