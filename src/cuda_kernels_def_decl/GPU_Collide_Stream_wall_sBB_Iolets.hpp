@@ -321,25 +321,34 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_Wal
 		// c. Calculate equilibrium distr. functions
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
-					+ momentum_y * momentum_y + momentum_z * momentum_z;
+		            + momentum_y * momentum_y + momentum_z * momentum_z;
 
     double f_neq[19];
-#pragma unroll 19
-		for(int i = 0; i < c.NUMVECTORS; ++i)
-		{
-			double mom_dot_ei = (double)c.CX[i] * momentum_x
-						+ (double)c.CY[i] * momentum_y
-						+ (double)c.CZ[i] * momentum_z;
+    if(write_GlobalMem){
+    #pragma unroll 19
+      for (int i = 0; i < c.NUMVECTORS; ++i) {
+        double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
-			double dev_fEq = c.EQMWEIGHTS[i]
-													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
-																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+        double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                              (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
-      f_neq[i] = dev_ff[i] - dev_fEq;
-		 	dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
-      // Maybe switch to
-      // dev_ff[i] += f_neq[i]  * minusInvTau;
-		}
+        f_neq[i] = dev_ff[i] - dev_fEq;
+        //dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+        dev_ff[i] += f_neq[i] * minusInvTau;
+      }
+    }
+    else{
+      #pragma unroll 19
+        for (int i = 0; i < c.NUMVECTORS; ++i) {
+          double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
+
+          double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                                (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+          //f_neq[i] = dev_ff[i] - dev_fEq;
+          dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+          //dev_ff[i] += f_neq[i] * minusInvTau;
+        }
+    }
 		//-----------------------------------------------------------------------------------------------------------
 
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
@@ -908,25 +917,36 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_iolet_Nash_v2_
 		// c. Calculate equilibrium distr. functions
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
-													+ momentum_y * momentum_y + momentum_z * momentum_z;
+	                         + momentum_y * momentum_y + momentum_z * momentum_z;
 
     double f_neq[19];
-#pragma unroll 19
-		for(int i = 0; i < c.NUMVECTORS; ++i)
-		{
-			double mom_dot_ei = (double)c.CX[i] * momentum_x
-							+ (double)c.CY[i] * momentum_y
-							+ (double)c.CZ[i] * momentum_z;
+    if(write_GlobalMem){
+    #pragma unroll 19
+      for (int i = 0; i < c.NUMVECTORS; ++i) {
+        double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
-		  double dev_fEq = c.EQMWEIGHTS[i]
-													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
-																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+        double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                              (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
-      f_neq[i] = dev_ff[i] - dev_fEq;
-      dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
-      // Maybe switch to
-      // dev_ff[i] += f_neq[i]  * minusInvTau;
-		}
+        f_neq[i] = dev_ff[i] - dev_fEq;
+        //dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+        dev_ff[i] += f_neq[i] * minusInvTau;
+      }
+    }
+    else{
+      #pragma unroll 19
+        for (int i = 0; i < c.NUMVECTORS; ++i) {
+          double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
+
+          double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                                (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+          //f_neq[i] = dev_ff[i] - dev_fEq;
+          dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+          //dev_ff[i] += f_neq[i] * minusInvTau;
+        }
+    }
+
 		//-----------------------------------------------------------------------------------------------------------
 
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
@@ -1535,26 +1555,38 @@ template <typename LatticeType> struct GPU_CollideStream_wall_sBB_Iolets_Ladd_Ve
 		//double dev_fn[19];		// or maybe use the existing dev_ff[c.NUMVECTORS] to minimise the memory requirements - Check and replace in the future
 
 		double density_1 = 1.0 / nn;
+    double momentumMagnitudeSquared = momentum_x * momentum_x
+    											+ momentum_y * momentum_y + momentum_z * momentum_z;
 
     double f_neq[19];
+    if(write_GlobalMem){
 #pragma unroll 19
-		for(int i = 0; i < c.NUMVECTORS; ++i)
-		{
-			double mom_dot_ei = (double)c.CX[i] * momentum_x
-					+ (double)c.CY[i] * momentum_y
-					+ (double)c.CZ[i] * momentum_z;
+      for (int i = 0; i < c.NUMVECTORS; ++i) {
+        double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
-      // c. Calculate equilibrium distr. functions
-      double dev_fEq = c.EQMWEIGHTS[i]
-                        * (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
-                        + (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+        double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                              (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
-      f_neq[i] = dev_ff[i] - dev_fEq;
+        f_neq[i] = dev_ff[i] - dev_fEq;
+        //dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+        dev_ff[i] += f_neq[i] * minusInvTau;
+      }
+    }
+    else{
+#pragma unroll 19
+        for (int i = 0; i < c.NUMVECTORS; ++i) {
+          double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
-      // Evolution equation for the fi's here
-      dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
-		}
-		//-----------------------------------------------------------------------------------------------------------
+          double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                                (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+          //f_neq[i] = dev_ff[i] - dev_fEq;
+          dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+          //dev_ff[i] += f_neq[i] * minusInvTau;
+        }
+    }
+
+    //-----------------------------------------------------------------------------------------------------------
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
 		// To do!!!
 		//-----------------------------------------------------------------------------------------------------------

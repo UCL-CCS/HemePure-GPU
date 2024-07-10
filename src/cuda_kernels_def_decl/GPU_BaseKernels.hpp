@@ -1293,26 +1293,39 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
     momentum_z += (double) c.CZ[direction] * ff;
   }
 
-  double density_1 = 1.0 / nn;
-
   //-----------------------------------------------------------------------------------------------------------
   // c. Calculate equilibrium distr. functions
-
-  // double momentumMagnitudeSquared = momentum_x * momentum_x
-  //											+ momentum_y * momentum_y + momentum_z * momentum_z;
+  double density_1 = 1.0 / nn;
+  double momentumMagnitudeSquared = momentum_x * momentum_x
+      + momentum_y * momentum_y + momentum_z * momentum_z;
 
   double f_neq[19];
+if(write_GlobalMem){
 #pragma unroll 19
   for (int i = 0; i < c.NUMVECTORS; ++i) {
     double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
-    double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * (momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z) * density_1 +
+    double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
                                           (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
     f_neq[i] = dev_ff[i] - dev_fEq;
-    dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+    //dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+    dev_ff[i] += f_neq[i] * minusInvTau;
   }
+}
+else{
+  #pragma unroll 19
+    for (int i = 0; i < c.NUMVECTORS; ++i) {
+      double mom_dot_ei = (double) c.CX[i] * momentum_x + (double) c.CY[i] * momentum_y + (double) c.CZ[i] * momentum_z;
 
+      double dev_fEq = c.EQMWEIGHTS[i] * (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1 +
+                                            (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+      //f_neq[i] = dev_ff[i] - dev_fEq;
+      dev_ff[i] += (dev_ff[i] - dev_fEq) * minusInvTau;
+      //dev_ff[i] += f_neq[i] * minusInvTau;
+    }
+}
 
   // --------------------------------------------------------------------------------
   // Streaming Step:
@@ -1369,7 +1382,7 @@ template <typename LatticeType> struct GPU_CollideStream_mMidFluidCollision_mWal
     GMem_dbl_MacroVars[3ULL * nArr_dbl + Ind] = velz;
 
     // IZ 9 July 2024
-    // Wall shear stress magnitude calculation 
+    // Wall shear stress magnitude calculation
     if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
 					distribn_t stress;
 
