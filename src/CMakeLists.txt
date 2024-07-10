@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
+# 10 July 2024
+# Find and link OpenMP
+find_package(OpenMP REQUIRED)
+
 # conditional compile options
 # ---------------------------
 option(HEMELB_BUILD_TESTS_UNIT "build the unit tests" OFF)
@@ -177,7 +181,7 @@ if (USE_CUDA)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_60,code=sm_60")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80")
+    #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80")
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -lineinfo --ptxas-options=-v --disable-warnings")
 
     #set(CMAKE_CUDA_FLAGS "-ccbin g++ --compiler-options '-msse3' -gencode arch=compute_35,code=sm_35 -gencode arch=compute_60,code=sm_60 -gencode arch=compute_75,code=sm_75 -lineinfo")
@@ -336,7 +340,7 @@ if(HAVE_RUSAGE)
 endif()
 
 #---------------------------
-# IZ - Jan 2024 
+# IZ - Jan 2024
 # Remove the following
 ## without the standard names for the xdr functions, create aliases for the existing ones
 #if(NOT HAVE_XDRUINTXX_T)
@@ -426,10 +430,11 @@ if(USE_CUDA)
   set_property(TARGET gpu_objs PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_source_files_properties(main.cc PROPERTIES LANGUAGE CUDA)
   add_executable(${HEMELB_EXECUTABLE} main.cc $<TARGET_OBJECTS:gpu_objs>)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
 if(USE_HIP)
-  set(hip_sources SimulationMaster.cu 
+  set(hip_sources SimulationMaster.cu
     cuda_kernels_def_decl/hip/deviceAPI_hip.cc
     cuda_kernels_def_decl/cuda_params.cu
     cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu
@@ -445,9 +450,9 @@ if(USE_HIP)
   #set_target_properties(gpu_objs PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 
   add_executable(${HEMELB_EXECUTABLE} main.cc)
-  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip )
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC hip ${OpenMP_CXX_LIBRARIES})
   target_link_options(${HEMELB_EXECUTABLE} PUBLIC "-fgpu-rdc")
- 
+
 endif()
 
 
@@ -459,7 +464,7 @@ if (USE_CUDA)
 endif()
 
 if (USE_HIP)
-  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs)
+  target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC gpu_objs ${OpenMP_CXX_LIBRARIES})
   target_link_options(${HEMELB_EXECUTABLE} PUBLIC
     $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
     $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
@@ -485,10 +490,12 @@ target_link_libraries(${HEMELB_EXECUTABLE} PUBLIC
   ${CTEMPLATE_LIBRARY}
   ${ZLIB_LIBRARIES}
   ${TIRPC_LIBRARY}
-  ${CUDA_LINK_LIBRARIES_KEYWORD})
+  ${CUDA_LINK_LIBRARIES_KEYWORD}
+  ${OpenMP_CXX_LIBRARIES}
+)
 
 add_executable(io_tool io_tool.cc)
-target_link_libraries(io_tool PUBLIC gpu_objs)
+target_link_libraries(io_tool PUBLIC gpu_objs ${OpenMP_CXX_LIBRARIES})
 target_link_options(io_tool PUBLIC
     $<$<BOOL:${USE_HIP_CUDA}>:${NVCC_OPTIONS}>
     $<$<BOOL:${USE_HIP_ROCM}>:${HIPCC_OPTIONS}>)
@@ -502,7 +509,9 @@ target_link_libraries(io_tool PUBLIC
   ${CTEMPLATE_LIBRARY}
   ${ZLIB_LIBRARIES}
   ${TIRPC_LIBRARY}
-  ${CUDA_LINK_LIBRARIES_KEYWORD})
+  ${CUDA_LINK_LIBRARIES_KEYWORD}
+  ${OpenMP_CXX_LIBRARIES}
+)
 
 install(TARGETS ${HEMELB_EXECUTABLE} RUNTIME DESTINATION bin)
 list(APPEND RESOURCES resources/report.txt.ctp resources/report.xml.ctp)
