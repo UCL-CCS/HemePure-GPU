@@ -5907,21 +5907,14 @@ template<class LatticeType>
 
 
 				// 2h. stress parameter (for the case of evaluating wall shear stress magnitude)
-                                distribn_t iStressParameter = mParams.GetStressParameter();
-                                //printf("StressParameter : %f\n", iStressParameter);
-                                status = deviceMemcpyToSymbol(&hemelb::_iStressParameter, &iStressParameter, sizeof(iStressParameter), 0, memcpyHostToDevice);
-                                if (!status) {
-                                        fprintf(stderr, "GPU constant memory copy failed (11)\n");
-                                        initialise_GPU_res = false;
-                                        return initialise_GPU_res;
-                                }
-
-
-				//=================================================================================================================================
-
-				// Remove later...
-				//if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function.
-
+        distribn_t iStressParameter = mParams.GetStressParameter();
+				//printf("StressParameter : %f\n", iStressParameter);
+				status = deviceMemcpyToSymbol(&hemelb::_iStressParameter, &iStressParameter, sizeof(iStressParameter), 0, memcpyHostToDevice);
+				if (!status) {
+					fprintf(stderr, "GPU constant memory copy failed (11)\n");
+					initialise_GPU_res = false;
+					return initialise_GPU_res;
+				}
 
 				//=================================================================================================================================
 				/*
@@ -8748,7 +8741,9 @@ template<class LatticeType>
 				delete mInletWallCollision;
 				delete mOutletWallCollision;
 
+#ifdef HEMELB_USE_GPU
 				Cleanup_GPU_pinned_Memory();
+#endif
 			}
 
 		template<class LatticeType>
