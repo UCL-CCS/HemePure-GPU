@@ -763,7 +763,8 @@ void *GPUDataAddr_wallMom_OutletWall_Inner;
 		//int h_Stability_GPU_mLatDat;
 
 		// Pointer to velocityTable inlet & outlet - Vel BCs / subtype Case b. File
-		void *GPUDataAddr_Inlet_velocityTable, *GPUDataAddr_Outlet_velocityTable;
+		void *GPUDataAddr_Inlet_velocityTable = nullptr;
+ 		void *GPUDataAddr_Outlet_velocityTable = nullptr;
 
 #endif
 

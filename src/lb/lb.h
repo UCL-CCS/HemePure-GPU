@@ -125,15 +125,15 @@ namespace hemelb
 
 				//--------------------------------------------------
 				// Vel. BCs case - Transfer everything on the GPU and compute the wall momentum correction on the GPU
-				void **GPUDataAddr_pp_Inlet_weightsTable_coord; // Pointer to pointers
-				void *GPUDataAddr_p_Inlet_weightsTable_coord; // void *GPUDataAddr_p_Inlet_weightsTable_coord;
+				void **GPUDataAddr_pp_Inlet_weightsTable_coord = nullptr; // Pointer to pointers
+				void *GPUDataAddr_p_Inlet_weightsTable_coord = nullptr; // void *GPUDataAddr_p_Inlet_weightsTable_coord;
 
-				void **CPU_DataAddr_pp_Inlet_weightsTable_coord; // Holds the address of the pointers to the GPU global memory (pinned memory - allocated with cudaMallocHost, so that it can be accessed by the device directly)
+				void **CPU_DataAddr_pp_Inlet_weightsTable_coord = nullptr; // Holds the address of the pointers to the GPU global memory (pinned memory - allocated with cudaMallocHost, so that it can be accessed by the device directly)
 				void *GPUDataAddr_p_Inlet_weightsTable_coord_x, *GPUDataAddr_p_Inlet_weightsTable_coord_y, *GPUDataAddr_p_Inlet_weightsTable_coord_z;
 
 
-				void **GPUDataAddr_pp_Inlet_weightsTable_wei;	// Pointer to pointers
-				distribn_t *GPUDataAddr_p_Inlet_weightsTable_wei;
+				void **GPUDataAddr_pp_Inlet_weightsTable_wei = nullptr;	// Pointer to pointers
+				distribn_t *GPUDataAddr_p_Inlet_weightsTable_wei = nullptr;
 				//--------------------------------------------------
 
 				// Iolets Info: Used for the case of Pressure BCs (NASHZEROTHORDERPRESSUREIOLET) - Vel BCs as well
@@ -173,10 +173,10 @@ namespace hemelb
 				std::vector<int64_t> index_weightTable_Inlet_Inner;
 
 				// Corresponding GPU Data Addresses for the indices
-				void *GPUDataAddr_index_weightTable_Inlet_Edge;
-				void *GPUDataAddr_index_weightTable_InletWall_Edge;
-				void *GPUDataAddr_index_weightTable_Inlet_Inner;
-				void *GPUDataAddr_index_weightTable_InletWall_Inner;
+				void *GPUDataAddr_index_weightTable_Inlet_Edge = nullptr;
+				void *GPUDataAddr_index_weightTable_InletWall_Edge = nullptr;
+				void *GPUDataAddr_index_weightTable_Inlet_Inner = nullptr;
+				void *GPUDataAddr_index_weightTable_InletWall_Inner = nullptr;
 				//---------------------
 
 				// New Approah: Save ONLY the Vel. Weight directly to the GPU global memory BASED ON FLUID INDEX
@@ -212,14 +212,14 @@ namespace hemelb
 				// Instead of using wall momentum - just pass the correction term (one value instead of 3)
 				// correction (or wall Momentum) associated with Velocity BCs (LADDIOLET) - GPU global memory related
 				// Still too slow
-				void *GPUDataAddr_wallMom_correction_Inlet_Edge;
-				void *GPUDataAddr_wallMom_correction_InletWall_Edge;
-				void *GPUDataAddr_wallMom_correction_Inlet_Inner;
-				void *GPUDataAddr_wallMom_correction_InletWall_Inner;
-				void *GPUDataAddr_wallMom_correction_Outlet_Edge;
-				void *GPUDataAddr_wallMom_correction_OutletWall_Edge;
-				void *GPUDataAddr_wallMom_correction_Outlet_Inner;
-				void *GPUDataAddr_wallMom_correction_OutletWall_Inner;
+				void *GPUDataAddr_wallMom_correction_Inlet_Edge = nullptr;
+				void *GPUDataAddr_wallMom_correction_InletWall_Edge = nullptr;
+				void *GPUDataAddr_wallMom_correction_Inlet_Inner = nullptr;
+				void *GPUDataAddr_wallMom_correction_InletWall_Inner = nullptr;
+				void *GPUDataAddr_wallMom_correction_Outlet_Edge = nullptr;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Edge = nullptr;
+				void *GPUDataAddr_wallMom_correction_Outlet_Inner = nullptr;
+				void *GPUDataAddr_wallMom_correction_OutletWall_Inner = nullptr;
 
 				// And the corresponding host vectors related to the above
 				// Replace the above with a single correction term instead of 3 components
@@ -384,7 +384,11 @@ namespace hemelb
 				static distribn_t *WallShearStressMagn_Edge_Type2_GPU, *WallShearStressMagn_Edge_Type5_GPU, *WallShearStressMagn_Edge_Type6_GPU;
 				static distribn_t *WallShearStressMagn_Inner_Type2_GPU, *WallShearStressMagn_Inner_Type5_GPU, *WallShearStressMagn_Inner_Type6_GPU;
 
-				// Defice Streams
+				// Declare static pointers for pinned memory used for the ghost density (case of Pressure BCs)
+				static distribn_t* h_ghostDensity_inlet;
+				static distribn_t* h_ghostDensity_outlet;
+
+				// Declare the Streams
 				Stream_t Collide_Stream_PreSend_1, Collide_Stream_PreSend_2, Collide_Stream_PreSend_3, Collide_Stream_PreSend_4, Collide_Stream_PreSend_5, Collide_Stream_PreSend_6;
 				Stream_t Collide_Stream_PreRec_1, Collide_Stream_PreRec_2, Collide_Stream_PreRec_3, Collide_Stream_PreRec_4, Collide_Stream_PreRec_5, Collide_Stream_PreRec_6;
 				Stream_t stream_ghost_dens_inlet, stream_ghost_dens_outlet;
@@ -427,7 +431,7 @@ namespace hemelb
 
 				bool memCpy_HtD_GPUmem_Coords_Iolets(site_t firstIndex, site_t siteCount, void *GPUDataAddr_Coords_iolets);
 
-				void get_Iolet_BCs(std::string hemeLB_IoletBC_Inlet, std::string hemeLB_IoletBC_Outlet);
+				void get_Iolet_BCs(std::string& hemeLB_IoletBC_Inlet, std::string& hemeLB_IoletBC_Outlet);
 
 				void swap_Pointers_GPU_glb_mem(void **pointer_GPU_glb_left, void **pointer_GPU_gbl_right);
 

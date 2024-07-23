@@ -27,6 +27,13 @@ namespace hemelb
 
 #ifdef HEMELB_USE_GPU
 
+// Define static variables associated with pinned memory
+	template<class LatticeType>
+			distribn_t* LBM<LatticeType>::h_ghostDensity_inlet = nullptr;
+
+	template<class LatticeType>
+			distribn_t* LBM<LatticeType>::h_ghostDensity_outlet = nullptr;
+
 // Define static variables associated with pinned memory in Read_Macrovariables_GPU_to_CPU
 template<class LatticeType>
 distribn_t* LBM<LatticeType>::dens_GPU = nullptr;
@@ -1712,7 +1719,7 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 
 
 		template<class LatticeType>
-			void LBM<LatticeType>::get_Iolet_BCs(std::string hemeLB_IoletBC_Inlet, std::string hemeLB_IoletBC_Outlet)
+			void LBM<LatticeType>::get_Iolet_BCs(std::string& hemeLB_IoletBC_Inlet, std::string& hemeLB_IoletBC_Outlet)
 			{
 				// Check If I can get the type of Iolet BCs from the CMake file
 				#define QUOTE_RAW(x) #x
@@ -2977,23 +2984,9 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 
 				//cudaStreamDestroy(stream_memCpy_GPU_CPU_domainEdge);
 
-
-
 				// Free GPU memory
-				/*
-				cudaStatus = deviceFree(GPUDataAddr_dbl_fOld);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
-
-				cudaStatus = deviceFree(GPUDataAddr_dbl_fNew);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
-				*/
-
 				bool status =  deviceFree(GPUDataAddr_dbl_MacroVars);
 				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
-
-				/*cudaStatus = deviceFree(GPUDataAddr_int64_Neigh);
-				if(!status){ fprintf(stderr, "deviceFree failed\n"); return false; }
-				*/
 
 				status = deviceFree(GPUDataAddr_uint32_Wall);
 				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
@@ -3045,12 +3038,6 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 
 				//----------------------------------------------------------------------
 				// Vel BCs related
-				if(mLatDat->GPUDataAddr_Inlet_velocityTable){
-					const hemelb::net::Net& rank_Com = *mNet;
-					int myPiD = rank_Com.Rank();
-					status = deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
-					if(!status){ fprintf(stderr, "Rank: %d deviceFree Velocity Table failed ptr=%xu  file: %s, line %d\n", myPiD, mLatDat->GPUDataAddr_Inlet_velocityTable,__FILE__,__LINE__); finalise_GPU_res=false;  }
-				}
 
 				// Prefactor Wall Momemtum Correction
 				/*void *GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge;
@@ -3063,84 +3050,73 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 				void *GPUDataAddr_wallMom_prefactor_correction_OutletWall_Inner;
 				*/
 
-				/* // Fail to free the following - check using cudaPointerGetAttributes
-				if(GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Edge);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (1) failed\n"); finalise_GPU_res=false; }
-				}
-				if(GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Edge);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (2) failed\n"); finalise_GPU_res=false; }
-				}
-				if(GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_Inlet_Inner);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (3) failed\n"); finalise_GPU_res=false; }
-				}
-				if(GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner){
-					cudaStatus = deviceFree(GPUDataAddr_wallMom_prefactor_correction_InletWall_Inner);
-					if(!status){ fprintf(stderr, "deviceFree prefactor wall momentum correction (4) failed\n"); finalise_GPU_res=false; }
-				}
-
-				*/
 				//----------------------------------------------------------------------
 				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
 					status = deviceFree(d_ghostDensity);
 					if(!status){ fprintf(stderr, "deviceFree ghost Density inlet failed\n"); finalise_GPU_res=false; }
+
+					// Free up pinned Memory associated with the Pressure BCs
+					if (h_ghostDensity_inlet != nullptr){
+						status = deviceFreeHost(h_ghostDensity_inlet);
+						if(!status){ fprintf(stderr, "deviceFreeHost h_ghostDensity_inlet failed ... \n"); finalise_GPU_res=false; }
+						h_ghostDensity_inlet = nullptr;
+					}
 				}
 
 				if (hemeIoletBC_Inlet == "LADDIOLET"){
-					if(mLatDat->GPUDataAddr_Inlet_velocityTable){
+
+					if(mLatDat->GPUDataAddr_Inlet_velocityTable != nullptr){
 						status = deviceFree(mLatDat->GPUDataAddr_Inlet_velocityTable);
 						if(!status){ fprintf(stderr, "deviceFree Velocity Table failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_wallMom_correction_Inlet_Edge){
+					if(GPUDataAddr_wallMom_correction_Inlet_Edge != nullptr){
 						status = deviceFree(GPUDataAddr_wallMom_correction_Inlet_Edge);
 						if(!status){ fprintf(stderr, "deviceFree wall mom correction (1) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_wallMom_correction_InletWall_Edge){
+					if(GPUDataAddr_wallMom_correction_InletWall_Edge != nullptr){
 						status  = deviceFree(GPUDataAddr_wallMom_correction_InletWall_Edge);
 						if(!status){ fprintf(stderr, "deviceFree wall mom correction (2) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_wallMom_correction_Inlet_Inner){
+					if(GPUDataAddr_wallMom_correction_Inlet_Inner != nullptr){
 						status = deviceFree(GPUDataAddr_wallMom_correction_Inlet_Inner);
 						if(!status){ fprintf(stderr, "deviceFree wall mom correction (3) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_wallMom_correction_InletWall_Inner){
+					if(GPUDataAddr_wallMom_correction_InletWall_Inner != nullptr){
 						status = deviceFree(GPUDataAddr_wallMom_correction_InletWall_Inner);
 						if(!status){ fprintf(stderr, "deviceFree wall mom correction (4) inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					// Only valid for the Vel Bcs Case: b. File
-					if(GPUDataAddr_pp_Inlet_weightsTable_coord){
+					if(GPUDataAddr_pp_Inlet_weightsTable_coord != nullptr){
 						status = deviceFree(GPUDataAddr_pp_Inlet_weightsTable_coord);
 						if(!status){ fprintf(stderr, "deviceFree pointer to pointers Coordinates in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_p_Inlet_weightsTable_wei){
+					if(GPUDataAddr_p_Inlet_weightsTable_wei != nullptr){
 						status = deviceFree(GPUDataAddr_p_Inlet_weightsTable_wei);
 						if(!status){ fprintf(stderr, "deviceFree pointer to pointers weights in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
 					// Key value indices - Read these values from GPU Global mem instead of searching for the weight based on the key (xyz)
-					if(GPUDataAddr_index_weightTable_Inlet_Edge){
+					if(GPUDataAddr_index_weightTable_Inlet_Edge != nullptr){
 						status = deviceFree(GPUDataAddr_index_weightTable_Inlet_Edge);
 						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_index_weightTable_InletWall_Edge){
+					if(GPUDataAddr_index_weightTable_InletWall_Edge != nullptr){
 						status = deviceFree(GPUDataAddr_index_weightTable_InletWall_Edge);
 						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
 
-					if(GPUDataAddr_index_weightTable_Inlet_Inner){
+					if(GPUDataAddr_index_weightTable_Inlet_Inner != nullptr){
 						status = deviceFree(GPUDataAddr_index_weightTable_Inlet_Inner);
 						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
-					if(GPUDataAddr_index_weightTable_InletWall_Inner){
+					if(GPUDataAddr_index_weightTable_InletWall_Inner != nullptr){
 						status = deviceFree(GPUDataAddr_index_weightTable_InletWall_Inner);
 						if(!status){ fprintf(stderr, "deviceFree map key value index in weights_table - inlet  failed\n"); finalise_GPU_res=false; }
 					}
@@ -3164,6 +3140,13 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 					status = deviceFree(d_ghostDensity_out);
 					if(!status){ fprintf(stderr, "deviceFree ghost density outlet failed\n"); finalise_GPU_res=false; }
+
+					// Free up pinned Memory associated with the Pressure BCs
+					if (h_ghostDensity_outlet != nullptr){
+						status = deviceFreeHost(h_ghostDensity_outlet);
+						if(!status){ fprintf(stderr, "deviceFreeHost h_ghostDensity_outlet failed ... \n"); finalise_GPU_res=false; }
+						h_ghostDensity_outlet = nullptr;
+					}
 				}
 
 				if (hemeIoletBC_Outlet == "LADDIOLET"){
@@ -3202,16 +3185,6 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 
 				status = deviceFree(GPUDataAddr_int64_Neigh_d);
 				if(!status){ fprintf(stderr, "deviceFree failed\n"); finalise_GPU_res=false; }
-
-
-				/*
-				// Free up pinned Memory
-				status = deviceFreeHost(Data_D2H_memcpy_totalSharedFs);
-				if(!status){ fprintf(stderr, "deviceFreeHost Data_D2H_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
-
-				status = deviceFreeHost(Data_H2D_memcpy_totalSharedFs);
-				if(!status){ fprintf(stderr, "deviceFreeHost Data_H2D_memcpy_totalSharedFs failed ... \n"); finalise_GPU_res=false; }
-				*/
 
 
 				/**
@@ -6957,11 +6930,9 @@ template<class LatticeType>
 				// Iolets - general details
 				//	Total GLOBAL iolets: n_Inlets = mInletValues->GetLocalIoletCount();
 				int n_Inlets = mInletValues->GetLocalIoletCount();
-				distribn_t* h_ghostDensity; // pointer to the ghost density for the inlets
 
 				//	Total GLOBAL iolets: n_Outlets = mOutletValues->GetLocalIoletCount();
 				int n_Outlets = mOutletValues->GetLocalIoletCount();
-				distribn_t* h_ghostDensity_out;
 				//----------------------------------------------------------------------
 
 				lb::MacroscopicPropertyCache& propertyCache = GetPropertyCache();
@@ -7053,38 +7024,39 @@ template<class LatticeType>
 
 				} // Ends the if(hemeIoletBC_Inlet == "LADDIOLET") loop
 				else if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET"){
-
-					// Approach 1: No pinned Memory
-					// Inlet BCs: NashZerothOrderPressure - Specify the ghost density for each inlet
-					//	Pass the ghost density[nInlets] to the GPU kernel (deviceMemcpy):
-					h_ghostDensity = new distribn_t[n_Inlets];
-
-					/*
-					// Approach 2: Switch to pinned memory Feb 2022
+					//--------------
+					// Approach: Use pinned memory (IZ - July 2024)
 					int n_bytes = n_Inlets * sizeof(distribn_t);
-					status = deviceMallocHost((void**)&h_ghostDensity, n_bytes);
-					if(!status){ fprintf(stderr, "deviceMallocHost for h_ghostDensity failed... Rank = %d, Time = %d \n",myPiD, mState->GetTimeStep()); }
-					memset(h_ghostDensity, 0, n_bytes); */
-					//
+
+					// Allocate memory only the first time
+					if (h_ghostDensity_inlet == nullptr){
+						bool status = deviceHostAlloc((void**)&h_ghostDensity_inlet, n_bytes);
+						memset(h_ghostDensity_inlet, 0, n_bytes);
+						if(!status){
+							fprintf(stderr,"deviceHostAlloc (pinned mem) for h_ghostDensity_inlet failed... Rank = %d, Time = %d \n", myPiD, mState->GetTimeStep());
+						}
+					}
+					//--------------
 
 					// Proceed with the collision type if the number of fluid nodes involved is not ZERO - HtD memcopy
 					// This (n_Inlets) refers to the total number of inlets globally. NOT on local RANK - SHOULD REPLACE THIS with the local number of inlets
 					if (n_Inlets!=0){
 						for (int i=0; i<n_Inlets; i++){
-							h_ghostDensity[i] = mInletValues->GetBoundaryDensity(i);
-							//std::cout << "Cout: GhostDensity : " << h_ghostDensity[i] << std::endl;
+							h_ghostDensity_inlet[i] = mInletValues->GetBoundaryDensity(i);
+							//std::cout << "Cout: GhostDensity : " << h_ghostDensity_inlet[i] << std::endl;
 						}
-						if (myPiD!=0){ // MemCopy memcpyHostToDevice only if rank!=0
-							// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity)
-							//status = deviceMemcpy(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), memcpyHostToDevice);
-							bool status = deviceMemcpyAsync(d_ghostDensity, h_ghostDensity, n_Inlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_inlet);
-							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity) Host To Device failed\n"); //return false;
-							}
+						if (myPiD!=0){ // MemCopy cudaMemcpyHostToDevice only if rank!=0
+							// Memory copy from host (h_ghostDensity_inlet) to Device (d_ghostDensity)
+							//cudaStatus = cudaMemcpy(d_ghostDensity, h_ghostDensity_inlet, n_Inlets * sizeof(distribn_t), cudaMemcpyHostToDevice);
+							bool status = deviceMemcpyAsync(d_ghostDensity, h_ghostDensity_inlet, n_Inlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_inlet);
+							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity inlet) Host To Device failed\n"); //return false;
 						}
-						//if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function.
-					} // Closes the if n_Inlets!=0
+					}
+					//if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function.
+				} // Closes the if n_Inlets!=0
+			} // Closes the if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET")
+			//====================================================================
 
-				} // Closes the if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET")
 				//----------------------------------------------------------------------
 				// Outlets BCs
 				// Jan.2023 - The appropriate modifications were not applied in void LBM<LatticeType>::apply_Vel_BCs_File_GetWallMom_correction()
@@ -7126,37 +7098,38 @@ template<class LatticeType>
 				}
 				else if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET"){
 
-					// Outlet BCs: NashZerothOrderPressure - Specify the ghost density for each outlet
-					//	Pass the ghost density_out[nInlets] to the GPU kernel (deviceMemcpy):
-
-					// Approach 1: No pinned memory
-					h_ghostDensity_out = new distribn_t[n_Outlets];
-
-					/*
-					// Approach 2: Use pinned memory
+					//--------------
+					// Approach: Use pinned memory (IZ - July 2024)
 					int n_bytes = n_Outlets * sizeof(distribn_t);
-					status = deviceMallocHost((void**)&h_ghostDensity_out, n_bytes);
-					if(!status){ fprintf(stderr, "deviceMallocHost for h_ghostDensity_out failed\n"); }
-					memset(h_ghostDensity_out, 0, n_bytes);
-					// */
 
-					// Proceed with the collision type if the number of fluid nodes involved is not ZERO
-					if (n_Outlets!=0){ // even rank 0 can "see" this info
+					// Allocate memory only the first time
+					if (h_ghostDensity_outlet == nullptr){
+						bool status = deviceHostAlloc((void**)&h_ghostDensity_outlet, n_bytes);
+						memset(h_ghostDensity_outlet, 0, n_bytes);
+						if(!status){
+							fprintf(stderr,"deviceHostAlloc (pinned mem) for h_ghostDensity_inlet outlet... Rank = %d, Time = %d \n", myPiD, mState->GetTimeStep());
+						}
+					}
+					//--------------
 
+					// Proceed with the collision type if the number of fluid nodes involved is not ZERO - HtD memcopy
+					// This (n_Inlets) refers to the total number of inlets globally. NOT on local RANK - SHOULD REPLACE THIS with the local number of inlets
+					if (n_Outlets!=0){
 						for (int i=0; i<n_Outlets; i++){
-							h_ghostDensity_out[i] = mOutletValues->GetBoundaryDensity(i);
-							//std::cout << "Rank: " << myPiD <<  " Cout: GhostDensity Out: " << h_ghostDensity_out[i] << std::endl;
+							h_ghostDensity_outlet[i] = mOutletValues->GetBoundaryDensity(i);
+							//std::cout << "Cout: GhostDensity : " << h_ghostDensity_inlet[i] << std::endl;
 						}
-						if (myPiD!=0){ // MemCopy memcpyHostToDevice only if rank!=0
-							// Memory copy from host (h_ghostDensity) to Device (d_ghostDensity)
-							//status = memcpy(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), memcpyHostToDevice);
-							bool status = deviceMemcpyAsync(d_ghostDensity_out, h_ghostDensity_out, n_Outlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_outlet);
-							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity_out) Host To Device failed\n"); //return false;
-							}
+						if (myPiD!=0){ // MemCopy cudaMemcpyHostToDevice only if rank!=0
+							// Memory copy from host (h_ghostDensity_outlet) to Device (d_ghostDensity_out)
+							bool status = deviceMemcpyAsync(d_ghostDensity_out, h_ghostDensity_outlet, n_Outlets * sizeof(distribn_t), memcpyHostToDevice, stream_ghost_dens_outlet);
+							if(!status){ fprintf(stderr, "GPU memory transfer (ghostDensity outlet) Host To Device failed\n"); //return false;
 						}
-					} // Closes the if n_Oulets!=0
-					//
-				}
+					}
+					//if (myPiD!=0) hemelb::check_cuda_errors(__FILE__, __LINE__, myPiD); // In the future remove the DEBUG from this function.
+				} // Closes the if n_Outlets!=0
+			} // Closes the if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET")
+			//====================================================================
+
 				//**********************************************************************
 				// ====================================================================================================================================================
 
@@ -7179,13 +7152,13 @@ template<class LatticeType>
 				// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)
 				if(nBlocks_Collide!=0)
 					hemelb::GPU_CollideStream_mWallCollision_sBB_PreRec <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_2>>> (	(double*)GPUDataAddr_dbl_fOld_b,
-																																																															(double*)GPUDataAddr_dbl_fNew_b,
-																																																															(double*)GPUDataAddr_dbl_MacroVars,
-																																																															(int64_t*)GPUDataAddr_int64_Neigh_d,
-																																																															(uint32_t*)GPUDataAddr_uint32_Wall,
-																																																															(mLatDat->GetLocalFluidSiteCount()),
-																																																															first_Index,
-																																																															(first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
+															(double*)GPUDataAddr_dbl_fNew_b,
+															(double*)GPUDataAddr_dbl_MacroVars,
+															(int64_t*)GPUDataAddr_int64_Neigh_d,
+															(uint32_t*)GPUDataAddr_uint32_Wall,
+															(mLatDat->GetLocalFluidSiteCount()),
+															first_Index,
+															(first_Index + site_Count), mLatDat->totalSharedFs, mState->GetTimeStep()); // (int64_t*)GPUDataAddr_int64_Neigh_b
 				//---------------------------------------------------------------------------------------------------------------------------------------------------
 				// ====================================================================================================================================================
 				*/
@@ -7586,20 +7559,6 @@ template<class LatticeType>
 				if(myPiD!=0) Read_DistrFunctions_GPU_to_CPU_totalSharedFs();
 				*/
 
-				//
-				// Approach 1: No pinned memory for ghost density (Pressure BCs)
-				// Delete the variables used for deviceMemcpy
-				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity_out;
-				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") delete[] h_ghostDensity;
-
-				/*
-				// Approach 2: Pinned memory for ghost density (Pressure BCs)
-				// Delete the variables used for deviceMemcpy
-				if (hemeIoletBC_Outlet == "NASHZEROTHORDERPRESSUREIOLET") deviceFreeHost(h_ghostDensity_out); //delete[] h_ghostDensity_out;
-				if (hemeIoletBC_Inlet == "NASHZEROTHORDERPRESSUREIOLET") deviceFreeHost(h_ghostDensity); //delete[] h_ghostDensity;
-				// */
-
-				//cudaProfilerStop();
 #else	// If computations on CPUs
 
 				// printf("Calling CPU PART \n\n");
