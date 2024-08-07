@@ -594,7 +594,28 @@ namespace hemelb
 					throw Exception() << "XML <initialconditions> element contains no known initial condition type";
 				}
 			}
+
+
+			// Required element for LBGKSpongeLayer (LES and Sponge Layer)
+			const std::string hemeKernel = QUOTE_CONTENTS(HEMELB_KERNEL);
+			if (hemeKernel == "LBGKSL" || hemeKernel == "LBGKLESSL")
+			{
+				auto spongeEl = initialconditionsEl.GetChildOrThrow("sponge_layer");
+
+				// <viscosity_ratio value="float" units="dimensionless" />
+				const io::xml::Element vrEl = spongeEl.GetChildOrThrow("viscosity_ratio");
+				GetDimensionalValue(vrEl, "dimensionless", viscosityRatio);
+
+				// <width value="float" units="m" />
+				const io::xml::Element wEl = spongeEl.GetChildOrThrow("width");
+				GetDimensionalValueInLatticeUnits<LatticeDistance>(wEl, "m", spongeLayerWidth);
+
+				// <lifetime value="unsigned" units="lattice" />
+				const io::xml::Element lEl = spongeEl.GetChildOrThrow("lifetime");
+				GetDimensionalValue(lEl, "lattice", spongeLayerLifetime);
+			}
 		}
+
 
 		lb::iolets::InOutLetCosine* SimConfig::DoIOForCosinePressureInOutlet(
 				const io::xml::Element& ioletEl)

@@ -1,0 +1,13 @@
+cmake            -DHEMELB_COMPUTE_ARCHITECTURE=NEUTRAL \
+                 -DCMAKE_CXX_EXTENSIONS=OFF \
+                 -DHEMELB_CUDA_AWARE_MPI=ON \
+                 -DHEMELB_USE_VELOCITY_WEIGHTS_FILE=ON \
+                 -DHEMELB_INLET_BOUNDARY=LADDIOLET \
+                 -DHEMELB_WALL_INLET_BOUNDARY=LADDIOLETSBB \
+                 -DHEMELB_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSUREIOLET \
+                 -DHEMELB_WALL_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSURESBB \
+                 -DHEMELB_LOG_LEVEL="Info" \
+                 -DHEMELB_USE_MPI_PARALLEL_IO=OFF \
+                ..
+
+cmake --build . -j 12  -v

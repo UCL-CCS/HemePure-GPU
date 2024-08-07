@@ -74,7 +74,21 @@ namespace hemelb
           return beta;
         }
 
+        // A parameter used in the relaxation of some collision operators.
+        void SetRelaxationParameter(const distribn_t& param)
+        {
+          relaxationParameter = param;
+        }
+        distribn_t GetRelaxationParameter() const
+        {
+          return relaxationParameter;
+        }
+
         StressTypes StressType;
+
+        Dimensionless ViscosityRatio; // used in LBGKSpongeLayer kernel
+        LatticeDistance SpongeLayerWidth; // used in LBGKSpongeLayer kernel
+        LatticeTimeStep SpongeLayerLifetime; // used in LBGKSpongeLayer kernel
 
       private:
         PhysicalTime timestep;
@@ -83,6 +97,7 @@ namespace hemelb
         distribn_t tau;
         distribn_t stressParameter;
         distribn_t beta; ///< Viscous dissipation in ELBM
+        distribn_t relaxationParameter;
     };
   }
 }

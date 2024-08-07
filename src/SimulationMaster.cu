@@ -256,13 +256,13 @@ void SimulationMaster::Initialise() {
 		if(communicationNet.Rank()!=0) {
 			bool res_InitGPU = true;
 		   try {
-			bool res_InitGPU = latticeBoltzmannModel->Initialise_GPU(inletValues, outletValues, unitConverter);
-			fflush(stdout);
-		   }
-		   catch(std::bad_alloc) {
-				printf("Rank: %d, Initialize GPU threw bad alloc exception\n", communicationNet.Rank());
-		   }
-		   catch(...) {
+				 bool res_InitGPU = latticeBoltzmannModel->Initialise_GPU(inletValues, outletValues, unitConverter);
+				 fflush(stdout);
+			 }
+			 catch(std::bad_alloc) {
+				 printf("Rank: %d, Initialize GPU threw bad alloc exception\n", communicationNet.Rank());
+			 }
+			 catch(...) {
 				printf("Rank: %d, CAUGHT UNKNOWN EXCEPTION\n", communicationNet.Rank());
 				abort();
 		   }

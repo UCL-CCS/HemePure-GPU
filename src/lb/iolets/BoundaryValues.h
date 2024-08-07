@@ -43,14 +43,28 @@ namespace hemelb
           LatticeDensity GetDensityMax(int boundaryId);
 
           static proc_t GetBCProcRank();
+
+          //
+          std::vector<iolets::InOutLet*> GetIolets()
+          {
+            return iolets;
+          }
+          unsigned int GetTotalIoletCount()
+          {
+            return totalIoletCount;
+          }
+          //
+
           iolets::InOutLet* GetLocalIolet(unsigned int index)
           {
             return iolets[localIoletIDs[index]];
           }
+
           unsigned int GetLocalIoletCount()
           {
             return localIoletCount;
           }
+
           inline unsigned int GetTimeStep() const
           {
             return state->GetTimeStep();
@@ -62,6 +76,7 @@ namespace hemelb
 
         private:
           bool IsIOletOnThisProc(geometry::SiteType ioletType, geometry::LatticeData* latticeData, int boundaryId);
+          bool IsIOletCentreOnThisProc(iolets::InOutLet* iolet, geometry::LatticeData* latticeData);
           std::vector<int> GatherProcList(bool hasBoundary);
           void HandleComms(iolets::InOutLet* iolet);
           geometry::SiteType ioletType;

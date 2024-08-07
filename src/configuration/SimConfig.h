@@ -170,11 +170,27 @@ namespace hemelb
           return colloidConfigPath;
         }
 
-	float GetElasticWallStiffness() const
-	{
-	  return elasticWallStiffness;
-	}
-	/**
+        float GetElasticWallStiffness() const
+        {
+          return elasticWallStiffness;
+        }
+
+        Dimensionless GetViscosityRatio() const
+        {
+          return viscosityRatio;
+        }
+        LatticeDistance GetSpongeLayerWidth() const
+        {
+          return spongeLayerWidth;
+        }
+        LatticeTimeStep GetSpongeLayerLifetime() const
+        {
+          return spongeLayerLifetime;
+        }
+
+
+
+       /**
          * True if the XML file has a section specifying colloids.
          * @return
          */
@@ -332,9 +348,12 @@ namespace hemelb
         PhysicalDistance voxelSizeMetres;
         PhysicalPosition geometryOriginMetres;
         util::UnitConverter* unitConverter;
-	ICConfig icConfig;
+        ICConfig icConfig;
+        float elasticWallStiffness;
 
-	float elasticWallStiffness;
+        Dimensionless viscosityRatio;
+        LatticeDistance spongeLayerWidth;
+        LatticeTimeStep spongeLayerLifetime;
     };
   }
 }

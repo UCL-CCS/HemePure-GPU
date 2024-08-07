@@ -143,6 +143,18 @@ distribn_t* LBM<LatticeType>::WallShearStressMagn_Inner_Type6_GPU = nullptr;
 				initParams.lbmParams = &mParams;
 				initParams.neighbouringDataManager = neighbouringDataManager;
 
+				//---------------------------
+				// IZ-Added July 2024 for the LES/SL (sponge layer) implementation
+				for (unsigned outlet = 0; outlet < mOutletValues->GetTotalIoletCount(); ++outlet)
+				{
+					initParams.outletPositions.push_back(mOutletValues->GetIolets()[outlet]->GetPosition());
+				}
+				for (unsigned intlet = 0; intlet < mInletValues->GetTotalIoletCount(); ++intlet)
+				{
+					initParams.inletPositions.push_back(mInletValues->GetIolets()[intlet]->GetPosition());
+				}
+				//---------------------------
+
 				unsigned collId;
 				InitInitParamsSiteRanges(initParams, collId);
 				mMidFluidCollision = new tMidFluidCollision(initParams);
@@ -5761,6 +5773,20 @@ template<class LatticeType>
 				if (save_wallShearStressMagn==true) {
 					bool init_res_wallShearStress = initialise_GPU_WallShearStressMagn(mInletValues, mOutletValues, mUnits);
 					//printf("Rank: %d - Initialise_GPU_WallShearStress: %d \n", myPiD, init_res_wallShearStress);
+					if (!init_res_wallShearStress){
+						initialise_GPU_res = false;
+						return initialise_GPU_res;
+					}
+				}
+
+				// July 2024
+				// LES implementation
+				// If the kernel is set to LBGKSL
+				// Required element for LBGKSpongeLayer
+				const std::string hemeKernel = QUOTE_CONTENTS(HEMELB_KERNEL);
+				if (hemeKernel == "LBGKSL")
+				{
+					printf("Initialising necessary for the LBGKSL - LES implementation!!! \n\n");
 				}
 
 				//***********************************************************************************************************************************
@@ -8713,6 +8739,13 @@ template<class LatticeType>
 				inletCount = inlets.size();
 				outletCount = outlets.size();
 				mParams.StressType = mSimConfig->GetStressType();
+
+				//mParams.SetRelaxationParameter(mSimConfig->GetRelaxationParameter());
+				//mParams.ElasticWallStiffness = mSimConfig->GetElasticWallStiffness();
+				//mParams.BoundaryVelocityRatio = mSimConfig->GetBoundaryVelocityRatio();
+				mParams.ViscosityRatio = mSimConfig->GetViscosityRatio();
+				mParams.SpongeLayerWidth = mSimConfig->GetSpongeLayerWidth();
+				mParams.SpongeLayerLifetime = mSimConfig->GetSpongeLayerLifetime();
 
 				//printf("Number of inlets: %d, outlets: %d \n\n", inletCount, outletCount);
 			}
