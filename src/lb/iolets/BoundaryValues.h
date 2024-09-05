@@ -13,6 +13,116 @@
 #include "geometry/LatticeData.h"
 #include "lb/iolets/BoundaryCommunicator.h"
 
+#ifdef HEMELB_USE_GPU
+#include "lb/iolets/BoundaryComms.h"
+#endif
+
+namespace hemelb
+{
+  namespace lb
+  {
+    namespace iolets
+    {
+
+      class BoundaryValues : public net::IteratedAction
+      {
+        public:
+          BoundaryValues(geometry::SiteType ioletType,
+                         geometry::LatticeData* latticeData,
+                         const std::vector<iolets::InOutLet*> &iolets,
+                         SimulationState* simulationState,
+                         const net::MpiCommunicator& comms,
+                         const util::UnitConverter& units);
+          ~BoundaryValues();
+
+          void RequestComms();
+          void EndIteration();
+          void Reset();
+
+          void FinishReceive();
+
+          LatticeDensity GetBoundaryDensity(const int index);
+
+          LatticeDensity GetDensityMin(int boundaryId);
+          LatticeDensity GetDensityMax(int boundaryId);
+
+          static proc_t GetBCProcRank();
+          std::vector<iolets::InOutLet*> GetIolets()
+          {
+            return iolets;
+          }
+          iolets::InOutLet* GetLocalIolet(unsigned int index)
+          {
+            return iolets[localIoletIDs[index]];
+          }
+          unsigned int GetTotalIoletCount()
+          {
+            return totalIoletCount;
+          }
+          unsigned int GetLocalIoletCount()
+          {
+            return localIoletCount;
+          }
+          inline unsigned int GetTimeStep() const
+          {
+            return state->GetTimeStep();
+          }
+          inline geometry::SiteType GetIoletType() const
+          {
+            return ioletType;
+          }
+#ifdef HEMELB_USE_GPU
+          int GetCentreProc(unsigned int index) const
+          {
+            return centreList[index][0];
+          }
+#endif
+
+       	private:
+          bool IsIOletOnThisProc(geometry::SiteType ioletType, geometry::LatticeData* latticeData, int boundaryId);
+          bool IsIOletCentreOnThisProc(iolets::InOutLet* iolet, geometry::LatticeData* latticeData);
+          std::vector<int> GatherProcList(bool hasBoundary);
+          void HandleComms(iolets::InOutLet* iolet);
+          geometry::SiteType ioletType;
+          int totalIoletCount;
+          // Number of IOlets and vector of their indices for communication purposes
+          int localIoletCount;
+          std::vector<int> localIoletIDs;
+          // Has to be a vector of pointers for InOutLet polymorphism
+          std::vector<iolets::InOutLet*> iolets;
+
+          SimulationState* state;
+          const util::UnitConverter& unitConverter;
+          BoundaryCommunicator bcComms;
+
+#ifdef HEMELB_USE_GPU
+          std::vector<int> *procsList;
+          std::vector<int> *centreList;
+#endif
+      }
+      ;
+    }
+  }
+}
+
+#endif /* HEMELB_LB_IOLETS_BOUNDARYVALUES_H */
+
+
+/*
+// This file is part of HemeLB and is Copyright (C)
+// the HemeLB team and/or their institutions, as detailed in the
+// file AUTHORS. This software is provided under the terms of the
+// license in the file LICENSE.
+
+#ifndef HEMELB_LB_IOLETS_BOUNDARYVALUES_H
+#define HEMELB_LB_IOLETS_BOUNDARYVALUES_H
+
+#include "net/IOCommunicator.h"
+#include "net/IteratedAction.h"
+#include "lb/iolets/InOutLet.h"
+#include "geometry/LatticeData.h"
+#include "lb/iolets/BoundaryCommunicator.h"
+
 namespace hemelb
 {
   namespace lb
@@ -96,4 +206,5 @@ namespace hemelb
   }
 }
 
-#endif /* HEMELB_LB_IOLETS_BOUNDARYVALUES_H */
+#endif // HEMELB_LB_IOLETS_BOUNDARYVALUES_H //
+*/

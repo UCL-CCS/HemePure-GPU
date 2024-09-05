@@ -2035,6 +2035,297 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 	//==========================================================================================
 
 
+	//**************************************************************
+	// Kernel for the Collision step
+	// for the Lattice Boltzmann algorithm
+	// Merged Collision Types 1 & 2:
+	// 		Collision Type 1: Mid Domain - All neighbours are Fluid nodes
+	// 		Collision Type 2: mWallCollision: Wall-Fluid interaction
+	//	Fluid sites range: [lower_limit_MidFluid, upper_limit_Wall)
+	//
+	// Implementation currently follows the memory arrangement of the data
+	// by index LB, i.e. method (b)
+	// Need to pass the information for the wall-fluid links - Done!!!
+	//
+	// April 2023 - Add the evaluation of the wall shear stress magnitude
+	// 	Load:
+	//		a. Wall normals
+	//
+	// August 2024 - Sponge Layer - LES formulation
+	//	Load:
+	//		a. the local vTau term (associated with the evaluation of the local relaxation time)
+	//		b. LIfetime of the sponge layer (in case it dissolves after a certain time)
+	// 		c. The time-step is also needed
+	//**************************************************************
+	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
+										distribn_t* GMem_dbl_fNew_b,
+										distribn_t* GMem_dbl_MacroVars,
+										site_t* GMem_int64_Neigh,
+										uint32_t* GMem_uint32_Wall_Link,
+										site_t nArr_dbl,
+										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
+										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
+										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+										unsigned long time_Step, int MPI_Rank,
+										distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+									)
+	{
+		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
+		Ind = Ind + lower_limit_MidFluid;
+
+		if(Ind >= upper_limit_Wall)
+			return;
+
+		//printf("lower_limit_MidFluid: %lld, upper_limit_MidFluid: %lld, lower_limit_Wall: %lld, upper_limit_Wall: %lld \n\n", lower_limit_MidFluid, upper_limit_MidFluid, lower_limit_Wall, upper_limit_Wall);
+
+		// Sponge Layer - LES formulation
+		// Load the local vTau value
+		double _vTau = GMem_dbl_vTau[Ind];
+		//printf("GPU - value of vTau: %f \n", _vTau);
+
+		// Load the distribution functions
+		//f[19] and fEq[19]
+		double dev_ff[19]; //, dev_fEq[19];
+		double nn = 0.0;	// density
+		double momentum_x, momentum_y, momentum_z;
+		momentum_x = momentum_y = momentum_z = 0.0;
+
+		double velx, vely, velz;	// Fluid Velocity
+
+		//-----------------------------------------------------------------------------------------------------------
+		// 1. Read the fOld_GPU_b distr. functions
+		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
+		// 		a. Calculate density
+		// 		b. Calculate momentum - Note: No body forces
+		/*for(int direction = 0; direction< _NUMVECTORS; direction++){
+			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
+			nn += dev_ff[direction];
+		}
+
+		for(int direction = 0; direction< _NUMVECTORS; direction++){
+			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
+			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+		}
+		*/
+
+	#pragma unroll 19
+		for(int direction = 0; direction< _NUMVECTORS; direction++){
+			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
+			dev_ff[direction] = ff;
+			nn += ff;
+
+			// Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
+			momentum_x += (double)_CX_19[direction] * ff;
+			momentum_y += (double)_CY_19[direction] * ff;
+			momentum_z += (double)_CZ_19[direction] * ff;
+		}
+
+		/*
+		// Evaluate momentum explicitly - The number of registers per thread increases though (56 from 51) compared to the approach of multiplying with the lattice direction's projections !!! Why?
+		// Based on HemeLB's vector definition
+		momentum_x = dev_ff[1] - dev_ff[2] + dev_ff[7]  - dev_ff[8]  + dev_ff[9]  - dev_ff[10] + dev_ff[11] - dev_ff[12] + dev_ff[13] - dev_ff[14]; // HemeLB vector definition is different than the one I am using
+		momentum_y = dev_ff[3] - dev_ff[4] + dev_ff[7]  - dev_ff[8]  - dev_ff[9]  + dev_ff[10] + dev_ff[15] - dev_ff[16] + dev_ff[17] - dev_ff[18];
+		momentum_z = dev_ff[5] - dev_ff[6] + dev_ff[11] - dev_ff[12] - dev_ff[13] + dev_ff[14] + dev_ff[15] - dev_ff[16] - dev_ff[17] + dev_ff[18];
+		//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
+		*/
+
+		/*// Compute velocity components
+		velx = momentum_x * density_1;
+		vely = momentum_y * density_1;
+		velz = momentum_z * density_1;
+		*/
+		//-----------------------------------------------------------------------------------------------------------
+		// c. Calculate equilibrium distr. functions
+		double density_1 = 1.0 / nn;
+		double momentumMagnitudeSquared = momentum_x * momentum_x
+													+ momentum_y * momentum_y + momentum_z * momentum_z;
+
+		double f_neq[19];
+		#pragma unroll 19
+		for (int i = 0; i < _NUMVECTORS; ++i)
+		{
+			double mom_dot_ei = (double)_CX_19[i] * momentum_x
+												+ (double)_CY_19[i] * momentum_y
+												+ (double)_CZ_19[i] * momentum_z;
+
+			double dev_fEq = _EQMWEIGHTS_19[i]
+										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
+														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+
+			f_neq[i] = dev_ff[i] - dev_fEq;
+
+			// Sponge Layer - LES formulation
+			// Compute the local relaxation time
+			// dev_tau is tau0
+			distribn_t local_tau =  _CalculateTau(dev_tau, _vTau, time_Step, SL_lifetime, f_neq);
+			//printf("Local LES tau: %f, dev_tau: %f, _vTau: %f, SL_lifetime: %ld \n", local_tau, dev_tau, _vTau, SL_lifetime);
+
+			//dev_ff[i] += f_neq[i] * dev_minusInvTau;
+			dev_ff[i] += f_neq[i] * (-1./local_tau);
+		}
+
+
+
+		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
+		//-----------------------------------------------------------------------------------------------------------
+
+		// Collision step:
+		// Single Relaxation Time approximation (LBGK)
+		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
+
+		/*
+		// Evolution equation for the fi's here
+		for (int i = 0; i < _NUMVECTORS; ++i)
+		{
+			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
+		}
+		*/
+
+		// --------------------------------------------------------------------------------
+		// Streaming Step:
+		// a. Load the streaming indices
+
+		// b. If within the limits for the mWallCollision
+		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
+		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
+
+		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+
+		GMem_dbl_fNew_b[Ind]= dev_ff[0];
+
+	#pragma unroll 18
+		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
+				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
+
+				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
+				// Option 1:
+				if(dev_NeighInd == index_wall) // Wall Link
+				{
+					// Simple Bounce Back case:
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				}
+				else{
+					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+				}
+				//printf("Local ID : %llu, Mem. Location: %.llu, LB_dir = %d, Neighbour = %llu \n\n", Ind, local_fluid_site_mem_loc, LB_Dir, dev_NeighInd);
+
+				/*
+				// Option 2: Use of ternary operator to replace the if-else statement
+				int64_t arr_index = (dev_NeighInd == index_wall) ? (unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind : dev_NeighInd;
+				GMem_dbl_fNew_b[arr_index] = dev_ff[LB_Dir];
+				*/
+
+				/*
+				// Option 3: Avoid the if-else operator by multiplying with a boolean variable (wall link or not)
+				bool is_Wall_link_test = (dev_NeighInd == index_wall);
+				int64_t arr_index = ((unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind) * is_Wall_link_test + dev_NeighInd * (!is_Wall_link_test);
+				GMem_dbl_fNew_b[arr_index] = dev_ff[LB_Dir];
+				*/
+		}
+
+
+		// --------------------------------------------------------------------------------
+		// Streaming Step:
+		// a. Load the streaming indices
+
+		// b. If within the limits for the mWallCollision
+		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
+		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
+
+		/*
+		if ( (Ind - upper_limit_MidFluid +1)*(Ind - lower_limit_MidFluid) <= 0){
+		//if( (Ind >= lower_limit_MidFluid) && ( Ind < upper_limit_MidFluid) ){
+			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+					// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
+					// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
+					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind];
+
+					// Put the new populations after collision in the GMem_dbl array, implementing the streaming step as well
+					// fNew populations:
+					// GMem_dbl_fNew_b[(unsigned long long)LB_Dir * nArr_dbl + dev_NeighInd] = dev_ff[LB_Dir]; // If neigh_c is selected and dev_NeighInd contains the fluid_ID info
+
+					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+					// GMem_dbl_fNew_b[dev_NeighInd[LB_Dir]] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+				}
+		}
+		else
+		{
+			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
+
+					if(dev_NeighInd == (nArr_dbl * _NUMVECTORS)) // Wall Link
+					{
+						// Simple Bounce Back case:
+						GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					}
+					else{
+						GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+					}
+
+			}
+		}
+		*/
+		//=============================================================================================
+		// Write old density and velocity to memory -
+		//if (time_Step%_Send_MacroVars_DtH ==0){
+		if (write_GlobalMem){
+			GMem_dbl_MacroVars[Ind] = nn;
+
+			velx = momentum_x * density_1;
+			vely = momentum_y * density_1;
+			velz = momentum_z * density_1;
+
+			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
+			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
+			GMem_dbl_MacroVars[3ULL*nArr_dbl + Ind] = velz;
+
+
+			/*printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
+						lower_limit_MidFluid, upper_limit_MidFluid,
+						lower_limit_Wall, upper_limit_Wall);
+						*/
+			//------------------------------------------------------------------------
+			// Add here an if wallShearStressMagn_Eval as well
+			// Evaluate the wall shear stress magnitude if this is a wall site
+			// The first approach should be faster (Is it ?)
+
+			//if (((site_t)Ind - upper_limit_Wall +1) * ((site_t)Ind - lower_limit_Wall) <= 0){		// When the upper_limit is NOT included
+			if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
+					distribn_t stress;
+
+					//printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
+					//			lower_limit_MidFluid, upper_limit_MidFluid,
+					//			lower_limit_Wall, upper_limit_Wall);
+
+					// Load the wall normal components from the GPU global memory
+					site_t shifted_Ind = Ind-lower_limit_Wall;
+					distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
+					distribn_t wall_normal_y = GMem_dbl_WallNormal[3*shifted_Ind + 1];
+					distribn_t wall_normal_z = GMem_dbl_WallNormal[3*shifted_Ind + 2];
+					//printf("Site: % ld, Wall normal components: (%5.5e, %5.5e, %5.5e)\n", Ind, wall_normal_x, wall_normal_y, wall_normal_z);
+
+					stress = _CalculateWallShearStressMagnitude(nn,
+						f_neq,
+						wall_normal_x, wall_normal_y, wall_normal_z,
+						_iStressParameter);
+
+					//stress=0.001;
+
+					/*if(shifted_Ind==9099 && MPI_Rank==206)
+						printf("Rank: %d, Time: %ld, Site: %ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", MPI_Rank, time_Step, Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
+					*/
+					//if(shifted_Ind==9099)
+					//		printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e, _iStressParameter = %5.5e \n",shifted_Ind, stress, _iStressParameter );
+
+					GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
+			}
+			//------------------------------------------------------------------------
+		} // Ends the loop if (write_GlobalMem)
+
+	} // Ends the merged kernels GPU_Collide Types 1 & 2: mMidFluidCollision & mWallCollision
+	//==========================================================================================
+
 
 	//**************************************************************
 	// Kernel for the Collision step

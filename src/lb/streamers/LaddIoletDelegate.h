@@ -150,16 +150,18 @@ namespace hemelb
                        const geometry::Site<geometry::LatticeData>& site,
                        kernels::HydroVars<typename CollisionType::CKernel>& hydroVars,
                        const Direction& ii,
-                       double* wallMom__prefactor_correction_tobepassed)
+                       double* wallMom_prefactor_correction_tobepassed)
           {
             int boundaryId = site.GetIoletId();
-            iolets::InOutLetVelocity* iolet =
-                dynamic_cast<iolets::InOutLetVelocity*>(bValues->GetLocalIolet(boundaryId));
+
+            // IZ - Aug 2024 - Switch from GetLocalIolet(boundaryId) to GetIolets()[boundaryId] 
+            //iolets::InOutLetVelocity* iolet = dynamic_cast<iolets::InOutLetVelocity*>(bValues->GetLocalIolet(boundaryId));
+            iolets::InOutLetVelocity* iolet = dynamic_cast<iolets::InOutLetVelocity*>(bValues->GetIolets()[boundaryId]);
 
             LatticePosition sitePos(site.GetGlobalSiteCoords());
 
             // Debugging - Remove later - Oct 2022
-            //printf("Value of boundaryId: %d - Site index: %d \n", boundaryId, latDat->GetSite(siteIndex); );
+            //printf("Value of boundaryId: %d - Site index: %d \n", boundaryId, site.GetIndex() );
 
 
             LatticePosition halfWay(sitePos);
@@ -209,7 +211,7 @@ namespace hemelb
               */
 
 
-            *wallMom__prefactor_correction_tobepassed = prefactor_correction;
+            *wallMom_prefactor_correction_tobepassed = prefactor_correction;
           }
 
 

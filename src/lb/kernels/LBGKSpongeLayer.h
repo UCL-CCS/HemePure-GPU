@@ -11,10 +11,16 @@
 #include "util/utilityFunctions.h"
 #include "lb/kernels/BaseKernel.h"
 
+#include "cuda_kernels_def_decl/cuda_params.h"
+
 namespace hemelb
 {
 	namespace lb
 	{
+		// Forward declaration of LBM
+		template <class LatticeType>
+			class LBM;
+
 		namespace kernels
 		{
 			/**
@@ -29,6 +35,18 @@ namespace hemelb
 						lifetime(initParams.lbmParams->SpongeLayerLifetime), state(initParams.state)
 					{
 						InitState(initParams);
+
+/*#ifdef HEMELB_USE_GPU
+						bool res_InitState_SpongeLayer_GPU = InitState_SpongeLayer_GPU(initParams);
+						if (!res_InitState_SpongeLayer_GPU){
+							printf("Error InitState_SpongeLayer_GPU - memcpy vTau H2D ... \n");
+						}
+						else{
+							//hemelb::log::Logger::Log<hemelb::log::Debug, hemelb::log::Singleton>("LBGK Sponge Layer vTau memcpy Host to Device completed.");
+							printf("InitState_SpongeLayer_GPU - memcpy vTau H2D completed \n");
+						}
+#endif
+*/
 					}
 
 					inline void DoCalculateDensityMomentumFeq(HydroVars<LBGKSpongeLayer<LatticeType> >& hydroVars, site_t index)
@@ -78,6 +96,55 @@ namespace hemelb
 						}
 					}
 
+					/**
+					* Perform necessary memory copies to the GPU at Initialisation
+					* 	vTau
+					*/
+#ifdef HEMELB_USE_GPU
+					 friend class LBM<LatticeType>;  // Declare LBM as a friend class
+
+					 /*
+					 bool InitState_SpongeLayer_GPU(const kernels::InitParams& initParams)
+					 {
+						 bool InitState_SpongeLayer_GPU_res = true;
+
+						 printf("Calling InitState_SpongeLayer_GPU...\n");
+						 //int myPiD = communicationNet.Rank();
+
+						 // Number of fluid sites
+						 site_t nFluid_sites = initParams.latDat->GetLocalFluidSiteCount();
+						 printf("Number of fluid sites: %ld \n", nFluid_sites);
+
+						 // Memory Size required
+						 site_t MemSz = nFluid_sites * sizeof(distribn_t);
+
+						 // Mem.copy vTau to the GPU (GPUDataAddr_vTau)
+						 // 1. Allocate memory on the GPU
+						 bool status = deviceMalloc((void**)&GPUDataAddr_vTau, MemSz);
+						 if(!status){
+							 fprintf(stderr, "GPU memory allocation vTau failed...\n");
+							 InitState_SpongeLayer_GPU_res = false; return InitState_SpongeLayer_GPU_res;
+						 }
+
+						 // 2. Memory copy from host (Data_dbl_WallNormal_Edge_Type2) to Device (GPUDataAddr_WallNormal_Edge_Type2)
+						 status = deviceMemcpy(GPUDataAddr_vTau, &vTau[0], MemSz, memcpyHostToDevice);
+						 if(!status){
+							 fprintf(stderr, "GPU memory transfer vTau Host To Device failed\n");
+							 InitState_SpongeLayer_GPU_res = false; return InitState_SpongeLayer_GPU_res;
+						 }
+
+						 return 	InitState_SpongeLayer_GPU_res;
+					 }
+					 */
+
+					 // Static method to access vTau, which was changed to static so that
+					 // we can access it from class LBM and function Initialise_GPU())
+					 static const distribn_t* GetvTau(site_t siteIndex)
+					 {
+						 return &vTau[siteIndex];
+					 }
+#endif
+
 				private:
           			/**
            			*  Helper method to set/update member variables. Called from the constructor and Reset()
@@ -86,7 +153,7 @@ namespace hemelb
            			*/
           			void InitState(const kernels::InitParams& initParams)
           			{
-									// printf("Enters InitState in LBGKSpongeLayer!!! \n\n");
+									//printf("Constructor - Enters InitState in LBGKSpongeLayer!!! \n\n");
             			vTau.resize(initParams.latDat->GetLocalFluidSiteCount());
 									// Width of a sponge layer (in number of sites)
 									const LatticeDistance width = initParams.lbmParams->SpongeLayerWidth;
@@ -99,7 +166,7 @@ namespace hemelb
 										const LatticeVector& siteLocation = initParams.latDat->GiveMeGlobalSiteCoords(i);
 
 										//if (initParams.outletPositions.size()!=0 || initParams.inletPositions.size()!=0 )
-										//	printf("Number of outlet/inlet positions: %d / %d \n", initParams.outletPositions.size(), initParams.inletPositions.size() );
+										//	printf("Number of outlet/inlet positions: %ld / %ld \n", initParams.outletPositions.size(), initParams.inletPositions.size() );
 
 										for (int j = 0; j < initParams.outletPositions.size(); j++)
 										{
@@ -108,6 +175,8 @@ namespace hemelb
 											// const int dist = (siteLocation - initParams.outletPositions[j]).GetByDirection(util::Direction::Direction::X);
 											// const LatticeDistance distSq = dist * dist;
 											const LatticeDistance dist = std::sqrt(distSq);
+											if (i==35933) printf("Outlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
+
 											if (distSq <= widthSq)
 											{
 												// Quadratic function
@@ -119,6 +188,8 @@ namespace hemelb
 										}
 										// Note that viscosity is proportional to (tau - 0.5)
 										vTau[i] = vRatioTot * (tau0 - 0.5) + 0.5;
+
+
 										// if(timeStep > 92800){
 										for (int j = 0; j < initParams.inletPositions.size(); j++)
 										{
@@ -146,6 +217,7 @@ namespace hemelb
 													// const int dist = (siteLocation - initParams.outletPositions[j]).GetByDirection(util::Direction::Direction::X);
 													// const LatticeDistance distSq = dist * dist;
 													const LatticeDistance dist = std::sqrt(distSq);
+													if (i==35933) printf("Inlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
 													if (distSq <= 784)
 													{
 														// Quadratic function
@@ -156,10 +228,12 @@ namespace hemelb
 													}
 												}
 											}
+
 										}
 										vTau[i] = vRatioTot * (tau0 - 0.5) + 0.5;
-                            // }
-										//printf("Site: %lu - vTau: %.3e \n", i, vTau[i]);
+                    // }
+										if (i==35933) printf("Site: %lu - vRatio: %f - vTau: %.3e \n", i, vRatio, vTau[i]);
+
             			}
           			}
 
@@ -175,11 +249,11 @@ namespace hemelb
 						// printf("tau_les: %lf\n", tau_les);
 						if (timeStep <= lifetime / 2)
 						{
-                            if(vTau[index] == tau0){
-                                hydroVars.tau = tau_les;
-                            }else{
-                                hydroVars.tau = vTau[index];
-                            }
+							if(vTau[index] == tau0){
+								hydroVars.tau = tau_les;
+							}else{
+								hydroVars.tau = vTau[index];
+							}
 						}
 						else if (timeStep < lifetime)
 						{
@@ -239,8 +313,17 @@ namespace hemelb
 					SimulationState* state;
 
 					// Vector containing the viscous relaxation time for each site in the domain.
-          std::vector<distribn_t> vTau;
+          static std::vector<distribn_t> vTau;
+
+#ifdef HEMELB_USE_GPU
+					void *GPUDataAddr_vTau;
+#endif
+
 			};
+
+			// Define the static member outside the class definition
+			template<class LatticeType>
+			std::vector<distribn_t> LBGKSpongeLayer<LatticeType>::vTau;
 
 		}
 	}

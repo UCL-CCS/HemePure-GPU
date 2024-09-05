@@ -90,6 +90,23 @@ namespace hemelb
 										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
 										unsigned long time_Step, int MPI_Rank);
 
+  // Evaluate the wall shear stress magnitude
+	//	& Sponge Layer - LES
+	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
+		distribn_t* GMem_dbl_fOld_b,
+		distribn_t* GMem_dbl_fNew_b,
+		distribn_t* GMem_dbl_MacroVars,
+		site_t* GMem_int64_Neigh,
+		uint32_t* GMem_uint32_Wall_Link,
+		site_t nArr_dbl,
+		site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
+		site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
+		distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+		unsigned long time_Step, int MPI_Rank,
+		distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+	);
+
+
 	//	Kernels for Velocity & Pressure BCs:
 	// Pressure BCs (NASHZEROTHORDERPRESSUREIOLET):
 	__global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
@@ -97,10 +114,32 @@ namespace hemelb
 																																			float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl,uint64_t lower_limit, uint64_t upper_limit,
 																																			uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info);
 
+  // Overloading -  Case of Sponge LAyer - LES implementation
+	__global__
+	void GPU_CollideStream_Iolets_NashZerothOrderPressure_v2(
+		distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+		int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, double* GMem_ghostDensity,
+		float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl,uint64_t lower_limit, uint64_t upper_limit,
+		uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info,
+		unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+	);
+
+
 	__global__ void GPU_CollideStream_Iolets_NashZerothOrderPressure(distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
 																																		int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, double* GMem_ghostDensity,
 																																		float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl,uint64_t lower_limit, uint64_t upper_limit,
 																																		uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info);
+
+  // Overloading -  Case of Sponge LAyer - LES implementation
+	__global__
+	void GPU_CollideStream_Iolets_NashZerothOrderPressure(
+		distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+		int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, double* GMem_ghostDensity,
+		float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl,uint64_t lower_limit, uint64_t upper_limit,
+		uint64_t totalSharedFs, bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info,
+		unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+	);
+
 
 	__global__ void GPU_CollideStream_wall_sBB_iolet_Nash( distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
 																													int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link, distribn_t* GMem_ghostDensity,
@@ -120,28 +159,85 @@ __global__ void GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress( distribn_
 			bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info,
 			distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal);
 
- __global__ void GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress( distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+// Overloading -  Case of Sponge LAyer - LES implementation
+__global__
+void GPU_CollideStream_wall_sBB_iolet_Nash_WallShearStress(
+	distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+	int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link, distribn_t* GMem_ghostDensity,
+	float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs,
+	bool write_GlobalMem, int num_local_Iolets, Iolets Iolets_info,
+	distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+	unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+);
+
+__global__ void GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress( distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
 			int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link, distribn_t* GMem_ghostDensity,
 			float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs,
 			bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info,
 			distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal);
 
+// Overloading -  Case of Sponge LAyer - LES implementation
+__global__
+void GPU_CollideStream_wall_sBB_iolet_Nash_v2_WallShearStress(
+	distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+	int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link, distribn_t* GMem_ghostDensity,
+	float* GMem_inletNormal, int nInlets, uint64_t nArr_dbl, uint64_t lower_limit, uint64_t upper_limit, uint64_t totalSharedFs,
+	bool write_GlobalMem, int num_local_Iolets, site_t* GMem_Iolets_info,
+	distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+	unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+);
+
+
+//------------------------------------------------------------------------------
 	// Velocity BCs (LADDIOLET)
-	__global__ void GPU_CollideStream_Iolets_Ladd_VelBCs(distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
-																												int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, uint64_t nArr_dbl,
-																												distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
-																												uint64_t totalSharedFs, bool write_GlobalMem);
+__global__
+	void GPU_CollideStream_Iolets_Ladd_VelBCs(
+		distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b,
+		distribn_t* GMem_dbl_MacroVars,
+		int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, uint64_t nArr_dbl,
+		distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
+		uint64_t totalSharedFs, bool write_GlobalMem);
+
+// Overloading -  Case of Sponge LAyer - LES implementation
+__global__
+		void GPU_CollideStream_Iolets_Ladd_VelBCs(
+			distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b,
+			distribn_t* GMem_dbl_MacroVars,
+			int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Iolet_Link, uint64_t nArr_dbl,
+			distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
+			uint64_t totalSharedFs, bool write_GlobalMem,
+			unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+		);
+//------------------------------------------------------------------------------
+
 
 	__global__ void GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs(	distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
 			int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link,
 			uint64_t nArr_dbl, distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
 			uint64_t totalSharedFs, bool write_GlobalMem);
 
-	__global__ void GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress(	distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+//==============================================================================
+	__global__
+	void GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress(
+		distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
+		int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link,
+		uint64_t nArr_dbl, distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
+		uint64_t totalSharedFs, bool write_GlobalMem,
+		distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal);
+
+		__global__
+		void GPU_CollideStream_wall_sBB_Iolets_Ladd_VelBCs_WallShearStress(
+			distribn_t* GMem_dbl_fOld_b, distribn_t* GMem_dbl_fNew_b, distribn_t* GMem_dbl_MacroVars,
 			int64_t* GMem_int64_Neigh, uint32_t* GMem_uint32_Wall_Link, uint32_t* GMem_uint32_Iolet_Link,
 			uint64_t nArr_dbl, distribn_t* GMem_dbl_WallMom, uint64_t nArr_wallMom, uint64_t lower_limit, uint64_t upper_limit,
 			uint64_t totalSharedFs, bool write_GlobalMem,
-			distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal);
+			distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+			unsigned long time_Step, distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+		);
+
+//==============================================================================
+
+
 
 // Related to the wall momentum correction terms evaluation on the GPU
 	__global__ void GPU_WallMom_correction_File_prefactor(distribn_t* GMem_dbl_wallMom_prefactor_correction,
@@ -554,6 +650,329 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 		return wall_shear_stress_magn;
 	}
 	//==============================================================================
+
+//==============================================================================
+// Device Function that computes the LES relaxation time (localTau)
+// tau0: Relaxation Time tau0(initParams.lbmParams->GetTau())
+	__device__ __forceinline__ double _Compute_tau_smagorinsky(
+		const distribn_t tau0,
+		const distribn_t* const f_neq)
+	{
+		/*double localTau;
+
+		// calculate tau using smagorinsky local correction
+		constexpr double dx = 1.0;
+    constexpr double dt = 1.0;
+    constexpr double C = dx / dt;
+    constexpr double rho1 = 1.0;
+    constexpr double C_smag = 0.1;
+
+		double Q_12 = 0.0;
+
+		// Calculate diagonal and upper diagonal of the non equilibrium stress tensor
+
+		// i=0, j=0
+		double qij_00 = 0.0;  // q_xx
+		qij_00 += _CX_19[0] * _CX_19[0] * f_neq[0];
+		qij_00 += _CX_19[1] * _CX_19[1] * f_neq[1];
+		qij_00 += _CX_19[2] * _CX_19[2] * f_neq[2];
+		qij_00 += _CX_19[3] * _CX_19[3] * f_neq[3];
+		qij_00 += _CX_19[4] * _CX_19[4] * f_neq[4];
+		qij_00 += _CX_19[5] * _CX_19[5] * f_neq[5];
+		qij_00 += _CX_19[6] * _CX_19[6] * f_neq[6];
+		qij_00 += _CX_19[7] * _CX_19[7] * f_neq[7];
+		qij_00 += _CX_19[8] * _CX_19[8] * f_neq[8];
+		qij_00 += _CX_19[9] * _CX_19[9] * f_neq[9];
+		qij_00 += _CX_19[10] * _CX_19[10] * f_neq[10];
+		qij_00 += _CX_19[11] * _CX_19[11] * f_neq[11];
+		qij_00 += _CX_19[12] * _CX_19[12] * f_neq[12];
+		qij_00 += _CX_19[13] * _CX_19[13] * f_neq[13];
+		qij_00 += _CX_19[14] * _CX_19[14] * f_neq[14];
+		qij_00 += _CX_19[15] * _CX_19[15] * f_neq[15];
+		qij_00 += _CX_19[16] * _CX_19[16] * f_neq[16];
+		qij_00 += _CX_19[17] * _CX_19[17] * f_neq[17];
+		qij_00 += _CX_19[18] * _CX_19[18] * f_neq[18];
+
+		// i=0, j=1
+		double qij_01 = 0.0;  // q_xy
+		qij_01 += _CX_19[0] * _CY_19[0] * f_neq[0];
+		qij_01 += _CX_19[1] * _CY_19[1] * f_neq[1];
+		qij_01 += _CX_19[2] * _CY_19[2] * f_neq[2];
+		qij_01 += _CX_19[3] * _CY_19[3] * f_neq[3];
+		qij_01 += _CX_19[4] * _CY_19[4] * f_neq[4];
+		qij_01 += _CX_19[5] * _CY_19[5] * f_neq[5];
+		qij_01 += _CX_19[6] * _CY_19[6] * f_neq[6];
+		qij_01 += _CX_19[7] * _CY_19[7] * f_neq[7];
+		qij_01 += _CX_19[8] * _CY_19[8] * f_neq[8];
+		qij_01 += _CX_19[9] * _CY_19[9] * f_neq[9];
+		qij_01 += _CX_19[10] * _CY_19[10] * f_neq[10];
+		qij_01 += _CX_19[11] * _CY_19[11] * f_neq[11];
+		qij_01 += _CX_19[12] * _CY_19[12] * f_neq[12];
+		qij_01 += _CX_19[13] * _CY_19[13] * f_neq[13];
+		qij_01 += _CX_19[14] * _CY_19[14] * f_neq[14];
+		qij_01 += _CX_19[15] * _CY_19[15] * f_neq[15];
+		qij_01 += _CX_19[16] * _CY_19[16] * f_neq[16];
+		qij_01 += _CX_19[17] * _CY_19[17] * f_neq[17];
+		qij_01 += _CX_19[18] * _CY_19[18] * f_neq[18];
+
+		// i=0, j=2
+		double qij_02 = 0.0;  // q_xz
+		qij_02 += _CX_19[0] * _CZ_19[0] * f_neq[0];
+		qij_02 += _CX_19[1] * _CZ_19[1] * f_neq[1];
+		qij_02 += _CX_19[2] * _CZ_19[2] * f_neq[2];
+		qij_02 += _CX_19[3] * _CZ_19[3] * f_neq[3];
+		qij_02 += _CX_19[4] * _CZ_19[4] * f_neq[4];
+		qij_02 += _CX_19[5] * _CZ_19[5] * f_neq[5];
+		qij_02 += _CX_19[6] * _CZ_19[6] * f_neq[6];
+		qij_02 += _CX_19[7] * _CZ_19[7] * f_neq[7];
+		qij_02 += _CX_19[8] * _CZ_19[8] * f_neq[8];
+		qij_02 += _CX_19[9] * _CZ_19[9] * f_neq[9];
+		qij_02 += _CX_19[10] * _CZ_19[10] * f_neq[10];
+		qij_02 += _CX_19[11] * _CZ_19[11] * f_neq[11];
+		qij_02 += _CX_19[12] * _CZ_19[12] * f_neq[12];
+		qij_02 += _CX_19[13] * _CZ_19[13] * f_neq[13];
+		qij_02 += _CX_19[14] * _CZ_19[14] * f_neq[14];
+		qij_02 += _CX_19[15] * _CZ_19[15] * f_neq[15];
+		qij_02 += _CX_19[16] * _CZ_19[16] * f_neq[16];
+		qij_02 += _CX_19[17] * _CZ_19[17] * f_neq[17];
+		qij_02 += _CX_19[18] * _CZ_19[18] * f_neq[18];
+
+		// i=1, j=1
+		double qij_11 = 0.0;  // q_yy
+		qij_11 += _CY_19[0] * _CY_19[0] * f_neq[0];
+		qij_11 += _CY_19[1] * _CY_19[1] * f_neq[1];
+		qij_11 += _CY_19[2] * _CY_19[2] * f_neq[2];
+		qij_11 += _CY_19[3] * _CY_19[3] * f_neq[3];
+		qij_11 += _CY_19[4] * _CY_19[4] * f_neq[4];
+		qij_11 += _CY_19[5] * _CY_19[5] * f_neq[5];
+		qij_11 += _CY_19[6] * _CY_19[6] * f_neq[6];
+		qij_11 += _CY_19[7] * _CY_19[7] * f_neq[7];
+		qij_11 += _CY_19[8] * _CY_19[8] * f_neq[8];
+		qij_11 += _CY_19[9] * _CY_19[9] * f_neq[9];
+		qij_11 += _CY_19[10] * _CY_19[10] * f_neq[10];
+		qij_11 += _CY_19[11] * _CY_19[11] * f_neq[11];
+		qij_11 += _CY_19[12] * _CY_19[12] * f_neq[12];
+		qij_11 += _CY_19[13] * _CY_19[13] * f_neq[13];
+		qij_11 += _CY_19[14] * _CY_19[14] * f_neq[14];
+		qij_11 += _CY_19[15] * _CY_19[15] * f_neq[15];
+		qij_11 += _CY_19[16] * _CY_19[16] * f_neq[16];
+		qij_11 += _CY_19[17] * _CY_19[17] * f_neq[17];
+		qij_11 += _CY_19[18] * _CY_19[18] * f_neq[18];
+
+		// i=1, j=2
+		double qij_12 = 0.0;  // q_yz
+		qij_12 += _CY_19[0] * _CZ_19[0] * f_neq[0];
+		qij_12 += _CY_19[1] * _CZ_19[1] * f_neq[1];
+		qij_12 += _CY_19[2] * _CZ_19[2] * f_neq[2];
+		qij_12 += _CY_19[3] * _CZ_19[3] * f_neq[3];
+		qij_12 += _CY_19[4] * _CZ_19[4] * f_neq[4];
+		qij_12 += _CY_19[5] * _CZ_19[5] * f_neq[5];
+		qij_12 += _CY_19[6] * _CZ_19[6] * f_neq[6];
+		qij_12 += _CY_19[7] * _CZ_19[7] * f_neq[7];
+		qij_12 += _CY_19[8] * _CZ_19[8] * f_neq[8];
+		qij_12 += _CY_19[9] * _CZ_19[9] * f_neq[9];
+		qij_12 += _CY_19[10] * _CZ_19[10] * f_neq[10];
+		qij_12 += _CY_19[11] * _CZ_19[11] * f_neq[11];
+		qij_12 += _CY_19[12] * _CZ_19[12] * f_neq[12];
+		qij_12 += _CY_19[13] * _CZ_19[13] * f_neq[13];
+		qij_12 += _CY_19[14] * _CZ_19[14] * f_neq[14];
+		qij_12 += _CY_19[15] * _CZ_19[15] * f_neq[15];
+		qij_12 += _CY_19[16] * _CZ_19[16] * f_neq[16];
+		qij_12 += _CY_19[17] * _CZ_19[17] * f_neq[17];
+		qij_12 += _CY_19[18] * _CZ_19[18] * f_neq[18];
+
+		// i=2, j=2
+		double qij_22 = 0.0;  // q_zz
+		qij_22 += _CZ_19[0] * _CZ_19[0] * f_neq[0];
+		qij_22 += _CZ_19[1] * _CZ_19[1] * f_neq[1];
+		qij_22 += _CZ_19[2] * _CZ_19[2] * f_neq[2];
+		qij_22 += _CZ_19[3] * _CZ_19[3] * f_neq[3];
+		qij_22 += _CZ_19[4] * _CZ_19[4] * f_neq[4];
+		qij_22 += _CZ_19[5] * _CZ_19[5] * f_neq[5];
+		qij_22 += _CZ_19[6] * _CZ_19[6] * f_neq[6];
+		qij_22 += _CZ_19[7] * _CZ_19[7] * f_neq[7];
+		qij_22 += _CZ_19[8] * _CZ_19[8] * f_neq[8];
+		qij_22 += _CZ_19[9] * _CZ_19[9] * f_neq[9];
+		qij_22 += _CZ_19[10] * _CZ_19[10] * f_neq[10];
+		qij_22 += _CZ_19[11] * _CZ_19[11] * f_neq[11];
+		qij_22 += _CZ_19[12] * _CZ_19[12] * f_neq[12];
+		qij_22 += _CZ_19[13] * _CZ_19[13] * f_neq[13];
+		qij_22 += _CZ_19[14] * _CZ_19[14] * f_neq[14];
+		qij_22 += _CZ_19[15] * _CZ_19[15] * f_neq[15];
+		qij_22 += _CZ_19[16] * _CZ_19[16] * f_neq[16];
+		qij_22 += _CZ_19[17] * _CZ_19[17] * f_neq[17];
+		qij_22 += _CZ_19[18] * _CZ_19[18] * f_neq[18];
+
+		// Sum the terms to get Q_12 (loops over i and j -> ie 9 terms qij * qij)
+		Q_12 += qij_00 * qij_00 + qij_01 * qij_01 + qij_02 * qij_02;
+		Q_12 += qij_01 * qij_01 + qij_11 * qij_11 + qij_12 * qij_12;
+		Q_12 += qij_02 * qij_02 + qij_12 * qij_12 + qij_22 * qij_22;
+
+		Q_12 = sqrt(Q_12);
+
+		// eq 36 Koda 2015, csmag is smagorinsky constant here is c_smag^2 in the paper is c_smag
+		localTau = 1. / 2. *
+									(tau0 + sqrt((tau0 * rho1 * C)*(tau0 * rho1 * C) +
+									18.0 * 1.4142135623730950488016887242097 * rho1 * C_smag * C_smag * Q_12) / (rho1 * C));
+
+		return localTau;
+		*/
+		// Constants (should be precomputed if possible)
+    constexpr double dx = 1.0;
+    constexpr double dt = 1.0;
+    constexpr double C = dx / dt;
+    constexpr double rho1 = 1.0;
+    constexpr double C_smag = 0.1;
+
+    double Q_12 = 0.0;
+
+    // Compute qij values
+    const double qij_00 =
+        _CX_19[0] * _CX_19[0] * f_neq[0] + _CX_19[1] * _CX_19[1] * f_neq[1] +
+        _CX_19[2] * _CX_19[2] * f_neq[2] + _CX_19[3] * _CX_19[3] * f_neq[3] +
+        _CX_19[4] * _CX_19[4] * f_neq[4] + _CX_19[5] * _CX_19[5] * f_neq[5] +
+        _CX_19[6] * _CX_19[6] * f_neq[6] + _CX_19[7] * _CX_19[7] * f_neq[7] +
+        _CX_19[8] * _CX_19[8] * f_neq[8] + _CX_19[9] * _CX_19[9] * f_neq[9] +
+        _CX_19[10] * _CX_19[10] * f_neq[10] + _CX_19[11] * _CX_19[11] * f_neq[11] +
+        _CX_19[12] * _CX_19[12] * f_neq[12] + _CX_19[13] * _CX_19[13] * f_neq[13] +
+        _CX_19[14] * _CX_19[14] * f_neq[14] + _CX_19[15] * _CX_19[15] * f_neq[15] +
+        _CX_19[16] * _CX_19[16] * f_neq[16] + _CX_19[17] * _CX_19[17] * f_neq[17] +
+        _CX_19[18] * _CX_19[18] * f_neq[18];
+
+    const double qij_01 =
+        _CX_19[0] * _CY_19[0] * f_neq[0] + _CX_19[1] * _CY_19[1] * f_neq[1] +
+        _CX_19[2] * _CY_19[2] * f_neq[2] + _CX_19[3] * _CY_19[3] * f_neq[3] +
+        _CX_19[4] * _CY_19[4] * f_neq[4] + _CX_19[5] * _CY_19[5] * f_neq[5] +
+        _CX_19[6] * _CY_19[6] * f_neq[6] + _CX_19[7] * _CY_19[7] * f_neq[7] +
+        _CX_19[8] * _CY_19[8] * f_neq[8] + _CX_19[9] * _CY_19[9] * f_neq[9] +
+        _CX_19[10] * _CY_19[10] * f_neq[10] + _CX_19[11] * _CY_19[11] * f_neq[11] +
+        _CX_19[12] * _CY_19[12] * f_neq[12] + _CX_19[13] * _CY_19[13] * f_neq[13] +
+        _CX_19[14] * _CY_19[14] * f_neq[14] + _CX_19[15] * _CY_19[15] * f_neq[15] +
+        _CX_19[16] * _CY_19[16] * f_neq[16] + _CX_19[17] * _CY_19[17] * f_neq[17] +
+        _CX_19[18] * _CY_19[18] * f_neq[18];
+
+    const double qij_02 =
+        _CX_19[0] * _CZ_19[0] * f_neq[0] + _CX_19[1] * _CZ_19[1] * f_neq[1] +
+        _CX_19[2] * _CZ_19[2] * f_neq[2] + _CX_19[3] * _CZ_19[3] * f_neq[3] +
+        _CX_19[4] * _CZ_19[4] * f_neq[4] + _CX_19[5] * _CZ_19[5] * f_neq[5] +
+        _CX_19[6] * _CZ_19[6] * f_neq[6] + _CX_19[7] * _CZ_19[7] * f_neq[7] +
+        _CX_19[8] * _CZ_19[8] * f_neq[8] + _CX_19[9] * _CZ_19[9] * f_neq[9] +
+        _CX_19[10] * _CZ_19[10] * f_neq[10] + _CX_19[11] * _CZ_19[11] * f_neq[11] +
+        _CX_19[12] * _CZ_19[12] * f_neq[12] + _CX_19[13] * _CZ_19[13] * f_neq[13] +
+        _CX_19[14] * _CZ_19[14] * f_neq[14] + _CX_19[15] * _CZ_19[15] * f_neq[15] +
+        _CX_19[16] * _CZ_19[16] * f_neq[16] + _CX_19[17] * _CZ_19[17] * f_neq[17] +
+        _CX_19[18] * _CZ_19[18] * f_neq[18];
+
+    const double qij_11 =
+        _CY_19[0] * _CY_19[0] * f_neq[0] + _CY_19[1] * _CY_19[1] * f_neq[1] +
+        _CY_19[2] * _CY_19[2] * f_neq[2] + _CY_19[3] * _CY_19[3] * f_neq[3] +
+        _CY_19[4] * _CY_19[4] * f_neq[4] + _CY_19[5] * _CY_19[5] * f_neq[5] +
+        _CY_19[6] * _CY_19[6] * f_neq[6] + _CY_19[7] * _CY_19[7] * f_neq[7] +
+        _CY_19[8] * _CY_19[8] * f_neq[8] + _CY_19[9] * _CY_19[9] * f_neq[9] +
+        _CY_19[10] * _CY_19[10] * f_neq[10] + _CY_19[11] * _CY_19[11] * f_neq[11] +
+        _CY_19[12] * _CY_19[12] * f_neq[12] + _CY_19[13] * _CY_19[13] * f_neq[13] +
+        _CY_19[14] * _CY_19[14] * f_neq[14] + _CY_19[15] * _CY_19[15] * f_neq[15] +
+        _CY_19[16] * _CY_19[16] * f_neq[16] + _CY_19[17] * _CY_19[17] * f_neq[17] +
+        _CY_19[18] * _CY_19[18] * f_neq[18];
+
+    const double qij_12 =
+        _CY_19[0] * _CZ_19[0] * f_neq[0] + _CY_19[1] * _CZ_19[1] * f_neq[1] +
+        _CY_19[2] * _CZ_19[2] * f_neq[2] + _CY_19[3] * _CZ_19[3] * f_neq[3] +
+        _CY_19[4] * _CZ_19[4] * f_neq[4] + _CY_19[5] * _CZ_19[5] * f_neq[5] +
+        _CY_19[6] * _CZ_19[6] * f_neq[6] + _CY_19[7] * _CZ_19[7] * f_neq[7] +
+        _CY_19[8] * _CZ_19[8] * f_neq[8] + _CY_19[9] * _CZ_19[9] * f_neq[9] +
+        _CY_19[10] * _CZ_19[10] * f_neq[10] + _CY_19[11] * _CZ_19[11] * f_neq[11] +
+        _CY_19[12] * _CZ_19[12] * f_neq[12] + _CY_19[13] * _CZ_19[13] * f_neq[13] +
+        _CY_19[14] * _CZ_19[14] * f_neq[14] + _CY_19[15] * _CZ_19[15] * f_neq[15] +
+        _CY_19[16] * _CZ_19[16] * f_neq[16] + _CY_19[17] * _CZ_19[17] * f_neq[17] +
+        _CY_19[18] * _CZ_19[18] * f_neq[18];
+
+    const double qij_22 =
+        _CZ_19[0] * _CZ_19[0] * f_neq[0] + _CZ_19[1] * _CZ_19[1] * f_neq[1] +
+        _CZ_19[2] * _CZ_19[2] * f_neq[2] + _CZ_19[3] * _CZ_19[3] * f_neq[3] +
+        _CZ_19[4] * _CZ_19[4] * f_neq[4] + _CZ_19[5] * _CZ_19[5] * f_neq[5] +
+        _CZ_19[6] * _CZ_19[6] * f_neq[6] + _CZ_19[7] * _CZ_19[7] * f_neq[7] +
+        _CZ_19[8] * _CZ_19[8] * f_neq[8] + _CZ_19[9] * _CZ_19[9] * f_neq[9] +
+        _CZ_19[10] * _CZ_19[10] * f_neq[10] + _CZ_19[11] * _CZ_19[11] * f_neq[11] +
+        _CZ_19[12] * _CZ_19[12] * f_neq[12] + _CZ_19[13] * _CZ_19[13] * f_neq[13] +
+        _CZ_19[14] * _CZ_19[14] * f_neq[14] + _CZ_19[15] * _CZ_19[15] * f_neq[15] +
+        _CZ_19[16] * _CZ_19[16] * f_neq[16] + _CZ_19[17] * _CZ_19[17] * f_neq[17] +
+        _CZ_19[18] * _CZ_19[18] * f_neq[18];
+
+    // Sum the terms to get Q_12 (loops over i and j -> ie 9 terms qij * qij)
+    Q_12 += qij_00 * qij_00 + qij_01 * qij_01 + qij_02 * qij_02;
+    Q_12 += qij_01 * qij_01 + qij_11 * qij_11 + qij_12 * qij_12;
+    Q_12 += qij_02 * qij_02 + qij_12 * qij_12 + qij_22 * qij_22;
+
+    Q_12 = sqrt(Q_12);
+
+    // Calculate the local Tau using the given formula
+    return 0.5 * (tau0 + sqrt((tau0 * rho1 * C) * (tau0 * rho1 * C) +
+                              18.0 * 1.4142135623730950488016887242097 * rho1 * C_smag * C_smag * Q_12) / (rho1 * C));
+
+}
+
+//==============================================================================
+/**
+* Device Function that computes the relaxation time to be used in the
+* evolution equation for the distr. functions (collision)
+* The sponge layer is maintained for a certain time and then dissolved.
+*/
+	__device__ __forceinline__ double _CalculateTau(
+		const distribn_t tau0,
+		const distribn_t vTau_local,
+		const unsigned long timeStep,
+		const unsigned long lifetime,
+		const distribn_t* const f_neq)
+	{
+
+		/*double ret_tau; // The relaxation time to be returned
+
+		double tau_les = _Compute_tau_smagorinsky(tau0, f_neq);
+		//printf("tau_les: %f , inv tau_les: %f  \n", tau_les, 1./tau_les);
+		if (timeStep <= lifetime / 2)
+		{
+			if(vTau_local == tau0){
+				ret_tau = tau_les;
+			}else{
+				ret_tau = vTau_local;
+			}
+		}
+		else if (timeStep < lifetime)
+		{
+			// Linear decay from vTau to tau0
+			// hydroVars.tau = (tau0 - vTau[index]) * 2.0 / lifetime * timeStep + (2.0 * vTau[index] - tau0);
+			//hydroVars.tau = (tau_les - vTau[index]) * 2.0 / lifetime * timeStep + (2.0 * vTau[index] - tau_les);
+			ret_tau = (tau_les - vTau_local) * 2.0 / lifetime * timeStep + (2.0 * vTau_local - tau_les);
+		}
+		else
+		{
+			// hydroVars.tau = tau0;
+			ret_tau = tau_les;
+		}
+		//printf("Ret_tau: %f, tau_les: %f \n", ret_tau, tau_les );
+
+		return ret_tau;
+		*/
+
+		// Calculate tau_les using the Smagorinsky model
+    double tau_les = _Compute_tau_smagorinsky(tau0, f_neq);
+
+    // Determine the relaxation time based on the timeStep and lifetime
+    if (timeStep <= lifetime / 2)
+    {
+        return (vTau_local == tau0) ? tau_les : vTau_local;
+    }
+    else if (timeStep < lifetime)
+    {
+        return (tau_les - vTau_local) * 2.0 / lifetime * timeStep + (2.0 * vTau_local - tau_les);
+    }
+    else
+    {
+        return tau_les;
+    }
+	}
+
 
 
 }

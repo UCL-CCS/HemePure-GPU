@@ -123,6 +123,7 @@ namespace hemelb
 				void *GPUDataAddr_int64_Neigh_c;
 				void *GPUDataAddr_int64_Neigh_d;
 
+				void *GPUDataAddr_vTau = nullptr;
 				//--------------------------------------------------
 				// Vel. BCs case - Transfer everything on the GPU and compute the wall momentum correction on the GPU
 				void **GPUDataAddr_pp_Inlet_weightsTable_coord = nullptr; // Pointer to pointers
@@ -403,6 +404,7 @@ namespace hemelb
 				bool Initialise_GPU(iolets::BoundaryValues* iInletValues, iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits);	// Initialise the GPU - memory allocations
 
 				bool initialise_GPU_WallShearStressMagn(iolets::BoundaryValues* iInletValues, iolets::BoundaryValues* iOutletValues, const util::UnitConverter* iUnits);	// Initialise the GPU - memory allocations
+				bool initialise_GPU_LBGKSL();
 
 				bool FinaliseGPU();
 				bool Read_DistrFunctions_CPU_to_GPU(int64_t firstIndex, int64_t siteCount);
