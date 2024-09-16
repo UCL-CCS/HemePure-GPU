@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhemelb_colloidsForces.a CMakeFiles/hemelb_colloidsForces.dir/BodyForces.cc.o
+/usr/bin/ranlib libhemelb_colloidsForces.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libhemelb_configuration.a CMakeFiles/hemelb_configuration.dir/CommandLine.cc.o CMakeFiles/hemelb_configuration.dir/SimConfig.cc.o
+/usr/bin/ranlib libhemelb_configuration.a

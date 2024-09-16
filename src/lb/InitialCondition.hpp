@@ -30,7 +30,7 @@ namespace hemelb {
     template<class LatticeType>
     void EquilibriumInitialCondition::SetFs(geometry::LatticeData* latDat, const net::IOCommunicator& ioComms, SimulationState* sim) const {
 
-      printf("Setting Distr. Funstions - Case EquilibriumInitialCondition \n\n");
+      //printf("Setting Distr. Funstions - Case EquilibriumInitialCondition \n\n");
 
       distribn_t f_eq[LatticeType::NUMVECTORS];
       LatticeType::CalculateFeq(density, mom_x, mom_y, mom_z, f_eq);
@@ -65,7 +65,7 @@ namespace hemelb {
       sim->SetTimeStep(time_to_pass);
       sim->SetInitTimeStep(time_to_pass);
 
-      printf("Inside Initial Condition(.hpp) (1a) - initial_time = %d, restart_time = %ld, time_passed_to_SimulationState = %ld \n\n", initial_time, time_restart, time_to_pass);
+      //printf("Inside Initial Condition(.hpp) (1a) - initial_time = %d, restart_time = %ld, time_passed_to_SimulationState = %ld \n\n", initial_time, time_restart, time_to_pass);
     }
 
     //--------------------------------
@@ -88,17 +88,17 @@ namespace hemelb {
 
     inline void EquilibriumInitialCondition::SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const {
 
-      printf(" - Setting Initial Time - Case EquilibriumInitialCondition \n\n");
+      //printf(" - Setting Initial Time - Case EquilibriumInitialCondition \n\n");
 
     }
 
     inline void CheckpointInitialCondition::SetInitTime(SimulationState* sim, const net::IOCommunicator& ioComms) const {
 
-      printf(" - Setting Initial Time - Case CheckpointInitialCondition \n\n");
+      //printf(" - Setting Initial Time - Case CheckpointInitialCondition \n\n");
 
       auto distributionInputPtr = std::make_unique<extraction::LocalDistributionInput>(cpFile, ioComms);
       auto time_restart = distributionInputPtr->Get_restart_Time_Checkpointing();
-      printf("Inside Initial Condition(.hpp) (1) - initial restart_time = %ld \n\n", time_restart);
+      //printf("Inside Initial Condition(.hpp) (1) - initial restart_time = %ld \n\n", time_restart);
 
       uint64_t time_to_pass = time_restart +1;
       sim->SetTimeStep(time_to_pass);

@@ -3733,7 +3733,7 @@ template<class LatticeType>
 				// TOTAL GLOBAL number of INLETS and OUTLETS
 				int n_Inlets = mInletValues->GetTotalIoletCount();
 				int n_Outlets = mOutletValues->GetTotalIoletCount();
-				printf("Rank: %d, Number of TOTAL (Local) inlets: %d (%d), TOTAL (Local) Outlets: %d (%d) \n\n", myPiD, n_Inlets, mInletValues->GetLocalIoletCount(), n_Outlets, mOutletValues->GetLocalIoletCount());
+				//printf("Rank: %d, Number of TOTAL (Local) inlets: %d (%d), TOTAL (Local) Outlets: %d (%d) \n\n", myPiD, n_Inlets, mInletValues->GetLocalIoletCount(), n_Outlets, mOutletValues->GetLocalIoletCount());
 
 				//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 				//=============================================================================================================================================================
@@ -3858,13 +3858,14 @@ template<class LatticeType>
 					Inlet_Inner.n_local_iolets = n_LocalInlets_mInlet;
 					memcpy(&Inlet_Inner.Iolets_ID_range, &Iolets_Inlet_Inner[0], 3* n_LocalInlets_mInlet *sizeof(site_t));
 
+					/*
 					// Debugging
 					// Prints the list of local iolets
 					std::cout << "Rank: " << myPiD << " - Unique local Inlets: " << n_unique_LocalInlets_mInlet << " - Total local Inlets on current Rank (1st Round - mInlet): " << n_LocalInlets_mInlet << " with Inlet ID:";
 					for (int index = 0; index < n_LocalInlets_mInlet; index++ )
 						std::cout << ' ' << Iolets_Inlet_Inner[3*index];
 					std::cout << "\n\n";
-
+					*/
 					//
 
 					site_t MemSz = 3 * n_LocalInlets_mInlet *  sizeof(site_t);
@@ -3912,12 +3913,13 @@ template<class LatticeType>
 
 					InletWall_Inner.n_local_iolets = n_LocalInlets_mInletWall;
 					memcpy(&InletWall_Inner.Iolets_ID_range, &Iolets_InletWall_Inner[0], 3* n_LocalInlets_mInletWall *sizeof(site_t));
-
+					/*
 					// Debugging
 					std::cout << "Rank: " << myPiD << " - Unique local Inlets: " << n_unique_LocalInlets_mInletWall << " - Total local Inlets on current Rank (1st Round - mInletWall): " << n_LocalInlets_mInletWall << " with Inlet ID:";
 					for (int index = 0; index < n_LocalInlets_mInletWall; index++ )
 						std::cout << ' ' << Iolets_InletWall_Inner[3*index];
 					std::cout << "\n\n";
+					*/
 					//
 
 					site_t MemSz = 3 * n_LocalInlets_mInletWall *  sizeof(site_t);
@@ -6066,7 +6068,11 @@ template<class LatticeType>
 				if(myPiD!=0){
 					// Number of fluid sites
 					site_t nFluid_sites = mLatDat->GetLocalFluidSiteCount();
-					printf("Number of fluid sites: %ld \n", nFluid_sites);
+
+					//
+					// Debugging - Testing
+					//printf("Number of fluid sites: %ld \n", nFluid_sites);
+					//
 
 					// Memory Size required
 					site_t MemSz = nFluid_sites * sizeof(distribn_t);
@@ -6795,8 +6801,8 @@ template<class LatticeType>
 
 			//---------------
 			// Testing - Remove later
-			uint64_t time_currentStep = mState->GetTimeStep();
-			printf("Current Time-Step as set in SetInitialConditions (lb.hpp) %ld \n", time_currentStep);
+			// uint64_t time_currentStep = mState->GetTimeStep();
+			// printf("Current Time-Step as set in SetInitialConditions (lb.hpp) %ld \n", time_currentStep);
 			//---------------
 		}
 

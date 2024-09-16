@@ -32,6 +32,8 @@ namespace hemelb
 {
 	namespace geometry
 	{
+		bool isSGMYFile(std::string filename, const net::IOCommunicator& ioComm);
+
 		namespace SGMY {
 
 			constexpr uint32_t SgmyMagicNumber = 0x676d7905;
@@ -89,6 +91,10 @@ namespace hemelb
 
 				Geometry LoadAndDecompose(const std::string& dataFilePath);
 
+				static proc_t GetHeaderReadingRank() {
+					return HEADER_READING_RANK;
+				}
+				
 			private:
 
 				/**
@@ -104,10 +110,10 @@ namespace hemelb
 				std::vector<char> ReadOnAllTasks(sitedata_t nBytes);
 
 
-				/** 
+				/**
                  * Reads the SGMY Preamble. It returns a base initialized Geometry to Us
 				 * and also an SGMY PreambleInfo structure.
-				 */ 	
+				 */
 				Geometry ReadPreamble(SGMY::SGMYPreambleInfo& preambleInfo);
 
 				void ReadHeader(const SGMY::SGMYPreambleInfo& preambleInfo);
@@ -233,7 +239,7 @@ namespace hemelb
 
 				//! Info about the connectivity of the lattice.
 				const lb::lattices::LatticeInfo& latticeInfo;
-				
+
 				net::MpiFile file;
 
 				//! HemeLB's main communicator.

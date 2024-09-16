@@ -1,0 +1,91 @@
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_27c6f/fast && /usr/bin/make  -f CMakeFiles/cmTC_27c6f.dir/build.make CMakeFiles/cmTC_27c6f.dir/build
+make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_27c6f.dir/src.c.o
+/usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD  -fPIC  -o CMakeFiles/cmTC_27c6f.dir/src.c.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_27c6f
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_27c6f.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC  CMakeFiles/cmTC_27c6f.dir/src.c.o -o cmTC_27c6f 
+/usr/bin/ld: CMakeFiles/cmTC_27c6f.dir/src.c.o: in function `main':
+src.c:(.text+0x46): undefined reference to `pthread_create'
+/usr/bin/ld: src.c:(.text+0x52): undefined reference to `pthread_detach'
+/usr/bin/ld: src.c:(.text+0x5e): undefined reference to `pthread_cancel'
+/usr/bin/ld: src.c:(.text+0x6f): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_27c6f.dir/build.make:99: cmTC_27c6f] Error 1
+make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+make: *** [Makefile:127: cmTC_27c6f/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+static void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_9da26/fast && /usr/bin/make  -f CMakeFiles/cmTC_9da26.dir/build.make CMakeFiles/cmTC_9da26.dir/build
+make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_9da26.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_9da26.dir/CheckFunctionExists.c.o -c /usr/local/share/cmake-3.22/Modules/CheckFunctionExists.c
+Linking C executable cmTC_9da26
+/usr/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9da26.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create CMakeFiles/cmTC_9da26.dir/CheckFunctionExists.c.o -o cmTC_9da26  -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_9da26.dir/build.make:99: cmTC_9da26] Error 1
+make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+make: *** [Makefile:127: cmTC_9da26/fast] Error 2
+
+
+
+Determining if the funopen exist failed with the following output:
+Change Dir: /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_f436a/fast && /usr/bin/make  -f CMakeFiles/cmTC_f436a.dir/build.make CMakeFiles/cmTC_f436a.dir/build
+make[1]: Entering directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_f436a.dir/CheckSymbolExists.cxx.o
+/usr/bin/c++   -Wno-deprecated-declarations -O3  -std=c++17 -o CMakeFiles/cmTC_f436a.dir/CheckSymbolExists.cxx.o -c /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
+/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:8:19: error: ‘funopen’ was not declared in this scope; did you mean ‘fdopen’?
+    8 |   return ((int*)(&funopen))[argc];
+      |                   ^~~~~~~
+      |                   fdopen
+make[1]: *** [CMakeFiles/cmTC_f436a.dir/build.make:78: CMakeFiles/cmTC_f436a.dir/CheckSymbolExists.cxx.o] Error 1
+make[1]: Leaving directory '/home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp'
+make: *** [Makefile:127: cmTC_f436a/fast] Error 2
+
+
+File /home/ioannis/Documents/UCL_project/code_development/GPU_code/github_GPU_Hemepure_HIP_CUDA_ROCM_SL/HemePure_GPU/src/build_VP_LBGK/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
+/* */
+#include <stdio.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef funopen
+  return ((int*)(&funopen))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}

@@ -143,7 +143,28 @@ void SimulationMaster::Initialise() {
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("INITIALISE");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("----------");
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("--> loading input and decomposing geometry");
-#if 1
+
+	// This is a lambda which returns a 'hemelb::geometry::Geometry'
+  // Since we cannot leave a geometry uninitialized and we don't have assignment, just
+  // the copy operator.
+  // This lambda will check if our file is SGMY and if so read it as such
+  // otherwise it will attempt to read a GMY
+  // in either case it will return the result with which we can init our readGeometry Dat
+  auto file_reader = [=](void) {
+    if ( hemelb::geometry::isSGMYFile(simConfig->GetDataFilePath(),ioComms) ) {
+      hemelb::geometry::GeometrySGMYReader reader( latticeType::GetLatticeInfo(), timings, ioComms);
+      hemelb::geometry::Geometry geom_data(reader.LoadAndDecompose(simConfig->GetDataFilePath()));
+      return geom_data;
+    }
+    else {
+      hemelb::geometry::GeometryReader reader( latticeType::GetLatticeInfo(), timings, ioComms);
+      hemelb::geometry::Geometry geom_data(reader.LoadAndDecompose(simConfig->GetDataFilePath()));
+      return geom_data;
+    }
+  };
+  hemelb::geometry::Geometry readGeometryData( file_reader() );
+	
+/*#if 1
 	hemelb::geometry::GeometrySGMYReader reader(
 		latticeType::GetLatticeInfo(),
 		timings, ioComms);
@@ -155,6 +176,7 @@ void SimulationMaster::Initialise() {
 #endif
 	hemelb::geometry::Geometry readGeometryData =
 		reader.LoadAndDecompose(simConfig->GetDataFilePath());
+*/
 
 	// Create a new lattice based on that info and return it.
 	hemelb::log::Logger::Log<hemelb::log::Info, hemelb::log::Singleton>("--> lattice data");

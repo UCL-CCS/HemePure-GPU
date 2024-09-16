@@ -1,0 +1,2 @@
+/usr/bin/ar qc libgpu_objs.a CMakeFiles/gpu_objs.dir/SimulationMaster.cu.o CMakeFiles/gpu_objs.dir/cuda_kernels_def_decl/cuda/deviceAPI_cuda.cu.o CMakeFiles/gpu_objs.dir/cuda_kernels_def_decl/cuda_params.cu.o CMakeFiles/gpu_objs.dir/cuda_kernels_def_decl/GPU_Collide_Stream_Iolets.cu.o CMakeFiles/gpu_objs.dir/cuda_kernels_def_decl/GPU_Collide_Stream_wall_sBB_Iolets.cu.o
+/usr/bin/ranlib libgpu_objs.a

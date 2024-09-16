@@ -175,7 +175,10 @@ namespace hemelb
 											// const int dist = (siteLocation - initParams.outletPositions[j]).GetByDirection(util::Direction::Direction::X);
 											// const LatticeDistance distSq = dist * dist;
 											const LatticeDistance dist = std::sqrt(distSq);
-											if (i==35933) printf("Outlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
+											//
+											// Debugging - Testing
+											//if (i==35933) printf("Outlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
+											//
 
 											if (distSq <= widthSq)
 											{
@@ -217,7 +220,10 @@ namespace hemelb
 													// const int dist = (siteLocation - initParams.outletPositions[j]).GetByDirection(util::Direction::Direction::X);
 													// const LatticeDistance distSq = dist * dist;
 													const LatticeDistance dist = std::sqrt(distSq);
-													if (i==35933) printf("Inlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
+													//
+													// Debugging - Testing
+													//if (i==35933) printf("Inlet Case: %d, Site: %lu Coords:[%ld, %ld, %ld] - distSq: %f  - vRatio: %f - dist: %f, width: %f \n", j, i, siteLocation.x, siteLocation.y, siteLocation.z, distSq, vRatio, dist, width);
+													//
 													if (distSq <= 784)
 													{
 														// Quadratic function
@@ -232,7 +238,7 @@ namespace hemelb
 										}
 										vTau[i] = vRatioTot * (tau0 - 0.5) + 0.5;
                     // }
-										if (i==35933) printf("Site: %lu - vRatio: %f - vTau: %.3e \n", i, vRatio, vTau[i]);
+										//if (i==35933) printf("Site: %lu - vRatio: %f - vTau: %.3e \n", i, vRatio, vTau[i]);
 
             			}
           			}
