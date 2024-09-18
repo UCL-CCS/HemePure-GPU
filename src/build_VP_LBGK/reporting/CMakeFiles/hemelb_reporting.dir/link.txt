@@ -1,2 +1,0 @@
-/usr/bin/ar qc libhemelb_reporting.a CMakeFiles/hemelb_reporting.dir/Reporter.cc.o CMakeFiles/hemelb_reporting.dir/Timers.cc.o
-/usr/bin/ranlib libhemelb_reporting.a
