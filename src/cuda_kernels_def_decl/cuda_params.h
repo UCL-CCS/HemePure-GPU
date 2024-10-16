@@ -51,6 +51,8 @@ namespace hemelb
 	// Then Function Read_Macrovariables_GPU_to_CPU in void LBM<LatticeType>::EndIteration() will do the DtH mem.copy
 	extern __constant__ int _Send_MacroVars_DtH;
 
+	// Added for the Sponge Layer - LES implementation
+	extern __constant__ double dev_smag_cnst;
 
 
 	inline void check_cuda_errors(const char *filename, const int line_number, int myProc);
@@ -656,6 +658,7 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 // tau0: Relaxation Time tau0(initParams.lbmParams->GetTau())
 	__device__ __forceinline__ double _Compute_tau_smagorinsky(
 		const distribn_t tau0,
+		const distribn_t smag_cnst,
 		const distribn_t* const f_neq)
 	{
 		/*double localTau;
@@ -822,7 +825,7 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
     constexpr double dt = 1.0;
     constexpr double C = dx / dt;
     constexpr double rho1 = 1.0;
-    constexpr double C_smag = 0.1;
+    double C_smag = smag_cnst; // constexpr double C_smag = 0.1;
 
     double Q_12 = 0.0;
 
@@ -920,6 +923,7 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 */
 	__device__ __forceinline__ double _CalculateTau(
 		const distribn_t tau0,
+		const distribn_t smag_cnst,
 		const distribn_t vTau_local,
 		const unsigned long timeStep,
 		const unsigned long lifetime,
@@ -956,7 +960,7 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 		*/
 
 		// Calculate tau_les using the Smagorinsky model
-    double tau_les = _Compute_tau_smagorinsky(tau0, f_neq);
+    double tau_les = _Compute_tau_smagorinsky(tau0, smag_cnst, f_neq);
 
     // Determine the relaxation time based on the timeStep and lifetime
     if (timeStep <= lifetime / 2)

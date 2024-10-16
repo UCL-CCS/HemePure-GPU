@@ -322,6 +322,7 @@ namespace hemelb
 	__constant__ int _WriteStep = 100;
 	__constant__ int _Send_MacroVars_DtH = 100; // Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
 
+	__constant__ double dev_smag_cnst;
 
 	//===================================================================================================================
 
@@ -2158,7 +2159,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			// Sponge Layer - LES formulation
 			// Compute the local relaxation time
 			// dev_tau is tau0
-			distribn_t local_tau =  _CalculateTau(dev_tau, _vTau, time_Step, SL_lifetime, f_neq);
+			distribn_t local_tau =  _CalculateTau(dev_tau, dev_smag_cnst, _vTau, time_Step, SL_lifetime, f_neq);
 			//printf("Local LES tau: %f, dev_tau: %f, _vTau: %f, SL_lifetime: %ld \n", local_tau, dev_tau, _vTau, SL_lifetime);
 
 			//dev_ff[i] += f_neq[i] * dev_minusInvTau;

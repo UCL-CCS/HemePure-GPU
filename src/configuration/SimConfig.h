@@ -188,6 +188,10 @@ namespace hemelb
           return spongeLayerLifetime;
         }
 
+        Dimensionless GetCSmagorinsky() const
+        {
+          return CSmagorinsky;
+        }
 
 
        /**
@@ -354,6 +358,7 @@ namespace hemelb
         Dimensionless viscosityRatio;
         LatticeDistance spongeLayerWidth;
         LatticeTimeStep spongeLayerLifetime;
+        Dimensionless CSmagorinsky;
     };
   }
 }

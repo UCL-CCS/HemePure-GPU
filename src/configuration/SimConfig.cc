@@ -613,6 +613,10 @@ namespace hemelb
 				// <lifetime value="unsigned" units="lattice" />
 				const io::xml::Element lEl = spongeEl.GetChildOrThrow("lifetime");
 				GetDimensionalValue(lEl, "lattice", spongeLayerLifetime);
+
+				// <C_smagorinsky value="0.1" units="dimensionless" />
+				const io::xml::Element c_sm_El = spongeEl.GetChildOrThrow("C_smagorinsky");
+				GetDimensionalValue(c_sm_El, "dimensionless", CSmagorinsky);
 			}
 		}
 

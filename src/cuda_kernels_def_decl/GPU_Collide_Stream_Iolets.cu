@@ -391,7 +391,7 @@ void GPU_CollideStream_Iolets_Ladd_VelBCs(
 		// Sponge Layer - LES formulation
 		// Compute the local relaxation time
 		// dev_tau is tau0
-		distribn_t local_tau =  _CalculateTau(dev_tau, _vTau, time_Step, SL_lifetime, f_neq);
+		distribn_t local_tau =  _CalculateTau(dev_tau, dev_smag_cnst, _vTau, time_Step, SL_lifetime, f_neq);
 		//printf("Local LES tau: %f, dev_tau: %f, _vTau: %f, SL_lifetime: %ld \n", local_tau, dev_tau, _vTau, SL_lifetime);
 
 		//dev_ff[i] += f_neq[i] * dev_minusInvTau;
@@ -654,7 +654,7 @@ void GPU_CollideStream_Iolets_NashZerothOrderPressure(
 		// Sponge Layer - LES formulation
 		// Compute the local relaxation time
 		// dev_tau is tau0
-		distribn_t local_tau =  _CalculateTau(dev_tau, _vTau, time_Step, SL_lifetime, f_neq);
+		distribn_t local_tau =  _CalculateTau(dev_tau, dev_smag_cnst, _vTau, time_Step, SL_lifetime, f_neq);
 		//printf("Local LES tau: %f, dev_tau: %f, _vTau: %f, SL_lifetime: %ld \n", local_tau, dev_tau, _vTau, SL_lifetime);
 
 		//dev_ff[i] += f_neq[i] * dev_minusInvTau;
@@ -1203,7 +1203,7 @@ for (int i = 0; i < _NUMVECTORS; ++i)
 	// Sponge Layer - LES formulation
 	// Compute the local relaxation time
 	// dev_tau is tau0
-	distribn_t local_tau =  _CalculateTau(dev_tau, _vTau, time_Step, SL_lifetime, f_neq);
+	distribn_t local_tau =  _CalculateTau(dev_tau, dev_smag_cnst, _vTau, time_Step, SL_lifetime, f_neq);
 	//printf("Local LES tau: %f, dev_tau: %f, _vTau: %f, SL_lifetime: %ld \n", local_tau, dev_tau, _vTau, SL_lifetime);
 
 	//dev_ff[i] += f_neq[i] * dev_minusInvTau;

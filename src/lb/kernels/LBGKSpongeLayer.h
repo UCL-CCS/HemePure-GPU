@@ -32,7 +32,8 @@ namespace hemelb
 				public:
 					LBGKSpongeLayer(InitParams& initParams) :
 						tau0(initParams.lbmParams->GetTau()), vRatio(initParams.lbmParams->ViscosityRatio),
-						lifetime(initParams.lbmParams->SpongeLayerLifetime), state(initParams.state)
+						lifetime(initParams.lbmParams->SpongeLayerLifetime), state(initParams.state),
+						Smagorinsky_cnst(initParams.lbmParams->Smagorinsky_const)
 					{
 						InitState(initParams);
 
@@ -282,7 +283,9 @@ namespace hemelb
 						double C = dx / dt;
 						double rho1 = 1.0;
 						double localTau;
-						double C_smag = 0.1;
+						double C_smag = Smagorinsky_cnst;//0.1; // Value provided from the input file
+						printf("From LES Sponge - Smagorinsky const: %.3f  \n\n", Smagorinsky_cnst);
+
 						// Compute non-equilibrium values
 						for (unsigned int ii = 0; ii < LatticeType::NUMVECTORS; ++ii)
 						{
@@ -314,6 +317,9 @@ namespace hemelb
 					const Dimensionless vRatio;
 					// Lifetime of the sponge layer
 					const LatticeTimeStep lifetime;
+
+					// Smagorinsky constant
+					const Dimensionless Smagorinsky_cnst;
 
 					// Pointer to the simulation state which provides the current time step.
 					SimulationState* state;

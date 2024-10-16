@@ -6104,6 +6104,19 @@ template<class LatticeType>
 						initialise_GPU_LBGKSL_res = false;
 						return initialise_GPU_LBGKSL_res;
 					}
+
+					//====================================================================
+					// Copy constants to the GPU memory - Limit is 64 kB
+					double smag_cnst = mSimConfig->GetCSmagorinsky();//mParams.Smagorinsky_const;
+					//if(myPiD==1) printf("Smagorinsky constant = %.2f \n\n", smag_cnst);
+
+					status = deviceMemcpyToSymbol(&hemelb::dev_smag_cnst, &smag_cnst, sizeof(smag_cnst), 0, memcpyHostToDevice);
+					if (!status) {
+						fprintf(stderr, "GPU memory transfer Smagorinsky const Host To Device failed\n");
+						initialise_GPU_LBGKSL_res = false;
+						return initialise_GPU_LBGKSL_res;
+					}
+					//====================================================================
 				}
 
 				return initialise_GPU_LBGKSL_res;
@@ -9241,8 +9254,11 @@ template<class LatticeType>
 				mParams.ViscosityRatio = mSimConfig->GetViscosityRatio();
 				mParams.SpongeLayerWidth = mSimConfig->GetSpongeLayerWidth();
 				mParams.SpongeLayerLifetime = mSimConfig->GetSpongeLayerLifetime();
+				mParams.Smagorinsky_const = mSimConfig->GetCSmagorinsky();
 
 				//printf("Number of inlets: %d, outlets: %d \n\n", inletCount, outletCount);
+				//printf("Smagorinsky const: %.3f  \n\n", mParams.Smagorinsky_const);
+
 			}
 
 	}
