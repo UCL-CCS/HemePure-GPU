@@ -66,10 +66,13 @@ namespace hemelb
 			file.Read(preambleBuffer);
 #endif
 			file.Close();
+			
+			HEMELB_MPI_CALL(MPI_Info_free, (&fileInfo));
 			auto preambleInfo = *(reinterpret_cast<SGMY::SGMYPreambleInfo *>(&preambleBuffer[0]));
 
 			// Check the value of the geometry file magic number.
 			if ( preambleInfo.SgmyMagic != SGMY::SgmyMagicNumber) return false;
+		
 			return true;
 		}
 
