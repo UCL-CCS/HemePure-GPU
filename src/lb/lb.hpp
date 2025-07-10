@@ -5803,7 +5803,8 @@ https://stackoverflow.com/questions/26111794/how-to-use-pointer-to-pointer-in-cu
 	delete[] Data_int64_Neigh_d;
 	//delete[] Data_uint32_WallIntersect;
 	delete[] Data_uint32_IoletIntersect;
-	delete[] h_inletNormal, h_outletNormal;
+	delete[] h_inletNormal;
+        delete[] h_outletNormal;
 
 	if (hemeIoletBC_Inlet == "LADDIOLET") {
 		// if subtype Case: b. File

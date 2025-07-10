@@ -54,6 +54,27 @@ deviceMalloc(void **ptr, size_t MemSz) {
 	else return true;
 }
 
+
+// two-arg overload that creates a default queue under the hood
+bool 
+deviceHostAlloc(void **ptr, size_t MemSz) {
+	static sycl::queue q{ sycl::default_selector{} };
+      	*ptr = sycl::malloc_host(MemSz, q);
+      	return (*ptr != nullptr);
+}
+
+bool 
+deviceFreeHost(void *devPtr) {
+  static sycl::queue q{ sycl::default_selector{} };
+  try {
+    sycl::free(devPtr, q);
+    return true;
+  } catch (const sycl::exception &e) {
+    std::cerr << "SYCL free failed: " << e.what() << "\n";
+    return false;
+  }
+}
+
 #if 0
 		bool
 			deviceMemcpyToSymbol(const void *symbol, const void *src, size_t count, size_t offset, memcpyKind kind) {
