@@ -4,6 +4,11 @@ This repository represents a porting of the CPU-only [HemePure](https://github.c
 
 Pre- and post-processing of simulation domains for HemePure-GPU follow the same steps as utilised by the CPU version.
 
+Publications specifically using HemePure_GPU:
+* Xue, X., Athawale, T. M., McCullough, J. W. S., Lo, S. C., Zacharoudiou, I., Joo, B., ... & Coveney, P. V. (2025). An Uncertainty Visualization Framework for Large-Scale Cardiovascular Flow Simulations: A Case Study on Aortic Stenosis. arXiv preprint arXiv:2508.15420.
+* Xue, X., McCullough, J. W. S., Lo, S. C., Zacharoudiou, I., Joó, B., & Coveney, P. V. (2024, June). The lattice Boltzmann based large eddy simulations for the stenosis of the aorta. In International Conference on Computational Science (pp. 408-420). Cham: Springer Nature Switzerland.
+* Zacharoudiou, I., McCullough, J. W. S. & Coveney, P. V. (2023). Development and performance of a HemeLB GPU code for human-scale blood flow simulation. Computer Physics Communications, 282, 108548.
+
 ##  Features #
 The CPU version of HemePure can be executed with the following functionality. Some must be specified at the compilation of the hemepure executable. Simulations are conducted using a D3Q19 lattice stencil.
 
