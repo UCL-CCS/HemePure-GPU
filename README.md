@@ -12,27 +12,27 @@ Collision kernels (compile time):
 * LBGK + LES - Inclusion of large eddy simulation approximation to assist in higher Re flow modelling.
 
 Inlet/Outlet boundary conditions (compile time):
-*Pressure
- - Sinusoidal profile (constant pressure enabled using)
- - Transient profile
- - Sponge layer (outlets) - Acts on a pressure outlet but modifies the viscosity near the outlet to increase stability of the simulation (defined with collision kernel).
+* Pressure
+  - Sinusoidal profile (constant pressure enabled using)
+  - Transient profile
+  - Sponge layer (outlets) - Acts on a pressure outlet but modifies the viscosity near the outlet to increase stability of the simulation (defined with collision kernel).
 * Velocity
- - Constant magnitude with parabolic profile for circular inlets
- - Transient profile with parabolic profile for circular inlets
- - Transient profile with Poiseuille-like profile for non-circular inlets
+  - Constant magnitude with parabolic profile for circular inlets
+  - Transient profile with parabolic profile for circular inlets
+  - Transient profile with Poiseuille-like profile for non-circular inlets
 
 Wall boundary conditions (compile time):
  * Bounceback - simple rigid walls
    
 Data output (run time):
 * Extraction of data from the following locations in a domain:
- - point on surface
- - line between two points
- - plane through the domain
- - inlets
- - outlets
- - whole wall surface
- - whole domain
+  - Point on surface
+  - Line between two points
+  - Plane through the domain
+  - Inlets
+  - Outlets
+  - Wall surface
+  - Whole domain
 * Checkpoint restart from written data file
 
 ## Compilation #
