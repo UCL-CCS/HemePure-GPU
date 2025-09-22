@@ -4,6 +4,37 @@ This repository represents a porting of the CPU-only [HemePure](https://github.c
 
 Pre- and post-processing of simulation domains for HemePure-GPU follow the same steps as utilised by the CPU version.
 
+##  Features #
+The CPU version of HemePure can be executed with the following functionality. Some must be specified at the compilation of the hemepure executable. Simulations are conducted using a D3Q19 lattice stencil.
+
+Collision kernels (compile time):
+* LBGK - Single relaxation time
+* LBGK + LES - Inclusion of large eddy simulation approximation to assist in higher Re flow modelling.
+
+Inlet/Outlet boundary conditions (compile time):
+*Pressure
+ - Sinusoidal profile (constant pressure enabled using)
+ - Transient profile
+ - Sponge layer (outlets) - Acts on a pressure outlet but modifies the viscosity near the outlet to increase stability of the simulation (defined with collision kernel).
+* Velocity
+ - Constant magnitude with parabolic profile for circular inlets
+ - Transient profile with parabolic profile for circular inlets
+ - Transient profile with Poiseuille-like profile for non-circular inlets
+
+Wall boundary conditions (compile time):
+ * Bounceback - simple rigid walls
+   
+Data output (run time):
+* Extraction of data from the following locations in a domain:
+ - point on surface
+ - line between two points
+ - plane through the domain
+ - inlets
+ - outlets
+ - whole wall surface
+ - whole domain
+* Checkpoint restart from written data file
+
 ## Compilation #
 As per the CPU version of the code, the dependencies need to be built before attempting to compile the source code and `hemepure_gpu` executable.
 
