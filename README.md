@@ -10,7 +10,7 @@ Publications specifically using HemePure_GPU:
 * Zacharoudiou, I., McCullough, J. W. S. & Coveney, P. V. (2023). Development and performance of a HemeLB GPU code for human-scale blood flow simulation. Computer Physics Communications, 282, 108548.
 
 ##  Features #
-The CPU version of HemePure can be executed with the following functionality. Some must be specified at the compilation of the hemepure executable. Simulations are conducted using a D3Q19 lattice stencil.
+The GPU version of HemePure can be executed with the following functionality. Some must be specified at the compilation of the hemepure executable. Simulations are conducted using a D3Q19 lattice stencil.
 
 Collision kernels (compile time):
 * LBGK - Single relaxation time
