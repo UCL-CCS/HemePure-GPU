@@ -58,3 +58,9 @@ architecture you want to compile for:
 ```sh
 export HCC_AMDGPU_TARGET="gfx906,gfx908,gfx90a"
 ```
+
+
+### SYCL
+
+Examples of build scripts (compiling the source code on Aurora at ALCF, targeting the Intel Data Center GPU Max Series (codenamed Ponte Vecchio) GPUs) can be found in /src/scripts_build_Aurora/
+
