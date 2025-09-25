@@ -16,7 +16,7 @@ Build dependencies before attempting to build `hemepure_gpu`.
 
 ## Compilation for different GPU backend
 
-You can select different GPU backends (CUDA, HIP-CUDA, HIP-ROCM) with the
+You can select different GPU backends (CUDA, HIP-CUDA, HIP-ROCM, SYCL) with the
 `HEMELB_GPU_BACKEND` option.
 
 ### CUDA
