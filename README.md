@@ -62,5 +62,14 @@ export HCC_AMDGPU_TARGET="gfx906,gfx908,gfx90a"
 
 ### SYCL
 
-Examples of build scripts (compiling the source code on Aurora at ALCF, targeting the Intel Data Center GPU Max Series (codenamed Ponte Vecchio) GPUs) can be found in /src/scripts_build_Aurora/
+Examples of build scripts (compiling the source code on Aurora at ALCF, targeting the Intel Data Center GPU Max Series - codenamed Ponte Vecchio GPUs) can be found in `/src/scripts_build_Aurora/`
+```sh
+mkdir src/build && cd src/build
+cmake -DHEMELB_GPU_BACKEND=SYCL \
+      -DHEMELB_SYCL_TARGET=spir64 \
+      -DHEMELB_SYCL_ARCH=pvc \
+      -DCMAKE_CXX_COMPILER=icpx \ ..
+make -j
+```
+
 
