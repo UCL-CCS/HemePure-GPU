@@ -57,26 +57,31 @@ As per the CPU version of the code, the dependencies need to be built before att
 
 The choice of Boudary conditions at the inlets and outlets should be also be taken into account when compiling the ssource code. 
 There are two different options for driving the blood flow. 
-1) Case Pressure-Pressure BCs:
+1) Case Pressure-Pressure BCs: 
 
 From `src/build/` run the following
 
+```sh
 cmake  -DHEMELB_USE_VELOCITY_WEIGHTS_FILE=OFF \
        -DHEMELB_INLET_BOUNDARY=NASHZEROTHORDERPRESSUREIOLET \
        -DHEMELB_WALL_INLET_BOUNDARY=NASHZEROTHORDERPRESSURESBB \
        -DHEMELB_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSUREIOLET \
        -DHEMELB_WALL_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSURESBB \
        ..
+```
 
-2) Case of Velocity-Pressure BCs
+2) Case of Velocity-Pressure BCs: 
+   
 From `src/build/` run the following
+
+```sh
 cmake  -DHEMELB_USE_VELOCITY_WEIGHTS_FILE=ON \
        -DHEMELB_INLET_BOUNDARY=LADDIOLET \
        -DHEMELB_WALL_INLET_BOUNDARY=LADDIOLETSBB \
        -DHEMELB_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSUREIOLET \
        -DHEMELB_WALL_OUTLET_BOUNDARY=NASHZEROTHORDERPRESSURESBB \
        ..
-
+```
 
 ### Compilation for different GPU backend
 
