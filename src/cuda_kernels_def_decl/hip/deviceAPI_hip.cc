@@ -139,7 +139,7 @@ size_t deviceGetProperties(int myProc)
 		std::cout << "Device properties: " << std::endl;
 		std::string arch;
 
-		printf("Device name:  AMDGCN GFX%d\n", dev_prop.gcnArch);
+		printf("Device name:  AMDGCN GFX%d\n", dev_prop.gcnArchName); // Changed dev_prop.gcnArch to dev_prop.gcnArchName
 		printf("Compute Capability: %d.%d\n\n", dev_prop.major, dev_prop.minor);
 		printf("Total Global Mem:    %.1fGB\n", ((double)dev_prop.totalGlobalMem/1073741824.0));
 		std::cout << "Number of Streaming Multiprocessors:  "<< dev_prop.multiProcessorCount<< std::endl;
