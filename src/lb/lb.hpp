@@ -6982,7 +6982,7 @@ template<class LatticeType>
 
 				//----------------------------------
 				// Cuda kernel set-up
-				int nThreadsPerBlock_Collide = 128;				//Number of threads per block for the Collision step
+				int nThreadsPerBlock_Collide = 1024;				//Number of threads per block for the Collision step
 				dim3 nThreads_Collide(nThreadsPerBlock_Collide);
 				// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 				int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
@@ -6992,7 +6992,7 @@ template<class LatticeType>
 				// nArr_dbl =  (mLatDat->GetLocalFluidSiteCount()) is the number of fluid elements that sets how these are organised in memory; see Initialise_GPU (method b - by index LB)
 				if(nBlocks_Collide!=0){
 					if (hemeKernel == "LBGKSL"){
-						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_1>>> (
+						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<LatticeType::NUMVECTORS><<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_1>>> (
 								(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 								(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 								(distribn_t*)GPUDataAddr_dbl_MacroVars,
@@ -7008,7 +7008,7 @@ template<class LatticeType>
 							);
 					}
 					else if(hemeKernel == "LBGK"){
-					hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_1>>> (
+					hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<LatticeType::NUMVECTORS><<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreSend_1>>> (
 							(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 							(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 							(distribn_t*)GPUDataAddr_dbl_MacroVars,
@@ -8014,7 +8014,7 @@ template<class LatticeType>
 
 				//----------------------------------
 				// Cuda kernel set-up
-				int nThreadsPerBlock_Collide = 256;				//Number of threads per block for the Collision step
+				int nThreadsPerBlock_Collide = 1024;				//Number of threads per block for the Collision step
 				dim3 nThreads_Collide(nThreadsPerBlock_Collide);
 				// Number of fluid nodes involved in the collision/streaming : mLatDat->GetDomainEdgeCollisionCount(0)
 				int nBlocks_Collide = (site_Count)/nThreadsPerBlock_Collide			+ ((site_Count % nThreadsPerBlock_Collide > 0)         ? 1 : 0);
@@ -8025,7 +8025,7 @@ template<class LatticeType>
 
 				if(nBlocks_Collide!=0){
 					if (hemeKernel == "LBGKSL"){
-						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_1>>> (
+						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<LatticeType::NUMVECTORS> <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_1>>> (
 								(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 								(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 								(distribn_t*)GPUDataAddr_dbl_MacroVars,
@@ -8041,7 +8041,7 @@ template<class LatticeType>
 							);
 					}
 					else if(hemeKernel == "LBGK"){
-						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_1>>> (
+						hemelb::GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<LatticeType::NUMVECTORS> <<<nBlocks_Collide, nThreads_Collide, 0, Collide_Stream_PreRec_1>>> (
 									(distribn_t*)mLatDat->GPUDataAddr_dbl_fOld_b_mLatDat,
 									(distribn_t*)mLatDat->GPUDataAddr_dbl_fNew_b_mLatDat,
 									(distribn_t*)GPUDataAddr_dbl_MacroVars,
