@@ -81,6 +81,7 @@ namespace hemelb
 
 
 	// Evaluate the wall shear stress magnitude
+	template<int NumVectors>
 	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
 										distribn_t* GMem_dbl_fNew_b,
 										distribn_t* GMem_dbl_MacroVars,
@@ -94,6 +95,7 @@ namespace hemelb
 
   // Evaluate the wall shear stress magnitude
 	//	& Sponge Layer - LES
+	template<int NumVectors>
 	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
 		distribn_t* GMem_dbl_fOld_b,
 		distribn_t* GMem_dbl_fNew_b,

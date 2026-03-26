@@ -1751,6 +1751,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 	// 	Load:
 	//		a. Wall normals
 	//**************************************************************
+	template<int NumVectors>
 	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
 										distribn_t* GMem_dbl_fNew_b,
 										distribn_t* GMem_dbl_MacroVars,
@@ -1797,8 +1798,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		}
 		*/
 
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll
+		for(int direction = 0; direction< NumVectors; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
 			nn += ff;
@@ -1831,8 +1832,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		double f_neq[19];
 		if(write_GlobalMem){
-#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll
+			for (int i = 0; i < NumVectors; ++i)
 			{
 				double mom_dot_ei = (double)_CX_19[i] * momentum_x
 												+ (double)_CY_19[i] * momentum_y
@@ -1853,8 +1854,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			}
 		}
 		else{
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			#pragma unroll
+			for (int i = 0; i < NumVectors; ++i)
 			{
 				double mom_dot_ei = (double)_CX_19[i] * momentum_x
 					+ (double)_CY_19[i] * momentum_y
@@ -1881,11 +1882,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
+		//double dev_fn[19];		// or maybe use the existing dev_ff[NumVectors] to minimise the memory requirements
 
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < NumVectors; ++i)
 		{
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
 		}
@@ -1899,12 +1900,12 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		site_t index_wall = nArr_dbl * NumVectors; // typedef int64_t site_t;
 
 		GMem_dbl_fNew_b[Ind]= dev_ff[0];
 
-#pragma unroll 18
-		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
+#pragma unroll
+		for(int LB_Dir=1; LB_Dir< NumVectors; LB_Dir++){
 				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
@@ -2058,6 +2059,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 	//		b. LIfetime of the sponge layer (in case it dissolves after a certain time)
 	// 		c. The time-step is also needed
 	//**************************************************************
+	template<int NumVectors>
 	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
 										distribn_t* GMem_dbl_fNew_b,
 										distribn_t* GMem_dbl_MacroVars,
@@ -2110,8 +2112,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		}
 		*/
 
-	#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+	#pragma unroll
+		for(int direction = 0; direction< NumVectors; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
 			nn += ff;
@@ -2143,8 +2145,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
 		double f_neq[19];
-		#pragma unroll 19
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		#pragma unroll
+		for (int i = 0; i < NumVectors; ++i)
 		{
 			double mom_dot_ei = (double)_CX_19[i] * momentum_x
 												+ (double)_CY_19[i] * momentum_y
@@ -2173,11 +2175,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
+		//double dev_fn[19];		// or maybe use the existing dev_ff[NumVectors] to minimise the memory requirements
 
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < NumVectors; ++i)
 		{
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
 		}
@@ -2191,12 +2193,12 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		site_t index_wall = nArr_dbl * NumVectors; // typedef int64_t site_t;
 
 		GMem_dbl_fNew_b[Ind]= dev_ff[0];
 
-	#pragma unroll 18
-		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
+	#pragma unroll
+		for(int LB_Dir=1; LB_Dir< NumVectors; LB_Dir++){
 				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
@@ -2706,6 +2708,15 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		}	// Ends the GPU_StreamReceivedDistr kernel
 		//==========================================================================================
+
+	// Explicit template instantiations for GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress (D3Q19)
+	template __global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<19>(
+		distribn_t*, distribn_t*, distribn_t*, site_t*, uint32_t*, site_t, site_t, site_t, site_t, site_t, site_t, bool,
+		distribn_t*, distribn_t*, unsigned long, int);
+
+	template __global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress<19>(
+		distribn_t*, distribn_t*, distribn_t*, site_t*, uint32_t*, site_t, site_t, site_t, site_t, site_t, site_t, bool,
+		distribn_t*, distribn_t*, unsigned long, int, distribn_t*, unsigned long int);
 
 #endif
 }
