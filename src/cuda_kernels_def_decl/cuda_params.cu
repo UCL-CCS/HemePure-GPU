@@ -303,7 +303,7 @@ namespace hemelb
 	 __constant__ site_t _Iolets_OutletWall_Inner[local_iolets_MaxSIZE];
 
 
-	__constant__ unsigned int _NUMVECTORS;
+	// __constant__ unsigned int HEMELB_NUM_VECTORS;
 	__constant__ double dev_tau;
 	__constant__ double dev_minusInvTau;
 	__constant__ double _Cs2;
@@ -311,13 +311,13 @@ namespace hemelb
 	__constant__ bool _useWeightsFromFile;
 	__constant__ double _iStressParameter;
 
-	__constant__ int _InvDirections_19[19];
+	__constant__ int _InvDirections[HEMELB_NUM_VECTORS];
 
-	__device__ __constant__ double _EQMWEIGHTS_19[19];
+	__device__ __constant__ double _EQMWEIGHTS[HEMELB_NUM_VECTORS];
 
-	__constant__ int _CX_19[19];
-	__constant__ int _CY_19[19];
-	__constant__ int _CZ_19[19];
+	__constant__ int _CX[HEMELB_NUM_VECTORS];
+	__constant__ int _CY[HEMELB_NUM_VECTORS];
+	__constant__ int _CZ[HEMELB_NUM_VECTORS];
 
 	__constant__ int _WriteStep = 100;
 	__constant__ int _Send_MacroVars_DtH = 100; // Writing MacroVariables to GPU global memory (Sending MacroVariables calculated during the collision-streaming kernels to the GPU Global mem).
@@ -504,8 +504,8 @@ __global__ void GPU_WallMom_correction_File_Weights(int64_t *GMem_Coords_iolets,
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
 		// Here is the loop over the LB lattice directions
-#pragma unroll 19
-			for (int LB_Dir = 1; LB_Dir < _NUMVECTORS; LB_Dir++) // Check whether to keep the loop from LB_Dir=0 or 1
+#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++) // Check whether to keep the loop from LB_Dir=0 or 1
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -525,9 +525,9 @@ __global__ void GPU_WallMom_correction_File_Weights(int64_t *GMem_Coords_iolets,
 						double halfWay_y = y_coord;
 						double halfWay_z = z_coord;
 
-						halfWay_x += 0.5 * _CX_19[LB_Dir];
-						halfWay_y += 0.5 * _CY_19[LB_Dir];
-						halfWay_z += 0.5 * _CZ_19[LB_Dir];
+						halfWay_x += 0.5 * _CX[LB_Dir];
+						halfWay_y += 0.5 * _CY[LB_Dir];
+						halfWay_z += 0.5 * _CZ[LB_Dir];
 
 						//------------------------------------------------------------------
 						// B. Step: LatticeVelocity wallMom(iolet->GetVelocity(halfWay, bValues->GetTimeStep()));
@@ -673,7 +673,7 @@ __global__ void GPU_WallMom_correction_File_Weights(int64_t *GMem_Coords_iolets,
 						// 	i.e. evaluate the index at initialisation, since it only depends on the
 						//	 geometry and then read this at every time step to get the correction term
 						int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-						int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+						int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 						int64_t index_key_weights_table = GMem_index_key_weightTable[index];
 						//if(Ind==10025) printf("Ind: %lld, index_in_key_weightTable: %d, index_key_weights_table: %lld, INT_MAX: %lld \n", Ind, index, index_key_weights_table, INT64_MAX);
@@ -708,10 +708,10 @@ __global__ void GPU_WallMom_correction_File_Weights(int64_t *GMem_Coords_iolets,
 
 						//------------------------------------------------------------------
 						// C. Step: Evaluate the single correction term as
-						correction = 2. * _EQMWEIGHTS_19[LB_Dir]
-				                * (	wallMom_x * (double)_CX_19[LB_Dir] +
-														wallMom_y * (double)_CY_19[LB_Dir] +
-				                    wallMom_z * (double)_CZ_19[LB_Dir]) / _Cs2;
+						correction = 2. * _EQMWEIGHTS[LB_Dir]
+				                * (	wallMom_x * (double)_CX[LB_Dir] +
+													wallMom_y * (double)_CY[LB_Dir] +
+				                    wallMom_z * (double)_CZ[LB_Dir]) / _Cs2;
 
 						// if (time_Step==1000 && correction!=0 && Ind==10065) printf("GPU - Fluid ID: %lld, LB-Dir: %d, vel_weight: %f, wallMom_x: %.5e, wallMom_y: %.5e, wallMom_z: %.5e, correction: %.5e \n", Ind, LB_Dir, vel_weight, wallMom_x, wallMom_y, wallMom_z, correction);
 
@@ -907,8 +907,8 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
 		// Here is the loop over the LB lattice directions
-#pragma unroll 19
-			for (int LB_Dir = 1; LB_Dir < _NUMVECTORS; LB_Dir++) // keep the loop from LB_Dir=1
+#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++) // keep the loop from LB_Dir=1
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -922,7 +922,7 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 				distribn_t wallMom_x=0.0; distribn_t wallMom_y=0.0; distribn_t wallMom_z=0.0;
 
 				int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-				int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+				int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 				// Check which links are fluid-iolet links
 				if(is_Iolet_link){	// ioletLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -941,7 +941,7 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 						// 	i.e. evaluate the index at initialisation, since it only depends on the
 						//	 geometry and then read this at every time step to get the correction term
 						int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-						int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+						int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 						int64_t index_key_weights_table = GMem_index_key_weightTable[index];
 						//if(Ind==10025) printf("Ind: %lld, index_in_key_weightTable: %d, index_key_weights_table: %lld, INT_MAX: %lld \n", Ind, index, index_key_weights_table, INT64_MAX);
@@ -988,10 +988,10 @@ __global__ void GPU_WallMom_correction_File_Weights_NoSearch(int64_t *GMem_Coord
 
 						//------------------------------------------------------------------
 						// C. Step: Evaluate the single correction term as
-						correction = 2. * _EQMWEIGHTS_19[LB_Dir]
-				                * (	wallMom_x * (double)_CX_19[LB_Dir] +
-														wallMom_y * (double)_CY_19[LB_Dir] +
-				                    wallMom_z * (double)_CZ_19[LB_Dir]) / _Cs2;
+						correction = 2. * _EQMWEIGHTS[LB_Dir]
+				                * (	wallMom_x * (double)_CX[LB_Dir] +
+													wallMom_y * (double)_CY[LB_Dir] +
+				                    wallMom_z * (double)_CZ[LB_Dir]) / _Cs2;
 
 						// if (time_Step==1000 && correction!=0 && Ind==10065) printf("GPU - Fluid ID: %lld, LB-Dir: %d, vel_weight: %f, wallMom_x: %.5e, wallMom_y: %.5e, wallMom_z: %.5e, correction: %.5e \n", Ind, LB_Dir, vel_weight, wallMom_x, wallMom_y, wallMom_z, correction);
 
@@ -1114,8 +1114,8 @@ __global__ void GPU_WallMom_correction_File_prefactor(
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
 		// Here is the loop over the LB lattice directions
-#pragma unroll 19
-			for (int LB_Dir = 1; LB_Dir < _NUMVECTORS; LB_Dir++) // keep the loop from LB_Dir=1
+#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++) // keep the loop from LB_Dir=1
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1124,7 +1124,7 @@ __global__ void GPU_WallMom_correction_File_prefactor(
 				distribn_t max_vel=0.0; // Max Velocity to be read from the velocityTable(IdInlet,t)
 
 				int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-				// int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+				// int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 				// Check which links are fluid-iolet links
 				if(is_Iolet_link){
@@ -1302,8 +1302,8 @@ __global__ void GPU_WallMom_correction_File_prefactor_v2(
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
 		// Here is the loop over the LB lattice directions
-#pragma unroll 19
-			for (int LB_Dir = 1; LB_Dir < _NUMVECTORS; LB_Dir++) // keep the loop from LB_Dir=1
+#pragma unroll 
+			for (int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++) // keep the loop from LB_Dir=1
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1312,7 +1312,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_v2(
 				distribn_t max_vel=0.0; // Max Velocity to be read from the velocityTable(IdInlet,t)
 
 				int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-				// int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+				// int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 				// Check which links are fluid-iolet links
 				if(is_Iolet_link){
@@ -1433,8 +1433,8 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 		uint32_t Iolet_Intersect = GMem_uint32_Iolet_Link[Ind];
 
 		// Here is the loop over the LB lattice directions
-#pragma unroll 19
-			for (int LB_Dir = 1; LB_Dir < _NUMVECTORS; LB_Dir++) // keep the loop from LB_Dir=1
+#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++) // keep the loop from LB_Dir=1
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1447,7 +1447,7 @@ __global__ void GPU_WallMom_correction_File_prefactor_NoIoletIDSearch(
 					//distribn_t max_vel=0.0; // Max Velocity to be read from the velocityTable(IdInlet,t)
 
 					int64_t shifted_Fluid_Ind = Ind - start_Fluid_ID_givenColStreamType;
-					// int index = shifted_Fluid_Ind*(_NUMVECTORS-1) + LB_Dir-1;
+					// int index = shifted_Fluid_Ind*(HEMELB_NUM_VECTORS-1) + LB_Dir-1;
 
 					// A. Step: Load the prefactor correction term
 					site_t index_wallMom_correction = (LB_Dir - 1) * site_Count_givenColStreamType + shifted_Fluid_Ind;
@@ -1712,7 +1712,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			// Load the distribution functions fNew_GPU_b[19]
 			// distribn_t dev_ff_new[19];
 
-			for(int direction = 0; direction< _NUMVECTORS; direction++){
+			for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 				distribn_t ff = GMem_dbl_fNew_b[(unsigned long long)direction * nArr_dbl + Ind];
 				//dev_ff_new[direction] = ff;
 				if (!(ff > 0.0)) // Unstable simulation
@@ -1751,34 +1751,31 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 	// 	Load:
 	//		a. Wall normals
 	//**************************************************************
-	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
-										distribn_t* GMem_dbl_fNew_b,
-										distribn_t* GMem_dbl_MacroVars,
-										site_t* GMem_int64_Neigh,
-										uint32_t* GMem_uint32_Wall_Link,
-										site_t nArr_dbl,
-										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
-										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
-										unsigned long time_Step, int MPI_Rank)
+	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
+										const distribn_t* __restrict__ GMem_dbl_fOld_b,
+										distribn_t* __restrict__ GMem_dbl_fNew_b,
+										distribn_t* __restrict__ GMem_dbl_MacroVars,
+										const site_t* __restrict__ GMem_int64_Neigh,
+										const uint32_t* __restrict__ GMem_uint32_Wall_Link,
+										const site_t nArr_dbl,
+										const site_t lower_limit_MidFluid, const site_t upper_limit_MidFluid,
+										const site_t lower_limit_Wall, const site_t upper_limit_Wall, const site_t totalSharedFs, const bool write_GlobalMem,
+										distribn_t* __restrict__ GMem_dbl_WallShearStressMagn, const distribn_t* __restrict__ GMem_dbl_WallNormal,
+										const unsigned long time_Step, const int MPI_Rank)
 	{
-		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
-		Ind = Ind + lower_limit_MidFluid;
+		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x + lower_limit_MidFluid;
 
 		if(Ind >= upper_limit_Wall)
 			return;
-
+		
 		//printf("lower_limit_MidFluid: %lld, upper_limit_MidFluid: %lld, lower_limit_Wall: %lld, upper_limit_Wall: %lld \n\n", lower_limit_MidFluid, upper_limit_MidFluid, lower_limit_Wall, upper_limit_Wall);
 
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
-		double nn = 0.0;	// density
-		double momentum_x, momentum_y, momentum_z;
-		momentum_x = momentum_y = momentum_z = 0.0;
-
-		double velx, vely, velz;	// Fluid Velocity
+		double dev_ff[HEMELB_NUM_VECTORS];
+		double nn = 0.0;	// density	
+		double momentum_x = 0.0, momentum_y = 0.0, momentum_z = 0.0;
 
 		//-----------------------------------------------------------------------------------------------------------
 		// 1. Read the fOld_GPU_b distr. functions
@@ -1796,17 +1793,16 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
 		}
 		*/
-
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction < HEMELB_NUM_VECTORS; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
 			nn += ff;
-
+			
 			// Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
-			momentum_x += (double)_CX_19[direction] * ff;
-			momentum_y += (double)_CY_19[direction] * ff;
-			momentum_z += (double)_CZ_19[direction] * ff;
+			momentum_x += (double)_CX[direction] * ff;
+			momentum_y += (double)_CY[direction] * ff;
+			momentum_z += (double)_CZ[direction] * ff;
 		}
 
 		/*
@@ -1829,53 +1825,27 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
-		if(write_GlobalMem){
-#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
-			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-												+ (double)_CY_19[i] * momentum_y
-												+ (double)_CZ_19[i] * momentum_z;
+		double f_neq[HEMELB_NUM_VECTORS]; 
 
-				/*
-						dev_fEq[i] = _EQMWEIGHTS_19[i]
-										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
-			 */
+#pragma unroll HEMELB_UNROLL
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
+		{
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+							  + (double)_CY[i] * momentum_y
+							  + (double)_CZ[i] * momentum_z;
 
-			  double dev_fEq = _EQMWEIGHTS_19[i]
-										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
+			double dev_fEq = _EQMWEIGHTS[i] * (nn - 1.5 * momentumMagnitudeSquared * density_1 
+							  + 4.5 * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
+			if (write_GlobalMem) {
 				f_neq[i] = dev_ff[i] - dev_fEq;
 				dev_ff[i] += f_neq[i] * dev_minusInvTau;
-			}
-		}
-		else{
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
-			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-					+ (double)_CY_19[i] * momentum_y
-					+ (double)_CZ_19[i] * momentum_z;
-
-				/*
-					dev_fEq[i] = _EQMWEIGHTS_19[i]
-						* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-						+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
-				*/
-
-				double dev_fEq = _EQMWEIGHTS_19[i]
-													* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
-																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
-
-				//f_neq[i] = dev_ff[i] - dev_fEq;
+			} else {
 				dev_ff[i] += (dev_ff[i] - dev_fEq) * dev_minusInvTau;
 			}
 		}
 
-
+		
 		// d. Body Force case: Add details of any forcing scheme here - Evaluate force[i]
 		//-----------------------------------------------------------------------------------------------------------
 
@@ -1899,25 +1869,25 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		const site_t index_wall = nArr_dbl * HEMELB_NUM_VECTORS; 
 
 		GMem_dbl_fNew_b[Ind]= dev_ff[0];
 
-#pragma unroll 18
-		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
-				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
-
-				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
+#pragma unroll HEMELB_UNROLL_MINUS_ONE
+		for(int LB_Dir = 1; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++){
+			int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; 
+			
+			// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
 				// Option 1:
-				if(dev_NeighInd == index_wall) // Wall Link
-				{
-					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
-				}
-				else{
-					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
-				}
-				//printf("Local ID : %llu, Mem. Location: %.llu, LB_dir = %d, Neighbour = %llu \n\n", Ind, local_fluid_site_mem_loc, LB_Dir, dev_NeighInd);
+			if(dev_NeighInd == index_wall) 
+			{	
+				// Simple Bounce Back case:
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind] = dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+			} 
+			else{
+				GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
+			}
+			//printf("Local ID : %llu, Mem. Location: %.llu, LB_dir = %d, Neighbour = %llu \n\n", Ind, local_fluid_site_mem_loc, LB_Dir, dev_NeighInd);
 
 				/*
 				// Option 2: Use of ternary operator to replace the if-else statement
@@ -1932,7 +1902,6 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 				GMem_dbl_fNew_b[arr_index] = dev_ff[LB_Dir];
 				*/
 		}
-
 
 		// --------------------------------------------------------------------------------
 		// Streaming Step:
@@ -1980,14 +1949,9 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//if (time_Step%_Send_MacroVars_DtH ==0){
 		if (write_GlobalMem){
 			GMem_dbl_MacroVars[Ind] = nn;
-
-			velx = momentum_x * density_1;
-			vely = momentum_y * density_1;
-			velz = momentum_z * density_1;
-
-			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = velx;
-			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = vely;
-			GMem_dbl_MacroVars[3ULL*nArr_dbl + Ind] = velz;
+			GMem_dbl_MacroVars[1ULL*nArr_dbl + Ind] = momentum_x * density_1;
+			GMem_dbl_MacroVars[2ULL*nArr_dbl + Ind] = momentum_y * density_1;
+			GMem_dbl_MacroVars[3ULL*nArr_dbl + Ind] = momentum_z * density_1;
 
 
 			/*printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
@@ -2001,33 +1965,32 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 			//if (((site_t)Ind - upper_limit_Wall +1) * ((site_t)Ind - lower_limit_Wall) <= 0){		// When the upper_limit is NOT included
 			if( (Ind >= lower_limit_Wall) && (Ind < upper_limit_Wall) ){
-					distribn_t stress;
+				site_t shifted_Ind = Ind - lower_limit_Wall;
 
-					//printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
-					//			lower_limit_MidFluid, upper_limit_MidFluid,
-					//			lower_limit_Wall, upper_limit_Wall);
+				//printf("Site: % ld, MidFluid limits: [%ld, %ld), Wall limits: [%ld, %ld) \n", Ind,
+				//			lower_limit_MidFluid, upper_limit_MidFluid,
+				//			lower_limit_Wall, upper_limit_Wall);
 
-					// Load the wall normal components from the GPU global memory
-					site_t shifted_Ind = Ind-lower_limit_Wall;
-					distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
-					distribn_t wall_normal_y = GMem_dbl_WallNormal[3*shifted_Ind + 1];
-					distribn_t wall_normal_z = GMem_dbl_WallNormal[3*shifted_Ind + 2];
-					//printf("Site: % ld, Wall normal components: (%5.5e, %5.5e, %5.5e)\n", Ind, wall_normal_x, wall_normal_y, wall_normal_z);
+				// Load the wall normal components from the GPU global memory
+				
+				distribn_t wall_normal_x = GMem_dbl_WallNormal[3*shifted_Ind];
+				distribn_t wall_normal_y = GMem_dbl_WallNormal[3*shifted_Ind + 1];
+				distribn_t wall_normal_z = GMem_dbl_WallNormal[3*shifted_Ind + 2];
+				//printf("Site: % ld, Wall normal components: (%5.5e, %5.5e, %5.5e)\n", Ind, wall_normal_x, wall_normal_y, wall_normal_z);
 
-					stress = _CalculateWallShearStressMagnitude(nn,
-						f_neq,
-						wall_normal_x, wall_normal_y, wall_normal_z,
-						_iStressParameter);
+				distribn_t stress = _CalculateWallShearStressMagnitude(nn, f_neq, 
+																	   wall_normal_x, wall_normal_y, wall_normal_z, 
+																	   _iStressParameter);
 
-					//stress=0.001;
+				//stress=0.001;
 
-					/*if(shifted_Ind==9099 && MPI_Rank==206)
-						printf("Rank: %d, Time: %ld, Site: %ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", MPI_Rank, time_Step, Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
-					*/
-					//if(shifted_Ind==9099)
-					//		printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e, _iStressParameter = %5.5e \n",shifted_Ind, stress, _iStressParameter );
+				/*if(shifted_Ind==9099 && MPI_Rank==206)
+					printf("Rank: %d, Time: %ld, Site: %ld, upper_limit_MidFluid: %ld, upper_limit_Wall: %ld, Shifted Index: %ld, Wall normal components: (%5.5e, %5.5e, %5.5e), stress: %5.5e\n", MPI_Rank, time_Step, Ind, upper_limit_MidFluid, upper_limit_Wall, shifted_Ind, wall_normal_x, wall_normal_y, wall_normal_z, stress);
+				*/
+				//if(shifted_Ind==9099)
+				//		printf("(1) Shifted Index = %ld,  Wall Shear Stress = %5.5e, _iStressParameter = %5.5e \n",shifted_Ind, stress, _iStressParameter );
 
-					GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
+				GMem_dbl_WallShearStressMagn[shifted_Ind] = stress;
 			}
 			//------------------------------------------------------------------------
 		} // Ends the loop if (write_GlobalMem)
@@ -2058,17 +2021,18 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 	//		b. LIfetime of the sponge layer (in case it dissolves after a certain time)
 	// 		c. The time-step is also needed
 	//**************************************************************
-	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
-										distribn_t* GMem_dbl_fNew_b,
-										distribn_t* GMem_dbl_MacroVars,
-										site_t* GMem_int64_Neigh,
-										uint32_t* GMem_uint32_Wall_Link,
-										site_t nArr_dbl,
-										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
-										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
+										const distribn_t* __restrict__ GMem_dbl_fOld_b,
+										distribn_t* __restrict__ GMem_dbl_fNew_b,
+										distribn_t* __restrict__ GMem_dbl_MacroVars,
+										const site_t* __restrict__ GMem_int64_Neigh,
+										const uint32_t* __restrict__ GMem_uint32_Wall_Link,
+										const site_t nArr_dbl,
+										const site_t lower_limit_MidFluid, const site_t upper_limit_MidFluid,
+										const site_t lower_limit_Wall, const site_t upper_limit_Wall, const site_t totalSharedFs, const bool write_GlobalMem,
+										distribn_t* __restrict__ GMem_dbl_WallShearStressMagn, distribn_t* __restrict__ GMem_dbl_WallNormal,
 										unsigned long time_Step, int MPI_Rank,
-										distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+										distribn_t* __restrict__ GMem_dbl_vTau, unsigned long int SL_lifetime
 									)
 	{
 		unsigned long long Ind = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2086,7 +2050,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -2098,28 +2062,28 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Note: No body forces
-		/*for(int direction = 0; direction< _NUMVECTORS; direction++){
+		/*for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			nn += dev_ff[direction];
 		}
 
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
 			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
 			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
 		}
 		*/
 
-	#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+	#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
 			nn += ff;
 
 			// Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
-			momentum_x += (double)_CX_19[direction] * ff;
-			momentum_y += (double)_CY_19[direction] * ff;
-			momentum_z += (double)_CZ_19[direction] * ff;
+			momentum_x += (double)_CX[direction] * ff;
+			momentum_y += (double)_CY[direction] * ff;
+			momentum_z += (double)_CZ[direction] * ff;
 		}
 
 		/*
@@ -2142,15 +2106,15 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
-		#pragma unroll 19
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		double f_neq[HEMELB_NUM_VECTORS];
+		#pragma unroll HEMELB_UNROLL
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-												+ (double)_CY_19[i] * momentum_y
-												+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+												+ (double)_CY[i] * momentum_y
+												+ (double)_CZ[i] * momentum_z;
 
-			double dev_fEq = _EQMWEIGHTS_19[i]
+			double dev_fEq = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -2173,11 +2137,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements
 
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
 		}
@@ -2191,12 +2155,12 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		site_t index_wall = nArr_dbl * HEMELB_NUM_VECTORS; // typedef int64_t site_t;
 
 		GMem_dbl_fNew_b[Ind]= dev_ff[0];
 
-	#pragma unroll 18
-		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
+	#pragma unroll HEMELB_UNROLL_MINUS_ONE
+		for(int LB_Dir=1; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
@@ -2204,7 +2168,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 				if(dev_NeighInd == index_wall) // Wall Link
 				{
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 				}
 				else{
 					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
@@ -2237,7 +2201,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		/*
 		if ( (Ind - upper_limit_MidFluid +1)*(Ind - lower_limit_MidFluid) <= 0){
 		//if( (Ind >= lower_limit_MidFluid) && ( Ind < upper_limit_MidFluid) ){
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 					// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 					// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind];
@@ -2252,10 +2216,10 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		}
 		else
 		{
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
-					if(dev_NeighInd == (nArr_dbl * _NUMVECTORS)) // Wall Link
+					if(dev_NeighInd == (nArr_dbl * HEMELB_NUM_VECTORS)) // Wall Link
 					{
 						// Simple Bounce Back case:
 						GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
@@ -2360,7 +2324,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -2372,28 +2336,28 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Note: No body forces
-		/*for(int direction = 0; direction< _NUMVECTORS; direction++){
+		/*for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			nn += dev_ff[direction];
 		}
 
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
 			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
 			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
 		}
 		*/
 
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			double ff = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 			dev_ff[direction] = ff;
 			nn += ff;
 
 			// Shows a lower number of registers per thread (51) compared to the the explicit method below!!!
-			momentum_x += (double)_CX_19[direction] * ff;
-			momentum_y += (double)_CY_19[direction] * ff;
-			momentum_z += (double)_CZ_19[direction] * ff;
+			momentum_x += (double)_CX[direction] * ff;
+			momentum_y += (double)_CY[direction] * ff;
+			momentum_z += (double)_CZ[direction] * ff;
 		}
 
 		/*
@@ -2418,20 +2382,20 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//double momentumMagnitudeSquared = momentum_x * momentum_x
 		//											+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
-#pragma unroll 19
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		double f_neq[HEMELB_NUM_VECTORS];
+#pragma unroll HEMELB_UNROLL
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
 			/*
 			dev_fEq[i] = _EQMWEIGHTS_19[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 			*/
-			double dev_fEq = _EQMWEIGHTS_19[i]
+			double dev_fEq = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -2460,11 +2424,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements
 
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau;
 		}
@@ -2478,12 +2442,12 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		//		LOAD the Wall-Fluid links info - Remember that this is done for all the fluid nNodes
 		//		Memory allocation in the future must be restricted to just the fluid nodes next to walls (i.e. the siteCount involved)
 
-		site_t index_wall = nArr_dbl * _NUMVECTORS; // typedef int64_t site_t;
+		site_t index_wall = nArr_dbl * HEMELB_NUM_VECTORS; // typedef int64_t site_t;
 
 		GMem_dbl_fNew_b[Ind]= dev_ff[0];
 
-#pragma unroll 18
-		for(int LB_Dir=1; LB_Dir< _NUMVECTORS; LB_Dir++){
+#pragma unroll HEMELB_UNROLL_MINUS_ONE
+		for(int LB_Dir=1; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 				int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
 				// Is there a performance gain in choosing Option 1 over Option 2 or Option 3 below???
@@ -2491,7 +2455,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 				if(dev_NeighInd == index_wall) // Wall Link
 				{
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 				}
 				else{
 					GMem_dbl_fNew_b[dev_NeighInd] = dev_ff[LB_Dir]; 	// If neigh_d is selected
@@ -2524,7 +2488,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		/*
 		if ( (Ind - upper_limit_MidFluid +1)*(Ind - lower_limit_MidFluid) <= 0){
 		//if( (Ind >= lower_limit_MidFluid) && ( Ind < upper_limit_MidFluid) ){
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 					// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 					// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind];
@@ -2539,10 +2503,10 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 		}
 		else
 		{
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 					int64_t dev_NeighInd = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Neighbouring index refers to the index to be streamed to in the global memory. Here it Refers to Data Address NOT THE STREAMING FLUID ID!!!
 
-					if(dev_NeighInd == (nArr_dbl * _NUMVECTORS)) // Wall Link
+					if(dev_NeighInd == (nArr_dbl * HEMELB_NUM_VECTORS)) // Wall Link
 					{
 						// Simple Bounce Back case:
 						GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
@@ -2592,8 +2556,8 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			if(Ind >= upper_limit)
 				return;
 
-			//GMem_dbl_fOld_b[0] = fOld[_NUMVECTORS][nFluid_nodes]
-			//GMem_dbl_fNew_b[0] = fNew[_NUMVECTORS][nFluid_nodes]
+			//GMem_dbl_fOld_b[0] = fOld[HEMELB_NUM_VECTORS][nFluid_nodes]
+			//GMem_dbl_fNew_b[0] = fNew[HEMELB_NUM_VECTORS][nFluid_nodes]
 			//printf("blockDim.x = %d, gridDim.x = %d, Product = %lld \n\n", blockDim.x, gridDim.x, blockDim.x * gridDim.x );
 
 			for (int unsigned long long Index = Ind;
@@ -2602,7 +2566,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
       	{
 				// Just copy the populations  - fNew in fOld
 				//Read in the fNew[19][Ind] and copy to fOld[19][Ind]
-				for(int i=0; i< _NUMVECTORS; i++){
+				for(int i=0; i< HEMELB_NUM_VECTORS; i++){
 					GMem_dbl_fOld_b[(unsigned long long)i*nArr_dbl + Index] = GMem_dbl_fNew_b[(unsigned long long)i*nArr_dbl + Index];
 				}
 			}
@@ -2632,7 +2596,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 			//Read in the fOld[neighbouringProcs[0].FirstSharedDistribution + Ind] and then place this in the appropriate index in fNew
 			distribn_t dev_fOld;
-			dev_fOld = GMem_dbl_fOld_b[(unsigned long long)_NUMVECTORS * nArr_dbl + 1 + Ind];
+			dev_fOld = GMem_dbl_fOld_b[(unsigned long long)HEMELB_NUM_VECTORS * nArr_dbl + 1 + Ind];
 
 			// Read the corresponding Index from the streaming Indices For Received Distributions
 			// Remeber that this index refers to data layout method (a),
@@ -2642,11 +2606,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			site_t streamIndex_method_a = GMem_int64_streamInd[Ind];
 
 			// Convert to data layout method (b)
-			// 		The streamed array index (method_a) is within the domain, i.e. [0,nFluid_nodes*_NUMVECTORS)
-			// 		a. The LB_dir, [0,_NUMVECTORS), will then be the value returned by modulo(_NUMVECTORS):
-			int LB_Dir = streamIndex_method_a % _NUMVECTORS;
+			// 		The streamed array index (method_a) is within the domain, i.e. [0,nFluid_nodes*HEMELB_NUM_VECTORS)
+			// 		a. The LB_dir, [0,HEMELB_NUM_VECTORS), will then be the value returned by modulo(HEMELB_NUM_VECTORS):
+			int LB_Dir = streamIndex_method_a % HEMELB_NUM_VECTORS;
 			// 		b. Fluid ID
-			site_t fluid_ID = (streamIndex_method_a - LB_Dir)/_NUMVECTORS;	// Evaluate the ACTUAL fluid ID index
+			site_t fluid_ID = (streamIndex_method_a - LB_Dir)/HEMELB_NUM_VECTORS;	// Evaluate the ACTUAL fluid ID index
 
 			site_t streamIndex_method_b = LB_Dir * nArr_dbl + fluid_ID;
 
@@ -2683,7 +2647,7 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 
 			//Read in the fOld[neighbouringProcs[0].FirstSharedDistribution + Ind] and then place this in the appropriate index in fNew
 			distribn_t dev_fOld;
-			dev_fOld = GMem_dbl_fOld_b[(unsigned long long)_NUMVECTORS * nArr_dbl + 1 + Ind];
+			dev_fOld = GMem_dbl_fOld_b[(unsigned long long)HEMELB_NUM_VECTORS * nArr_dbl + 1 + Ind];
 
 			// Read the corresponding Index from the streaming Indices For Received Distributions
 			// Remeber that this index refers to data layout method (a),
@@ -2693,11 +2657,11 @@ __global__ void GPU_Check_Coordinates(int64_t *GMem_Coords_iolets,
 			site_t streamIndex_method_a = GMem_int64_streamInd[Ind];
 
 			// Convert to data layout method (b)
-			// 		The streamed array index (method_a) is within the domain, i.e. [0,nFluid_nodes*_NUMVECTORS)
-			// 		a. The LB_dir, [0,_NUMVECTORS), will then be the value returned by modulo(_NUMVECTORS):
-			int LB_Dir = streamIndex_method_a % _NUMVECTORS;
+			// 		The streamed array index (method_a) is within the domain, i.e. [0,nFluid_nodes*HEMELB_NUM_VECTORS)
+			// 		a. The LB_dir, [0,HEMELB_NUM_VECTORS), will then be the value returned by modulo(HEMELB_NUM_VECTORS):
+			int LB_Dir = streamIndex_method_a % HEMELB_NUM_VECTORS;
 			// 		b. Fluid ID
-			site_t fluid_ID = (streamIndex_method_a - LB_Dir)/_NUMVECTORS;	// Evaluate the ACTUAL fluid ID index
+			site_t fluid_ID = (streamIndex_method_a - LB_Dir)/HEMELB_NUM_VECTORS;	// Evaluate the ACTUAL fluid ID index
 
 			site_t streamIndex_method_b = LB_Dir * nArr_dbl + fluid_ID;
 

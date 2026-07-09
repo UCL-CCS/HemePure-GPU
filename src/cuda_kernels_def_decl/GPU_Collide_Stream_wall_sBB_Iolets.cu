@@ -61,14 +61,14 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
 
 		double velx, vely, velz;	// Fluid Velocity
 
-		for(int i=0; i< _NUMVECTORS; i++){
+		for(int i=0; i< HEMELB_NUM_VECTORS; i++){
 			dev_ff[i] = GMem_dbl_fOld_b[(unsigned long long)i * nArr_dbl + Ind];
 		}
 
@@ -79,11 +79,11 @@ namespace hemelb
 		// Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// a. Calculate density
 		// b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -105,13 +105,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -123,10 +123,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		double dev_fn[HEMELB_NUM_VECTORS];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 		}
@@ -169,9 +169,9 @@ namespace hemelb
 
 		//------------------------------------------
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
-		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
+		int64_t dev_NeighInd[HEMELB_NUM_VECTORS]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -187,7 +187,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -212,12 +212,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -235,16 +235,16 @@ namespace hemelb
 
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_fn[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_fn[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//dev_NeighInd[LB_Dir] = GMem_int64_Neigh[(unsigned long long)LB_Dir * nArr_dbl + Ind]; // Read the streaming info here - Here Refers to Data Address NOT THE STREAMING FLUID ID!!!
 				//---------------------------------------------------------------------------
 				// If it streams in direction inside the simulation domain then it will point to a fluid ID < nFluid_nodes, otherwise it will stream to a neighbouring rank (place in the totalSharedFs at the end of the array)
-				if (dev_NeighInd[LB_Dir] < (nArr_dbl*_NUMVECTORS) ) // maximum Data Address in array that correspond to this domain = nFluid_nodes*_NUMVECTORS
+				if (dev_NeighInd[LB_Dir] < (nArr_dbl*HEMELB_NUM_VECTORS) ) // maximum Data Address in array that correspond to this domain = nFluid_nodes*HEMELB_NUM_VECTORS
 				{
-					dev_NeighInd[LB_Dir] = (dev_NeighInd[LB_Dir] - LB_Dir)/_NUMVECTORS;	// Evaluate the ACTUAL streaming fluid ID index
+					dev_NeighInd[LB_Dir] = (dev_NeighInd[LB_Dir] - LB_Dir)/HEMELB_NUM_VECTORS;	// Evaluate the ACTUAL streaming fluid ID index
 
 					// Save the post collision population in fNew
 					GMem_dbl_fNew_b[(unsigned long long)LB_Dir * nArr_dbl + dev_NeighInd[LB_Dir]] = dev_fn[LB_Dir];
@@ -255,8 +255,8 @@ namespace hemelb
 
 					//
 					// Debugging - Remove later
-					// Check if it points to an address outside the (nFluid_nodes * _NUMVECTORS + 1+totalSharedFs )
-					if (dev_NeighInd[LB_Dir] >= (nArr_dbl*_NUMVECTORS+1+totalSharedFs)) printf("Error!!! Fluid Index = %lld, Stream.Dir.= %d, Max. Streaming addr = %lld Vs Stream. Addr.=%lld \n\n", Ind, LB_Dir, nArr_dbl*_NUMVECTORS+1+totalSharedFs, dev_NeighInd[LB_Dir] );
+					// Check if it points to an address outside the (nFluid_nodes * HEMELB_NUM_VECTORS + 1+totalSharedFs )
+					if (dev_NeighInd[LB_Dir] >= (nArr_dbl*HEMELB_NUM_VECTORS+1+totalSharedFs)) printf("Error!!! Fluid Index = %lld, Stream.Dir.= %d, Max. Streaming addr = %lld Vs Stream. Addr.=%lld \n\n", Ind, LB_Dir, nArr_dbl*HEMELB_NUM_VECTORS+1+totalSharedFs, dev_NeighInd[LB_Dir] );
 					//
 				}
 
@@ -316,7 +316,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -328,13 +328,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -356,13 +356,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -374,10 +374,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -446,7 +446,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -462,7 +462,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -487,12 +487,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -509,7 +509,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -580,7 +580,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -592,13 +592,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -620,13 +620,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -638,10 +638,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -710,7 +710,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -726,7 +726,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -751,12 +751,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -773,7 +773,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -843,7 +843,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -855,13 +855,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -883,13 +883,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -901,10 +901,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -973,7 +973,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -989,7 +989,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1014,12 +1014,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -1036,7 +1036,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1107,7 +1107,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1119,13 +1119,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -1147,13 +1147,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -1165,10 +1165,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -1237,7 +1237,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -1253,7 +1253,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1278,12 +1278,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -1300,7 +1300,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1372,7 +1372,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1384,13 +1384,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -1412,13 +1412,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -1430,10 +1430,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -1502,7 +1502,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -1518,7 +1518,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1543,12 +1543,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -1565,7 +1565,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1640,7 +1640,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1652,14 +1652,14 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -1680,14 +1680,14 @@ namespace hemelb
 		double density_1 = 1.0 / nn;
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
-#pragma unroll 19
-		for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll HEMELB_UNROLL
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			double dev_fEq = _EQMWEIGHTS_19[i]
+			double dev_fEq = _EQMWEIGHTS[i]
 													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
 																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -1701,10 +1701,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -1772,7 +1772,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -1788,8 +1788,8 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-#pragma unroll 19
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+#pragma unroll HEMELB_UNROLL
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -1814,12 +1814,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -1836,7 +1836,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -1911,7 +1911,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -1923,14 +1923,14 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -1952,14 +1952,14 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-#pragma unroll 19
-		for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll HEMELB_UNROLL
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-		  double dev_fEq = _EQMWEIGHTS_19[i]
+		  double dev_fEq = _EQMWEIGHTS[i]
 													* (nn - (3.0 / 2.0) * ( momentum_x * momentum_x + momentum_y * momentum_y + momentum_z * momentum_z ) * density_1
 																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -1973,10 +1973,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		/*// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -2058,7 +2058,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -2074,8 +2074,8 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-#pragma unroll 19
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+#pragma unroll HEMELB_UNROLL
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0; // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -2100,12 +2100,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -2122,7 +2122,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -2200,7 +2200,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19], dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS], dev_fEq[HEMELB_NUM_VECTORS];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -2212,13 +2212,13 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -2240,13 +2240,13 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
-			double mom_dot_ei = (double)_CX_19[i] * momentum_x
-									+ (double)_CY_19[i] * momentum_y
-									+ (double)_CZ_19[i] * momentum_z;
+			double mom_dot_ei = (double)_CX[i] * momentum_x
+									+ (double)_CY[i] * momentum_y
+									+ (double)_CZ[i] * momentum_z;
 
-			dev_fEq[i] = _EQMWEIGHTS_19[i]
+			dev_fEq[i] = _EQMWEIGHTS[i]
 							* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 		}
@@ -2258,10 +2258,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -2294,7 +2294,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -2310,7 +2310,7 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			 unsigned mask = (LB_Dir > 0 ) ? 1U << (LB_Dir - 1 ) : 0;// Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -2323,7 +2323,7 @@ namespace hemelb
 				// c. Load the WallMom info - Note: We follow Method b for the data layout
 				site_t siteCount = upper_limit-lower_limit;
 				site_t shifted_Fluid_Ind = Ind - lower_limit;
-				//site_t nArr_wallMom = siteCount * (_NUMVECTORS-1); // Number of elements of type distribn_t(double)
+				//site_t nArr_wallMom = siteCount * (HEMELB_NUM_VECTORS-1); // Number of elements of type distribn_t(double)
 
 				/*
 				//-----------------------
@@ -2343,8 +2343,8 @@ namespace hemelb
 				WallMom_z *= nn;
 				//-----------------------
 
-				distribn_t correction = 2. * _EQMWEIGHTS_19[LB_Dir]
-				                * (WallMom_x * _CX_19[LB_Dir] + WallMom_y * _CY_19[LB_Dir] + WallMom_z * _CZ_19[LB_Dir]) / _Cs2;
+				distribn_t correction = 2. * _EQMWEIGHTS[LB_Dir]
+				                * (WallMom_x * _CX[LB_Dir] + WallMom_y * _CY[LB_Dir] + WallMom_z * _CZ[LB_Dir]) / _Cs2;
 				//-----------------------
 				*/
 
@@ -2358,7 +2358,7 @@ namespace hemelb
 			 correction *= nn;
 			 //-----------------------
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
+				int unstreamed_dir = _InvDirections[LB_Dir];
 
 				GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_ff[LB_Dir] - correction;
 
@@ -2374,7 +2374,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -2464,7 +2464,7 @@ namespace hemelb
 
 			// Load the distribution functions
 			//f[19] and fEq[19]
-			double dev_ff[19]; //, dev_fEq[19];
+			double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 			double nn = 0.0;	// density
 			double momentum_x, momentum_y, momentum_z;
 			momentum_x = momentum_y = momentum_z = 0.0;
@@ -2476,14 +2476,14 @@ namespace hemelb
 			// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 			// 		a. Calculate density
 			// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		#pragma unroll 19
-			for(int direction = 0; direction< _NUMVECTORS; direction++){
+		#pragma unroll HEMELB_UNROLL
+			for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 				dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 				nn += dev_ff[direction];
-				momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-				momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-				momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+				momentum_x += (double)_CX[direction] * dev_ff[direction];
+				momentum_y += (double)_CY[direction] * dev_ff[direction];
+				momentum_z += (double)_CZ[direction] * dev_ff[direction];
 				//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 			}
 
@@ -2504,15 +2504,15 @@ namespace hemelb
 			double _vTau = GMem_dbl_vTau[Ind];
 			//printf("GPU - value of vTau: %f \n", _vTau);
 
-			double f_neq[19];
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			double f_neq[HEMELB_NUM_VECTORS];
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-													+ (double)_CY_19[i] * momentum_y
-													+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+													+ (double)_CY[i] * momentum_y
+													+ (double)_CZ[i] * momentum_z;
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 											* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 															+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -2535,10 +2535,10 @@ namespace hemelb
 
 			// Collision step:
 			// Single Relaxation Time approximation (LBGK)
-			//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+			//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 			/*
 			// Evolution equation for the fi's here
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
 				//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 				dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -2606,7 +2606,7 @@ namespace hemelb
 			// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 			int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 				// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 				// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -2622,8 +2622,8 @@ namespace hemelb
 			// Wall BCs: Simple Bounce Back if wall-fluid link
 
 			// fNew (dev_fn) populations:
-		#pragma unroll 19
-			for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -2648,12 +2648,12 @@ namespace hemelb
 					momentumMagnitudeSquared = momentum_x * momentum_x
 														+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-					int unstreamed_dir = _InvDirections_19[LB_Dir];
-					double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-										+ (double)_CY_19[unstreamed_dir] * momentum_y
-										+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+					int unstreamed_dir = _InvDirections[LB_Dir];
+					double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+										+ (double)_CY[unstreamed_dir] * momentum_y
+										+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-					double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+					double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 								* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 												+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 					//------------------------------------------------------------------------------------------------------
@@ -2670,7 +2670,7 @@ namespace hemelb
 				else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 					//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 				}
 				else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -2771,7 +2771,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -2783,14 +2783,14 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-	#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+	#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -2812,22 +2812,22 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
+		double f_neq[HEMELB_NUM_VECTORS];
 		if(write_GlobalMem){
-#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-												+ (double)_CY_19[i] * momentum_y
-												+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+												+ (double)_CY[i] * momentum_y
+												+ (double)_CZ[i] * momentum_z;
 
 				/*
-						dev_fEq[i] = _EQMWEIGHTS_19[i]
+						dev_fEq[i] = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 			 */
 
-			  double dev_fEq = _EQMWEIGHTS_19[i]
+			  double dev_fEq = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -2836,20 +2836,20 @@ namespace hemelb
 			}
 		}
 		else{
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-					+ (double)_CY_19[i] * momentum_y
-					+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+					+ (double)_CY[i] * momentum_y
+					+ (double)_CZ[i] * momentum_z;
 
 				/*
-					dev_fEq[i] = _EQMWEIGHTS_19[i]
+					dev_fEq[i] = _EQMWEIGHTS[i]
 						* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 						+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				*/
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 													* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -2866,10 +2866,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 		/*
 		// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -2937,7 +2937,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -2953,8 +2953,8 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-	#pragma unroll 19
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+	#pragma unroll HEMELB_UNROLL
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -2979,12 +2979,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -3001,7 +3001,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -3109,7 +3109,7 @@ namespace hemelb
 
 			// Load the distribution functions
 			//f[19] and fEq[19]
-			double dev_ff[19]; //, dev_fEq[19];
+			double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 			double nn = 0.0;	// density
 			double momentum_x, momentum_y, momentum_z;
 			momentum_x = momentum_y = momentum_z = 0.0;
@@ -3121,14 +3121,14 @@ namespace hemelb
 			// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 			// 		a. Calculate density
 			// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-		#pragma unroll 19
-			for(int direction = 0; direction< _NUMVECTORS; direction++){
+		#pragma unroll HEMELB_UNROLL
+			for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 				dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 				nn += dev_ff[direction];
-				momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-				momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-				momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+				momentum_x += (double)_CX[direction] * dev_ff[direction];
+				momentum_y += (double)_CY[direction] * dev_ff[direction];
+				momentum_z += (double)_CZ[direction] * dev_ff[direction];
 				//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 			}
 
@@ -3149,15 +3149,15 @@ namespace hemelb
 			double _vTau = GMem_dbl_vTau[Ind];
 			//printf("GPU - value of vTau: %f \n", _vTau);
 
-			double f_neq[19];
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			double f_neq[HEMELB_NUM_VECTORS];
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-													+ (double)_CY_19[i] * momentum_y
-													+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+													+ (double)_CY[i] * momentum_y
+													+ (double)_CZ[i] * momentum_z;
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 											* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 															+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -3180,10 +3180,10 @@ namespace hemelb
 
 			// Collision step:
 			// Single Relaxation Time approximation (LBGK)
-			//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+			//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 			/*// Evolution equation for the fi's here
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
 				//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 				dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -3265,7 +3265,7 @@ namespace hemelb
 			// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 			int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 				// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 				// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -3281,8 +3281,8 @@ namespace hemelb
 			// Wall BCs: Simple Bounce Back if wall-fluid link
 
 			// fNew (dev_fn) populations:
-		#pragma unroll 19
-			for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+		#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -3307,12 +3307,12 @@ namespace hemelb
 					momentumMagnitudeSquared = momentum_x * momentum_x
 														+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-					int unstreamed_dir = _InvDirections_19[LB_Dir];
-					double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-										+ (double)_CY_19[unstreamed_dir] * momentum_y
-										+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+					int unstreamed_dir = _InvDirections[LB_Dir];
+					double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+										+ (double)_CY[unstreamed_dir] * momentum_y
+										+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-					double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+					double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 								* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 												+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 					//------------------------------------------------------------------------------------------------------
@@ -3329,7 +3329,7 @@ namespace hemelb
 				else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 					//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 				}
 				else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -3429,7 +3429,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -3441,14 +3441,14 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-	#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+	#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -3470,22 +3470,22 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
+		double f_neq[HEMELB_NUM_VECTORS];
 		if(write_GlobalMem){
-#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-												+ (double)_CY_19[i] * momentum_y
-												+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+												+ (double)_CY[i] * momentum_y
+												+ (double)_CZ[i] * momentum_z;
 
 				/*
-						dev_fEq[i] = _EQMWEIGHTS_19[i]
+						dev_fEq[i] = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 			 */
 
-			  double dev_fEq = _EQMWEIGHTS_19[i]
+			  double dev_fEq = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -3494,20 +3494,20 @@ namespace hemelb
 			}
 		}
 		else{
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-					+ (double)_CY_19[i] * momentum_y
-					+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+					+ (double)_CY[i] * momentum_y
+					+ (double)_CZ[i] * momentum_z;
 
 				/*
-					dev_fEq[i] = _EQMWEIGHTS_19[i]
+					dev_fEq[i] = _EQMWEIGHTS[i]
 						* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 						+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				*/
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 													* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -3523,10 +3523,10 @@ namespace hemelb
 
 		// Collision step:
 		// Single Relaxation Time approximation (LBGK)
-		//double dev_fn[19];		// or maybe use the existing dev_ff[_NUMVECTORS] to minimise the memory requirements - Check and replace in the future
+		//double dev_fn[19];		// or maybe use the existing dev_ff[HEMELB_NUM_VECTORS] to minimise the memory requirements - Check and replace in the future
 
 		/*// Evolution equation for the fi's here
-		for (int i = 0; i < _NUMVECTORS; ++i)
+		for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 		{
 			//dev_fn[i] = dev_ff[i] + (dev_fEq[i] - dev_ff[i])/dev_tau; // + force[i];
 			dev_ff[i] += (dev_ff[i] - dev_fEq[i]) * dev_minusInvTau; // Check if multiplying by dev_minusInvTau makes a difference
@@ -3608,7 +3608,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -3624,8 +3624,8 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-	#pragma unroll 19
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+	#pragma unroll HEMELB_UNROLL
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -3650,12 +3650,12 @@ namespace hemelb
 				momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
-				double mom_dot_ei = (double)_CX_19[unstreamed_dir] * momentum_x
-									+ (double)_CY_19[unstreamed_dir] * momentum_y
-									+ (double)_CZ_19[unstreamed_dir] * momentum_z;
+				int unstreamed_dir = _InvDirections[LB_Dir];
+				double mom_dot_ei = (double)_CX[unstreamed_dir] * momentum_x
+									+ (double)_CY[unstreamed_dir] * momentum_y
+									+ (double)_CZ[unstreamed_dir] * momentum_z;
 
-				double dev_fEq_unstr = _EQMWEIGHTS_19[unstreamed_dir]
+				double dev_fEq_unstr = _EQMWEIGHTS[unstreamed_dir]
 							* (ghost_dens - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 											+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				//------------------------------------------------------------------------------------------------------
@@ -3672,7 +3672,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -3780,7 +3780,7 @@ namespace hemelb
 
 			// Load the distribution functions
 			//f[19] and fEq[19]
-			double dev_ff[19]; //, dev_fEq[19];
+			double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 			double nn = 0.0;	// density
 			double momentum_x, momentum_y, momentum_z;
 			momentum_x = momentum_y = momentum_z = 0.0;
@@ -3792,14 +3792,14 @@ namespace hemelb
 			// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 			// 		a. Calculate density
 			// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-	#pragma unroll 19
-			for(int direction = 0; direction< _NUMVECTORS; direction++){
+	#pragma unroll HEMELB_UNROLL
+			for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 				dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 				nn += dev_ff[direction];
-				momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-				momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-				momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+				momentum_x += (double)_CX[direction] * dev_ff[direction];
+				momentum_y += (double)_CY[direction] * dev_ff[direction];
+				momentum_z += (double)_CZ[direction] * dev_ff[direction];
 				//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 			}
 
@@ -3819,15 +3819,15 @@ namespace hemelb
 			double _vTau = GMem_dbl_vTau[Ind];
 			//printf("GPU - value of vTau: %f \n", _vTau);
 
-			double f_neq[19];
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			double f_neq[HEMELB_NUM_VECTORS];
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-													+ (double)_CY_19[i] * momentum_y
-													+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+													+ (double)_CY[i] * momentum_y
+													+ (double)_CZ[i] * momentum_z;
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 											* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 															+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -3873,7 +3873,7 @@ namespace hemelb
 			// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 			int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-			for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+			for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 				// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 				// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -3889,8 +3889,8 @@ namespace hemelb
 			// Wall BCs: Simple Bounce Back if wall-fluid link
 
 			// fNew (dev_fn) populations:
-	#pragma unroll 19
-			for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+	#pragma unroll HEMELB_UNROLL
+			for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 			{
 				unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 				bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -3903,7 +3903,7 @@ namespace hemelb
 					// c. Load the WallMom info - Note: We follow Method b for the data layout
 					site_t siteCount = upper_limit-lower_limit;
 					site_t shifted_Fluid_Ind = Ind - lower_limit;
-					//site_t nArr_wallMom = siteCount * (_NUMVECTORS-1); // Number of elements of type distribn_t(double)
+					//site_t nArr_wallMom = siteCount * (HEMELB_NUM_VECTORS-1); // Number of elements of type distribn_t(double)
 
 					/*
 					//-----------------------
@@ -3923,8 +3923,8 @@ namespace hemelb
 					WallMom_z *= nn;
 					//-----------------------
 
-					distribn_t correction = 2. * _EQMWEIGHTS_19[LB_Dir]
-													* (WallMom_x * _CX_19[LB_Dir] + WallMom_y * _CY_19[LB_Dir] + WallMom_z * _CZ_19[LB_Dir]) / _Cs2;
+					distribn_t correction = 2. * _EQMWEIGHTS[LB_Dir]
+													* (WallMom_x * _CX[LB_Dir] + WallMom_y * _CY[LB_Dir] + WallMom_z * _CZ[LB_Dir]) / _Cs2;
 					//-----------------------
 					*/
 
@@ -3938,7 +3938,7 @@ namespace hemelb
 				 correction *= nn;
 				 //-----------------------
 
-					int unstreamed_dir = _InvDirections_19[LB_Dir];
+					int unstreamed_dir = _InvDirections[LB_Dir];
 
 					GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_ff[LB_Dir] - correction;
 
@@ -3954,7 +3954,7 @@ namespace hemelb
 				else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 					//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 					// Simple Bounce Back case:
-					GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+					GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 				}
 				else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
@@ -4052,7 +4052,7 @@ namespace hemelb
 
 		// Load the distribution functions
 		//f[19] and fEq[19]
-		double dev_ff[19]; //, dev_fEq[19];
+		double dev_ff[HEMELB_NUM_VECTORS]; //, dev_fEq[19];
 		double nn = 0.0;	// density
 		double momentum_x, momentum_y, momentum_z;
 		momentum_x = momentum_y = momentum_z = 0.0;
@@ -4064,14 +4064,14 @@ namespace hemelb
 		// 2. Calculate the nessessary elements for calculating the equilibrium distribution functions
 		// 		a. Calculate density
 		// 		b. Calculate momentum - Needs to consider the case of body force as well - To do!!!
-#pragma unroll 19
-		for(int direction = 0; direction< _NUMVECTORS; direction++){
+#pragma unroll HEMELB_UNROLL
+		for(int direction = 0; direction< HEMELB_NUM_VECTORS; direction++){
 			dev_ff[direction] = GMem_dbl_fOld_b[(unsigned long long)direction * nArr_dbl + Ind];
 
 			nn += dev_ff[direction];
-			momentum_x += (double)_CX_19[direction] * dev_ff[direction];
-			momentum_y += (double)_CY_19[direction] * dev_ff[direction];
-			momentum_z += (double)_CZ_19[direction] * dev_ff[direction];
+			momentum_x += (double)_CX[direction] * dev_ff[direction];
+			momentum_y += (double)_CY[direction] * dev_ff[direction];
+			momentum_z += (double)_CZ[direction] * dev_ff[direction];
 			//printf("Momentum: _x = %.5e, _y = %.5e, _z = %.5e \n\n", momentum_x, momentum_y, momentum_z);
 		}
 
@@ -4092,22 +4092,22 @@ namespace hemelb
 		double momentumMagnitudeSquared = momentum_x * momentum_x
 													+ momentum_y * momentum_y + momentum_z * momentum_z;
 
-		double f_neq[19];
+		double f_neq[HEMELB_NUM_VECTORS];
 		if(write_GlobalMem){
-#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-												+ (double)_CY_19[i] * momentum_y
-												+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+												+ (double)_CY[i] * momentum_y
+												+ (double)_CZ[i] * momentum_z;
 
 				/*
-						dev_fEq[i] = _EQMWEIGHTS_19[i]
+						dev_fEq[i] = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 			 */
 
-			  double dev_fEq = _EQMWEIGHTS_19[i]
+			  double dev_fEq = _EQMWEIGHTS[i]
 										* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 														+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -4116,20 +4116,20 @@ namespace hemelb
 			}
 		}
 		else{
-			#pragma unroll 19
-			for (int i = 0; i < _NUMVECTORS; ++i)
+			#pragma unroll HEMELB_UNROLL
+			for (int i = 0; i < HEMELB_NUM_VECTORS; ++i)
 			{
-				double mom_dot_ei = (double)_CX_19[i] * momentum_x
-					+ (double)_CY_19[i] * momentum_y
-					+ (double)_CZ_19[i] * momentum_z;
+				double mom_dot_ei = (double)_CX[i] * momentum_x
+					+ (double)_CY[i] * momentum_y
+					+ (double)_CZ[i] * momentum_z;
 
 				/*
-					dev_fEq[i] = _EQMWEIGHTS_19[i]
+					dev_fEq[i] = _EQMWEIGHTS[i]
 						* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 						+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 				*/
 
-				double dev_fEq = _EQMWEIGHTS_19[i]
+				double dev_fEq = _EQMWEIGHTS[i]
 													* (nn - (3.0 / 2.0) * momentumMagnitudeSquared * density_1
 																	+ (9.0 / 2.0) * density_1 * mom_dot_ei * mom_dot_ei + 3.0 * mom_dot_ei);
 
@@ -4168,7 +4168,7 @@ namespace hemelb
 		// c. Bulk Streaming indices: dev_NeighInd[19] here refers to either: a) the ACTUAL fluid ID index or b) the hemeLB neighbourIndices which refer to the array Index (Data Address) in f_old and f_new
 		int64_t dev_NeighInd[19]; // ACTUAL fluid ID index for the neighbours - or streaming Data Address in hemeLB f's memory
 
-		for(int LB_Dir=0; LB_Dir< _NUMVECTORS; LB_Dir++){
+		for(int LB_Dir=0; LB_Dir< HEMELB_NUM_VECTORS; LB_Dir++){
 			// If we use the elements in GMem_int64_Neigh - then we access the memory address in fOld or fNew directly (not the fluid id)
 			// (remember the memory layout in hemeLB is based on the site fluid index, i.e. f0[0], f1[0], f2[0], ..., fq[0] and for the Fluid Index Ind : f0[Ind], f1[Ind], f2[Ind], ..., fq[Ind]
 
@@ -4184,8 +4184,8 @@ namespace hemelb
 		// Wall BCs: Simple Bounce Back if wall-fluid link
 
 		// fNew (dev_fn) populations:
-#pragma unroll 19
-		for (int LB_Dir = 0; LB_Dir < _NUMVECTORS; LB_Dir++)
+#pragma unroll HEMELB_UNROLL
+		for (int LB_Dir = 0; LB_Dir < HEMELB_NUM_VECTORS; LB_Dir++)
 		{
 			unsigned mask = 1U << (LB_Dir - 1); // Needs to left shift the bits in mask so that I can then compare against the value in test_Wall_Intersect (To do: compare against test_bool_Wall_Intersect as well)
 			bool is_Iolet_link = (Iolet_Intersect & mask);
@@ -4198,7 +4198,7 @@ namespace hemelb
 				// c. Load the WallMom info - Note: We follow Method b for the data layout
 				site_t siteCount = upper_limit-lower_limit;
 				site_t shifted_Fluid_Ind = Ind - lower_limit;
-				//site_t nArr_wallMom = siteCount * (_NUMVECTORS-1); // Number of elements of type distribn_t(double)
+				//site_t nArr_wallMom = siteCount * (HEMELB_NUM_VECTORS-1); // Number of elements of type distribn_t(double)
 
 				/*
 				//-----------------------
@@ -4218,8 +4218,8 @@ namespace hemelb
 				WallMom_z *= nn;
 				//-----------------------
 
-				distribn_t correction = 2. * _EQMWEIGHTS_19[LB_Dir]
-												* (WallMom_x * _CX_19[LB_Dir] + WallMom_y * _CY_19[LB_Dir] + WallMom_z * _CZ_19[LB_Dir]) / _Cs2;
+				distribn_t correction = 2. * _EQMWEIGHTS[LB_Dir]
+												* (WallMom_x * _CX[LB_Dir] + WallMom_y * _CY[LB_Dir] + WallMom_z * _CZ[LB_Dir]) / _Cs2;
 				//-----------------------
 				*/
 
@@ -4233,7 +4233,7 @@ namespace hemelb
 			 correction *= nn;
 			 //-----------------------
 
-				int unstreamed_dir = _InvDirections_19[LB_Dir];
+				int unstreamed_dir = _InvDirections[LB_Dir];
 
 				GMem_dbl_fNew_b[(unsigned long long)unstreamed_dir * nArr_dbl + Ind] = dev_ff[LB_Dir] - correction;
 
@@ -4249,7 +4249,7 @@ namespace hemelb
 			else if(is_Wall_link){	// wallLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);
 				//printf("Site ID = %lld - Wall in Dir: %d \n\n", Ind, LB_Dir);
 				// Simple Bounce Back case:
-				GMem_dbl_fNew_b[(unsigned long long)_InvDirections_19[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
+				GMem_dbl_fNew_b[(unsigned long long)_InvDirections[LB_Dir] * nArr_dbl + Ind]= dev_ff[LB_Dir]; // Bounce Back - Same fluid ID - Reverse LB_Dir
 
 			}
 			else{ // bulkLinkDelegate.StreamLink(lbmParams, latDat, site, hydroVars, ii);

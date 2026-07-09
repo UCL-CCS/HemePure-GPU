@@ -11,6 +11,9 @@
 
 #define frequency_WriteGlobalMem 1000 // Frequency to write macroVariables to GPU global memory
 
+constexpr auto HEMELB_UNROLL{HEMELB_NUM_VECTORS};
+constexpr auto HEMELB_UNROLL_MINUS_ONE{HEMELB_NUM_VECTORS_MINUS_ONE};
+
 namespace hemelb
 {
 
@@ -33,14 +36,13 @@ namespace hemelb
 	extern struct Iolets Inlet_Edge, Inlet_Inner, InletWall_Edge, InletWall_Inner;
 	extern struct Iolets Outlet_Edge, Outlet_Inner, OutletWall_Edge, OutletWall_Inner;
 
-	extern __constant__ unsigned int _NUMVECTORS;
 	extern __constant__ double dev_tau;
 	extern __constant__ double dev_minusInvTau;
-	extern __constant__ int _InvDirections_19[19];
-	extern __device__ __constant__ double _EQMWEIGHTS_19[19];
-	extern __constant__ int _CX_19[19];
-	extern __constant__ int _CY_19[19];
-	extern __constant__ int _CZ_19[19];
+	extern __constant__ int _InvDirections[HEMELB_NUM_VECTORS];
+	extern __device__ __constant__ double _EQMWEIGHTS[HEMELB_NUM_VECTORS];
+	extern __constant__ int _CX[HEMELB_NUM_VECTORS];
+	extern __constant__ int _CY[HEMELB_NUM_VECTORS];
+	extern __constant__ int _CZ[HEMELB_NUM_VECTORS];
 	extern __constant__ double _Cs2;
 	extern __constant__ bool _useWeightsFromFile;
 	extern __constant__ double _iStressParameter;
@@ -81,31 +83,32 @@ namespace hemelb
 
 
 	// Evaluate the wall shear stress magnitude
-	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(distribn_t* GMem_dbl_fOld_b,
-										distribn_t* GMem_dbl_fNew_b,
-										distribn_t* GMem_dbl_MacroVars,
-										site_t* GMem_int64_Neigh,
-										uint32_t* GMem_uint32_Wall_Link,
-										site_t nArr_dbl,
-										site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-										site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
-										distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
-										unsigned long time_Step, int MPI_Rank);
+	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
+									const distribn_t* __restrict__ GMem_dbl_fOld_b,
+									distribn_t* __restrict__ GMem_dbl_fNew_b,
+									distribn_t* __restrict__ GMem_dbl_MacroVars,
+									const site_t* __restrict__ GMem_int64_Neigh,
+									const uint32_t* __restrict__ GMem_uint32_Wall_Link,
+									const site_t nArr_dbl,
+									const site_t lower_limit_MidFluid, const site_t upper_limit_MidFluid,
+									const site_t lower_limit_Wall, const site_t upper_limit_Wall, const site_t totalSharedFs, const bool write_GlobalMem,
+									distribn_t* __restrict__ GMem_dbl_WallShearStressMagn, const distribn_t* __restrict__ GMem_dbl_WallNormal,
+									unsigned long time_Step, int MPI_Rank);
 
   // Evaluate the wall shear stress magnitude
 	//	& Sponge Layer - LES
 	__global__ void GPU_CollideStream_mMidFluidCollision_mWallCollision_sBB_WallShearStress(
-		distribn_t* GMem_dbl_fOld_b,
-		distribn_t* GMem_dbl_fNew_b,
-		distribn_t* GMem_dbl_MacroVars,
-		site_t* GMem_int64_Neigh,
-		uint32_t* GMem_uint32_Wall_Link,
-		site_t nArr_dbl,
-		site_t lower_limit_MidFluid, site_t upper_limit_MidFluid,
-		site_t lower_limit_Wall, site_t upper_limit_Wall, site_t totalSharedFs, bool write_GlobalMem,
-		distribn_t* GMem_dbl_WallShearStressMagn, distribn_t* GMem_dbl_WallNormal,
+		const distribn_t* __restrict__ GMem_dbl_fOld_b,
+		distribn_t* __restrict__ GMem_dbl_fNew_b,
+		distribn_t* __restrict__ GMem_dbl_MacroVars,
+		const site_t* __restrict__ GMem_int64_Neigh,
+		const uint32_t* __restrict__ GMem_uint32_Wall_Link,
+		const site_t nArr_dbl,
+		const site_t lower_limit_MidFluid, const site_t upper_limit_MidFluid,
+		const site_t lower_limit_Wall, const site_t upper_limit_Wall, const site_t totalSharedFs, const bool write_GlobalMem,
+		distribn_t* __restrict__ GMem_dbl_WallShearStressMagn, distribn_t* __restrict__ GMem_dbl_WallNormal,
 		unsigned long time_Step, int MPI_Rank,
-		distribn_t* GMem_dbl_vTau, unsigned long int SL_lifetime
+		distribn_t* __restrict__ GMem_dbl_vTau, unsigned long int SL_lifetime
 	);
 
 
@@ -423,44 +426,44 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 
 	// Element (0,0)
 	ret_SecMomDistrFunc.arr[0] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[0] += f[l] * _CX_19[l]* _CX_19[l];
+		ret_SecMomDistrFunc.arr[0] += f[l] * _CX[l]* _CX[l];
 	}
 
 	// Element (1,0)
 	ret_SecMomDistrFunc.arr[1] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[1] += f[l] * _CY_19[l]* _CX_19[l];
+		ret_SecMomDistrFunc.arr[1] += f[l] * _CY[l] * _CX[l];
 	}
 
 	// Element (1,1)
 	ret_SecMomDistrFunc.arr[2] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[2] += f[l] * _CY_19[l]* _CY_19[l];
+		ret_SecMomDistrFunc.arr[2] += f[l] * _CY[l] * _CY[l];
 	}
 
 	// Element (2,0)
 	ret_SecMomDistrFunc.arr[3] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[3] += f[l] * _CZ_19[l]* _CX_19[l];
+		ret_SecMomDistrFunc.arr[3] += f[l] * _CZ[l] * _CX[l];
 	}
 
 	// Element (2,1)
 	ret_SecMomDistrFunc.arr[4] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[4] += f[l] * _CZ_19[l]* _CY_19[l];
+		ret_SecMomDistrFunc.arr[4] += f[l] * _CZ[l] * _CY[l];
 	}
 
 	// Element (2,2)
 	ret_SecMomDistrFunc.arr[5] = 0.0;
-	for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 	{
-		ret_SecMomDistrFunc.arr[5] += f[l] * _CZ_19[l]* _CZ_19[l];
+		ret_SecMomDistrFunc.arr[5] += f[l] * _CZ[l] * _CZ[l];
 	}
 
 	return ret_SecMomDistrFunc; //address of structure member returned
@@ -504,44 +507,44 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
 
 			// Element (0,0)
 			ret_SecMomDistrFunc[0] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[0] += f[l] * _CX_19[l]* _CX_19[l];
+				ret_SecMomDistrFunc[0] += f[l] * _CX[l] * _CX[l];
 			}
 
 			// Element (1,0)
 			ret_SecMomDistrFunc[1] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[1] += f[l] * _CY_19[l]* _CX_19[l];
+				ret_SecMomDistrFunc[1] += f[l] * _CY[l] * _CX[l];
 			}
 
 			// Element (1,1)
 			ret_SecMomDistrFunc[2] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[2] += f[l] * _CY_19[l]* _CY_19[l];
+				ret_SecMomDistrFunc[2] += f[l] * _CY[l] * _CY[l];
 			}
 
 			// Element (2,0)
 			ret_SecMomDistrFunc[3] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[3] += f[l] * _CZ_19[l]* _CX_19[l];
+				ret_SecMomDistrFunc[3] += f[l] * _CZ[l] * _CX[l];
 			}
 
 			// Element (2,1)
 			ret_SecMomDistrFunc[4] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[4] += f[l] * _CZ_19[l]* _CY_19[l];
+				ret_SecMomDistrFunc[4] += f[l] * _CZ[l] * _CY[l];
 			}
 
 			// Element (2,2)
 			ret_SecMomDistrFunc[5] = 0.0;
-			for (unsigned int l = 0; l < _NUMVECTORS; ++l)
+			for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
 			{
-				ret_SecMomDistrFunc[5] += f[l] * _CZ_19[l]* _CZ_19[l];
+				ret_SecMomDistrFunc[5] += f[l] * _CZ[l] * _CZ[l];
 			}
 
 			return ret_SecMomDistrFunc;
@@ -830,77 +833,43 @@ __device__ __forceinline__ struct structSecMomDistrFun _structCalculatePiTensor(
     double Q_12 = 0.0;
 
     // Compute qij values
-    const double qij_00 =
-        _CX_19[0] * _CX_19[0] * f_neq[0] + _CX_19[1] * _CX_19[1] * f_neq[1] +
-        _CX_19[2] * _CX_19[2] * f_neq[2] + _CX_19[3] * _CX_19[3] * f_neq[3] +
-        _CX_19[4] * _CX_19[4] * f_neq[4] + _CX_19[5] * _CX_19[5] * f_neq[5] +
-        _CX_19[6] * _CX_19[6] * f_neq[6] + _CX_19[7] * _CX_19[7] * f_neq[7] +
-        _CX_19[8] * _CX_19[8] * f_neq[8] + _CX_19[9] * _CX_19[9] * f_neq[9] +
-        _CX_19[10] * _CX_19[10] * f_neq[10] + _CX_19[11] * _CX_19[11] * f_neq[11] +
-        _CX_19[12] * _CX_19[12] * f_neq[12] + _CX_19[13] * _CX_19[13] * f_neq[13] +
-        _CX_19[14] * _CX_19[14] * f_neq[14] + _CX_19[15] * _CX_19[15] * f_neq[15] +
-        _CX_19[16] * _CX_19[16] * f_neq[16] + _CX_19[17] * _CX_19[17] * f_neq[17] +
-        _CX_19[18] * _CX_19[18] * f_neq[18];
+	double qij_00 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
+	{
+		qij_00 += _CX[l] * _CX[l] * f_neq[l];
+	}
 
-    const double qij_01 =
-        _CX_19[0] * _CY_19[0] * f_neq[0] + _CX_19[1] * _CY_19[1] * f_neq[1] +
-        _CX_19[2] * _CY_19[2] * f_neq[2] + _CX_19[3] * _CY_19[3] * f_neq[3] +
-        _CX_19[4] * _CY_19[4] * f_neq[4] + _CX_19[5] * _CY_19[5] * f_neq[5] +
-        _CX_19[6] * _CY_19[6] * f_neq[6] + _CX_19[7] * _CY_19[7] * f_neq[7] +
-        _CX_19[8] * _CY_19[8] * f_neq[8] + _CX_19[9] * _CY_19[9] * f_neq[9] +
-        _CX_19[10] * _CY_19[10] * f_neq[10] + _CX_19[11] * _CY_19[11] * f_neq[11] +
-        _CX_19[12] * _CY_19[12] * f_neq[12] + _CX_19[13] * _CY_19[13] * f_neq[13] +
-        _CX_19[14] * _CY_19[14] * f_neq[14] + _CX_19[15] * _CY_19[15] * f_neq[15] +
-        _CX_19[16] * _CY_19[16] * f_neq[16] + _CX_19[17] * _CY_19[17] * f_neq[17] +
-        _CX_19[18] * _CY_19[18] * f_neq[18];
+	double qij_01 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)	{
+		qij_01 += _CX[l] * _CY[l] * f_neq[l];
+	}
 
-    const double qij_02 =
-        _CX_19[0] * _CZ_19[0] * f_neq[0] + _CX_19[1] * _CZ_19[1] * f_neq[1] +
-        _CX_19[2] * _CZ_19[2] * f_neq[2] + _CX_19[3] * _CZ_19[3] * f_neq[3] +
-        _CX_19[4] * _CZ_19[4] * f_neq[4] + _CX_19[5] * _CZ_19[5] * f_neq[5] +
-        _CX_19[6] * _CZ_19[6] * f_neq[6] + _CX_19[7] * _CZ_19[7] * f_neq[7] +
-        _CX_19[8] * _CZ_19[8] * f_neq[8] + _CX_19[9] * _CZ_19[9] * f_neq[9] +
-        _CX_19[10] * _CZ_19[10] * f_neq[10] + _CX_19[11] * _CZ_19[11] * f_neq[11] +
-        _CX_19[12] * _CZ_19[12] * f_neq[12] + _CX_19[13] * _CZ_19[13] * f_neq[13] +
-        _CX_19[14] * _CZ_19[14] * f_neq[14] + _CX_19[15] * _CZ_19[15] * f_neq[15] +
-        _CX_19[16] * _CZ_19[16] * f_neq[16] + _CX_19[17] * _CZ_19[17] * f_neq[17] +
-        _CX_19[18] * _CZ_19[18] * f_neq[18];
+	double qij_02 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)	{
+		qij_02 += _CX[l] * _CZ[l] * f_neq[l];
+	}
 
-    const double qij_11 =
-        _CY_19[0] * _CY_19[0] * f_neq[0] + _CY_19[1] * _CY_19[1] * f_neq[1] +
-        _CY_19[2] * _CY_19[2] * f_neq[2] + _CY_19[3] * _CY_19[3] * f_neq[3] +
-        _CY_19[4] * _CY_19[4] * f_neq[4] + _CY_19[5] * _CY_19[5] * f_neq[5] +
-        _CY_19[6] * _CY_19[6] * f_neq[6] + _CY_19[7] * _CY_19[7] * f_neq[7] +
-        _CY_19[8] * _CY_19[8] * f_neq[8] + _CY_19[9] * _CY_19[9] * f_neq[9] +
-        _CY_19[10] * _CY_19[10] * f_neq[10] + _CY_19[11] * _CY_19[11] * f_neq[11] +
-        _CY_19[12] * _CY_19[12] * f_neq[12] + _CY_19[13] * _CY_19[13] * f_neq[13] +
-        _CY_19[14] * _CY_19[14] * f_neq[14] + _CY_19[15] * _CY_19[15] * f_neq[15] +
-        _CY_19[16] * _CY_19[16] * f_neq[16] + _CY_19[17] * _CY_19[17] * f_neq[17] +
-        _CY_19[18] * _CY_19[18] * f_neq[18];
+	double qij_11 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)	{
+		qij_11 += _CY[l] * _CY[l] * f_neq[l];
+	}
 
-    const double qij_12 =
-        _CY_19[0] * _CZ_19[0] * f_neq[0] + _CY_19[1] * _CZ_19[1] * f_neq[1] +
-        _CY_19[2] * _CZ_19[2] * f_neq[2] + _CY_19[3] * _CZ_19[3] * f_neq[3] +
-        _CY_19[4] * _CZ_19[4] * f_neq[4] + _CY_19[5] * _CZ_19[5] * f_neq[5] +
-        _CY_19[6] * _CZ_19[6] * f_neq[6] + _CY_19[7] * _CZ_19[7] * f_neq[7] +
-        _CY_19[8] * _CZ_19[8] * f_neq[8] + _CY_19[9] * _CZ_19[9] * f_neq[9] +
-        _CY_19[10] * _CZ_19[10] * f_neq[10] + _CY_19[11] * _CZ_19[11] * f_neq[11] +
-        _CY_19[12] * _CZ_19[12] * f_neq[12] + _CY_19[13] * _CZ_19[13] * f_neq[13] +
-        _CY_19[14] * _CZ_19[14] * f_neq[14] + _CY_19[15] * _CZ_19[15] * f_neq[15] +
-        _CY_19[16] * _CZ_19[16] * f_neq[16] + _CY_19[17] * _CZ_19[17] * f_neq[17] +
-        _CY_19[18] * _CZ_19[18] * f_neq[18];
+	double qij_12 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)
+	{
+		qij_12 += _CY[l] * _CZ[l] * f_neq[l];
+	}
 
-    const double qij_22 =
-        _CZ_19[0] * _CZ_19[0] * f_neq[0] + _CZ_19[1] * _CZ_19[1] * f_neq[1] +
-        _CZ_19[2] * _CZ_19[2] * f_neq[2] + _CZ_19[3] * _CZ_19[3] * f_neq[3] +
-        _CZ_19[4] * _CZ_19[4] * f_neq[4] + _CZ_19[5] * _CZ_19[5] * f_neq[5] +
-        _CZ_19[6] * _CZ_19[6] * f_neq[6] + _CZ_19[7] * _CZ_19[7] * f_neq[7] +
-        _CZ_19[8] * _CZ_19[8] * f_neq[8] + _CZ_19[9] * _CZ_19[9] * f_neq[9] +
-        _CZ_19[10] * _CZ_19[10] * f_neq[10] + _CZ_19[11] * _CZ_19[11] * f_neq[11] +
-        _CZ_19[12] * _CZ_19[12] * f_neq[12] + _CZ_19[13] * _CZ_19[13] * f_neq[13] +
-        _CZ_19[14] * _CZ_19[14] * f_neq[14] + _CZ_19[15] * _CZ_19[15] * f_neq[15] +
-        _CZ_19[16] * _CZ_19[16] * f_neq[16] + _CZ_19[17] * _CZ_19[17] * f_neq[17] +
-        _CZ_19[18] * _CZ_19[18] * f_neq[18];
+	double qij_22 = 0.0;
+	#pragma unroll HEMELB_UNROLL
+	for (unsigned int l = 0; l < HEMELB_NUM_VECTORS; ++l)	{
+		qij_22 += _CZ[l] * _CZ[l] * f_neq[l];
+	}
 
     // Sum the terms to get Q_12 (loops over i and j -> ie 9 terms qij * qij)
     Q_12 += qij_00 * qij_00 + qij_01 * qij_01 + qij_02 * qij_02;

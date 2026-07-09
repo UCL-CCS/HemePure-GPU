@@ -505,13 +505,16 @@ namespace hemelb
 			const proc_t localRank = comms.Rank();
 			neighbourIndices.resize(latticeInfo.GetNumVectors() * localFluidSites);
 
-			// These will be private to each thread
-			std::vector< std::vector< std::vector< site_t > > > threadLocalSharedDistributionLocations(omp_get_max_threads());
-			#pragma omp parallel 
-			{
-				auto tid = omp_get_thread_num();
-				threadLocalSharedDistributionLocations[ tid ].resize(comms.Size());
-			}
+			// Properly figure out how many threads we have
+			// We do it in this fashion because omp_get_max_threads() does not
+			// necessarily return the number of threads that will spawn when entering
+			// a parallel section. This solution is more robust.
+			size_t MT = 0;
+			#pragma omp parallel reduction(+:MT)
+			MT += 1;
+			
+			std::vector< std::vector< std::vector< site_t > > > threadLocalSharedDistributionLocations(
+				MT, std::vector< std::vector< site_t > >(comms.Size()));
 #if 0
 			for (BlockTraverser blockTraverser(*this); blockTraverser.CurrentLocationValid(); blockTraverser.TraverseOne())
 			{

@@ -5858,7 +5858,8 @@ template<class LatticeType>
 				//		g. useWeightsFromFile - Case of Vel BCs
 
 				// 2.a. Weight coefficients for the equilibrium distr. functions
-				status = deviceMemcpyToSymbol(hemelb::_EQMWEIGHTS_19, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, memcpyHostToDevice);
+				status = deviceMemcpyToSymbol(hemelb::_EQMWEIGHTS, LatticeType::EQMWEIGHTS, LatticeType::NUMVECTORS*sizeof(double), 0, memcpyHostToDevice);
+
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (1)\n");
 					initialise_GPU_res = false;
@@ -5868,18 +5869,18 @@ template<class LatticeType>
 				}
 
 				// 2.b. Number of vectors: LatticeType::NUMVECTORS
-				static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
-				status = deviceMemcpyToSymbol(&hemelb::_NUMVECTORS, &num_Vectors, sizeof(num_Vectors), 0, memcpyHostToDevice);
-				if (!status) {
-					fprintf(stderr, "GPU constant memory copy failed (2)\n");
-					initialise_GPU_res = false;
-					return initialise_GPU_res;
-					//return false;
-					//goto Error;
-				}
+				// static const unsigned int num_Vectors = LatticeType::NUMVECTORS;
+				// status = deviceMemcpyToSymbol(&hemelb::HEMELB_NUM_VECTORS, &num_Vectors, sizeof(num_Vectors), 0, memcpyHostToDevice);
+				// if (!status) {
+				// 	fprintf(stderr, "GPU constant memory copy failed (2)\n");
+				// 	initialise_GPU_res = false;
+				// 	return initialise_GPU_res;
+				// 	//return false;
+				// 	//goto Error;
+				// }
 
 				// 2.c. Inverse directions for the bounce back LatticeType::INVERSEDIRECTIONS[direction]
-				status = deviceMemcpyToSymbol(hemelb::_InvDirections_19, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = deviceMemcpyToSymbol(hemelb::_InvDirections, LatticeType::INVERSEDIRECTIONS, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (3)\n");
 					initialise_GPU_res = false;
@@ -5889,21 +5890,21 @@ template<class LatticeType>
 				}
 
 				// 2.d. Lattice Velocity directions CX[DmQn::NUMVECTORS], CY[DmQn::NUMVECTORS], CZ[DmQn::NUMVECTORS]
-				status = deviceMemcpyToSymbol(hemelb::_CX_19, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = deviceMemcpyToSymbol(hemelb::_CX, LatticeType::CX, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (4)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				status = deviceMemcpyToSymbol(hemelb::_CY_19, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = deviceMemcpyToSymbol(hemelb::_CY, LatticeType::CY, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (5)\n");
 					initialise_GPU_res = false;
 					return initialise_GPU_res;
 					//return false;
 				}
-				status = deviceMemcpyToSymbol(hemelb::_CZ_19, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
+				status = deviceMemcpyToSymbol(hemelb::_CZ, LatticeType::CZ, LatticeType::NUMVECTORS*sizeof(int), 0, memcpyHostToDevice);
 				if (!status) {
 					fprintf(stderr, "GPU constant memory copy failed (6)\n");
 					initialise_GPU_res = false;
