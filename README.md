@@ -1,13 +1,46 @@
 # HemePure_GPU
 **GPU version of HemePure**  <br />
+
+![Strong scaling of HemePure_GPU on Crusher, Frontier, and other GPU systems](misc/performance.png)
+
 This repository represents a porting of the CPU-only [HemePure](https://github.com/UCL-CCS/HemePure) version of the HemeLB code to enable execution of GPUs. This version on the default branch (HIP-CUDA-ROCM_SL) is able to run on both Nvidia and AMD hardware and has demonstrated strong scaling to tens of thousands of GPU cards on both vendors' hardware. It is available under the BSD-3-Clause license. Development of this version from the HemePure code began in 2019, the major developer of this implementation has been Ioannis Zacharoudiou (UCL). Balint Joo (ORNL/Nvidia) has also provided significant support in enabling execution on differing hardware. The HIP-CUDA-ROCM-SYCL-Functor branch uses functors to allow compilation and execution on Nvidia, AMD and Intel GPU hardware - refer to that branch for specific compilation instrutions.
 
 Pre- and post-processing of simulation domains for HemePure-GPU follow the same steps as utilised by the CPU version.
 
-Publications specifically using HemePure_GPU:
-* Xue, X., Athawale, T. M., McCullough, J. W. S., Lo, S. C., Zacharoudiou, I., Joo, B., ... & Coveney, P. V. (2025). An Uncertainty Visualization Framework for Large-Scale Cardiovascular Flow Simulations: A Case Study on Aortic Stenosis. arXiv preprint arXiv:2508.15420.
-* Xue, X., McCullough, J. W. S., Lo, S. C., Zacharoudiou, I., Joó, B., & Coveney, P. V. (2024, June). The lattice Boltzmann based large eddy simulations for the stenosis of the aorta. In International Conference on Computational Science (pp. 408-420). Cham: Springer Nature Switzerland.
-* Zacharoudiou, I., McCullough, J. W. S. & Coveney, P. V. (2023). Development and performance of a HemeLB GPU code for human-scale blood flow simulation. Computer Physics Communications, 282, 108548.
+
+
+If you use HemePure_GPU in your research, please cite:
+
+```bibtex
+@article{xue2026uncertainty,
+  title={An uncertainty visualization framework for large-scale cardiovascular flow simulations: A case study on aortic stenosis},
+  author={Xue, Xiao and Athawale, Tushar M and McCullough, Jon WS and Lo, Sharp CY and Zacharoudiou, Ioannis and Jo{\'o}, B{\'a}lint and Georgiadou, Antigoni and Coveney, Peter V},
+  journal={Journal of Computational Science},
+  volume={99},
+  pages={102914},
+  year={2026},
+  publisher={Elsevier}
+}
+
+@inproceedings{xue2024lattice,
+  title={The lattice Boltzmann based large eddy simulations for the stenosis of the aorta},
+  author={Xue, Xiao and McCullough, Jon WS and Lo, Sharp CY and Zacharoudiou, Ioannis and Jo{\'o}, B{\'a}lint and Coveney, Peter V},
+  booktitle={Computational Science -- ICCS 2024},
+  pages={408--420},
+  year={2024},
+  publisher={Springer Nature Switzerland}
+}
+
+@article{zacharoudiou2023hemelb,
+  title={Development and performance of a HemeLB GPU code for human-scale blood flow simulation},
+  author={Zacharoudiou, Ioannis and McCullough, Jon WS and Coveney, Peter V},
+  journal={Computer Physics Communications},
+  volume={282},
+  pages={108548},
+  year={2023},
+  publisher={Elsevier}
+}
+```
 
 ##  Features #
 The GPU version of HemePure can be executed with the following functionality. Some must be specified at the compilation of the hemepure executable. Simulations are conducted using a D3Q19 lattice stencil.
