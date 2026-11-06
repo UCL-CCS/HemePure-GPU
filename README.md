@@ -12,6 +12,30 @@ Pre- and post-processing of simulation domains for HemePure-GPU follow the same 
 If you use HemePure_GPU in your research, please cite:
 
 ```bibtex
+@misc{xue2026exascale,
+  title={Exascale-ready HemeLB for large-eddy simulation of full-human arterial blood flow},
+  author={Xue, Xiao and Zacharoudiou, Ioannis and Coveney, Peter V},
+  year={2026},
+  eprint={2611.07840},
+  archivePrefix={arXiv},
+  primaryClass={physics.flu-dyn},
+  url={https://arxiv.org/abs/2611.07840}
+}
+
+@article{zacharoudiou2023hemelb,
+  title={Development and performance of a HemeLB GPU code for human-scale blood flow simulation},
+  author={Zacharoudiou, Ioannis and McCullough, Jon WS and Coveney, Peter V},
+  journal={Computer Physics Communications},
+  volume={282},
+  pages={108548},
+  year={2023},
+  publisher={Elsevier}
+}
+```
+
+Contributed papers:
+
+```bibtex
 @article{xue2026uncertainty,
   title={An uncertainty visualization framework for large-scale cardiovascular flow simulations: A case study on aortic stenosis},
   author={Xue, Xiao and Athawale, Tushar M and McCullough, Jon WS and Lo, Sharp CY and Zacharoudiou, Ioannis and Jo{\'o}, B{\'a}lint and Georgiadou, Antigoni and Coveney, Peter V},
@@ -29,16 +53,6 @@ If you use HemePure_GPU in your research, please cite:
   pages={408--420},
   year={2024},
   publisher={Springer Nature Switzerland}
-}
-
-@article{zacharoudiou2023hemelb,
-  title={Development and performance of a HemeLB GPU code for human-scale blood flow simulation},
-  author={Zacharoudiou, Ioannis and McCullough, Jon WS and Coveney, Peter V},
-  journal={Computer Physics Communications},
-  volume={282},
-  pages={108548},
-  year={2023},
-  publisher={Elsevier}
 }
 ```
 
